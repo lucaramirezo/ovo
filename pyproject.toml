@@ -1,0 +1,13 @@
+[project]
+name = "hydroegg"
+version = "0.1.0"
+description = "Parametric, printable folding-blade hydrokinetic charger (build123d)"
+requires-python = ">=3.12"
+dependencies = [
+    "build123d>=0.13.0",
+    "manifold3d>=3.5.4",
+    "matplotlib>=3.11.2",
+    "neuralfoil>=0.3.3",
+    "numpy>=2.5.3",
+    "trimesh>=5.1.1",
+]
