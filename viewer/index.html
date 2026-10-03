@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HydroEgg viewer</title>
+<style>
+  :root { --bg0: #f4f2ee; --bg1: #dcd8d0; --ink: #1d1d1b; }
+  html, body { margin: 0; height: 100%; background: radial-gradient(ellipse at 50% 35%, var(--bg0), var(--bg1)); overflow: hidden; font: 13px/1.4 system-ui, sans-serif; color: var(--ink); }
+  body.dark { --bg0: #2a2d31; --bg1: #121315; --ink: #e8e6e1; }
+  body.flat { background: var(--bg0); }
+  canvas { display: block; }
+  #ui { position: fixed; left: 12px; bottom: 12px; display: none; gap: 14px; align-items: center; background: color-mix(in srgb, var(--bg0) 85%, transparent); padding: 8px 12px; border-radius: 10px; }
+  body.ui #ui { display: flex; flex-wrap: wrap; }
+  #ui label { display: flex; gap: 6px; align-items: center; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="ui">
+  <label>fold <input id="s-fold" type="range" min="0" max="1" step="0.01" value="1"></label>
+  <label>explode <input id="s-explode" type="range" min="0" max="1" step="0.01" value="0"></label>
+  <label><input id="c-cutaway" type="checkbox"> cutaway</label>
+  <label><input id="c-spin" type="checkbox"> spin</label>
+</div>
+<script type="module">
+// Render harness + interactive viewer for the HydroEgg assembly.
+// Reads out/web/manifest.json (written by hydroegg/export_web.py) and the GLB it names.
+// CAD frame is Z-up with the flow along +X; three.js is Y-up, so the model root is
+// rotated -90 deg about X. URL params (all optional):
+//   m=<manifest url>  fold=0..1 (0 stowed, 1 deployed)  explode=0..1  cutaway=0|1
+//   internals=0|1  stand=0|1  spin=<deg>  view=<az>,<el> | iso|side|front|back|top
+//   zoom=<factor>  w,h=<px>  dpr=<n>  theme=light|dark|flat  ui=1  only=<name,name>
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const q = new URLSearchParams(location.search);
+const num = (k, d) => (q.has(k) ? parseFloat(q.get(k)) : d);
+const state = {
+  fold: num('fold', 1), explode: num('explode', 0), cutaway: q.get('cutaway') === '1',
+  internals: q.has('internals') ? q.get('internals') === '1' : null,
+  stand: q.get('stand') === '1', spin: num('spin', 0),
+  view: q.get('view') || 'iso', zoom: num('zoom', 1),
+  only: q.get('only') ? q.get('only').split(',') : null,
+};
+const W = num('w', innerWidth), H = num('h', innerHeight);
+const theme = q.get('theme') || 'light';
+document.body.classList.add(theme);
+if (q.get('ui') === '1') document.body.classList.add('ui');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(num('dpr', Math.min(devicePixelRatio, 2)));
+renderer.setSize(W, H);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.55;
+
+const camera = new THREE.PerspectiveCamera(28, W / H, 1, 5000);
+const key = new THREE.DirectionalLight(0xffffff, 2.2);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.radius = 6;
+key.shadow.bias = -0.0004;
+scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0xdfe8ff, 0.9);
+scene.add(rim);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b2a6, 0.35));
+
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000),
+  new THREE.ShadowMaterial({ opacity: theme === 'dark' ? 0.35 : 0.16 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// CAD (Z-up) -> three (Y-up)
+const root = new THREE.Group();
+root.rotation.x = -Math.PI / 2;
+scene.add(root);
+
+const manifestUrl = q.get('m') || '../out/web/manifest.json';
+const manifest = await (await fetch(manifestUrl, { cache: 'no-store' })).json();
+const base = new URL(manifestUrl, location.href);
+const gltf = await new GLTFLoader().loadAsync(new URL(manifest.glb, base).href);
+
+const mats = {};
+for (const [k, m] of Object.entries(manifest.materials)) {
+  mats[k] = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(m.color), roughness: m.roughness ?? 0.6, metalness: m.metalness ?? 0,
+    clearcoat: m.clearcoat ?? 0, clearcoatRoughness: 0.4, side: THREE.DoubleSide,
+    transparent: (m.opacity ?? 1) < 1, opacity: m.opacity ?? 1,
+  });
+}
+
+// Each manifest part -> { obj (mesh in its own group), part }. Blades sit under a pivot
+// group placed on the hinge so fold is a pure rotation; the whole rotor sits under a
+// spin group on the body axis.
+const parts = [];
+const rotorSpin = new THREE.Group();
+root.add(rotorSpin);
+const byName = {};
+gltf.scene.traverse(o => { if (o.isMesh) byName[o.name] = o; });
+for (const p of manifest.parts) {
+  const src = byName[p.name];
+  if (!src) { console.warn('missing mesh', p.name); continue; }
+  if (!src.geometry.attributes.normal) src.geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(src.geometry, mats[p.material] || mats.default);
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  const holder = new THREE.Group();     // explode offset lives here
+  let obj = mesh;
+  if (p.pivot) {                         // pivot: origin + axis in CAD frame, stowed pose exported
+    const piv = new THREE.Group();
+    const o = new THREE.Vector3(...p.pivot.origin);
+    piv.position.copy(o);
+    mesh.position.copy(o).negate();
+    piv.add(mesh);
+    piv.userData.axis = new THREE.Vector3(...p.pivot.axis).normalize();
+    piv.userData.deg = p.pivot.deployed_deg;
+    obj = piv;
+  }
+  holder.add(obj);
+  (p.rotor ? rotorSpin : root).add(holder);
+  parts.push({ p, holder, obj, mesh });
+}
+
+function visible(p) {
+  if (state.only) return state.only.includes(p.name);
+  const internals = state.internals ?? (state.cutaway || state.explode > 0.01);
+  switch (p.role) {
+    case 'shell': return !state.cutaway;
+    case 'shell_cutaway': return state.cutaway;
+    case 'internal': return internals;
+    case 'stand': return state.stand;
+    case 'hidden': return false;
+    default: return true;
+  }
+}
+
+function apply() {
+  for (const { p, holder, obj } of parts) {
+    holder.visible = visible(p);
+    const e = p.explode || [0, 0, 0];
+    holder.position.set(e[0] * state.explode, e[1] * state.explode, e[2] * state.explode);
+    if (p.pivot) {
+      obj.quaternion.setFromAxisAngle(obj.userData.axis, THREE.MathUtils.degToRad(obj.userData.deg * state.fold));
+    }
+  }
+  rotorSpin.rotation.x = THREE.MathUtils.degToRad(state.spin);
+}
+
+const presets = { iso: [-35, 22], side: [0, 0], front: [-90, 0], back: [90, 0], top: [0, 89], hero: [-28, 14] };
+let fitted = null;
+function frame() {
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  for (const { holder } of parts) if (holder.visible) box.expandByObject(holder);
+  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+  ground.position.y = box.min.y - 0.5;
+  const [az, el] = (presets[state.view] || state.view.split(',').map(Number)).map(THREE.MathUtils.degToRad);
+  const r = (0.5 * s.length()) / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) / state.zoom * 0.92;
+  // az measured around the vertical axis from the side view (looking at the model's +Y side)
+  const dir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
+  camera.position.copy(c).addScaledVector(dir, r);
+  camera.near = r / 50; camera.far = r * 50; camera.updateProjectionMatrix();
+  camera.lookAt(c);
+  key.position.copy(c).add(new THREE.Vector3(-0.6, 1.4, 0.9).multiplyScalar(r));
+  key.target.position.copy(c);
+  const ext = s.length();
+  Object.assign(key.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext, near: 1, far: r * 4 });
+  key.shadow.camera.updateProjectionMatrix();
+  rim.position.copy(c).add(new THREE.Vector3(1, 0.6, -1.2).multiplyScalar(r));
+  fitted = c;
+}
+
+let controls = null;
+function render() { renderer.render(scene, camera); }
+window.setState = (patch = {}, refit = true) => {
+  Object.assign(state, patch); apply(); if (refit) frame(); if (controls) controls.target.copy(fitted); render();
+  return true;
+};
+window.partsInfo = () => parts.map(({ p, holder }) => ({ name: p.name, visible: holder.visible }));
+
+apply(); frame();
+if (q.get('ui') === '1') {
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.copy(fitted); controls.enableDamping = true;
+  const bind = (id, k, f = v => +v) => document.getElementById(id).addEventListener('input', e => { state[k] = f(e.target.type === 'checkbox' ? e.target.checked : e.target.value); apply(); });
+  bind('s-fold', 'fold'); bind('s-explode', 'explode'); bind('c-cutaway', 'cutaway', v => v);
+  let spinning = false; document.getElementById('c-spin').addEventListener('input', e => spinning = e.target.checked);
+  renderer.setAnimationLoop(() => { if (spinning) { state.spin += 2; apply(); } controls.update(); render(); });
+} else {
+  render();
+}
+window.__ready = true;
+const ready = document.createElement('div'); ready.id = 'ready'; Object.assign(ready.style, { position: 'fixed', left: '0', top: '0', width: '1px', height: '1px', opacity: '0', pointerEvents: 'none' }); document.body.appendChild(ready);
+</script>
+</body>
+</html>
