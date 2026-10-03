@@ -1,0 +1,161 @@
+{
+ "meta": {
+  "generated_by": "out/work/hardware/build_outputs.py",
+  "date": "2026-10-03",
+  "currency": "EUR",
+  "fx": {
+   "usd_per_eur": 1.1225,
+   "source_url": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
+  },
+  "note": "est_price_eur null = not sourced; quantities marked ESTIMATE wait for the CAD"
+ },
+ "items": [
+  {
+   "item": "Deep groove ball bearing S608-2RS",
+   "qty": 2,
+   "spec": "8x22x7, AISI 440C stainless, 2RS",
+   "est_price_eur": 10.04,
+   "display_build": true,
+   "v2_only": false,
+   "source_url": "https://bearingsdirect.com/s608-2rs-stainless-steel-miniature-ball-bearing-8x22x7mm-sealed/",
+   "note": "688-2RS (8x16x5) is the compact alternative (USD 4.38, stainless USD 5.63)"
+  },
+  {
+   "item": "Shaft 8 mm",
+   "qty": 1,
+   "spec": "MISUMI PSSFJ8 SUS440C hardened 56 HRC, g6; length set by the layout study",
+   "est_price_eur": null,
+   "display_build": true,
+   "v2_only": false,
+   "source_url": "https://us.misumi-ec.com/pdf/fa/2019/2019_US_0202_003.pdf",
+   "note": "display build may use any 8 mm h6/g6 stainless rod; v2 needs >= 45 HRC under the lip seal"
+  },
+  {
+   "item": "Dowel pin ISO 8734 3x16",
+   "qty": 3,
+   "spec": "d 3 m6, l 16, type A or C1 stainless; one per blade hinge",
+   "est_price_eur": null,
+   "display_build": true,
+   "v2_only": false,
+   "source_url": "https://cdn.standards.iteh.ai/samples/20002/ba95529de6a64437ac7454e14dbd2ef6/ISO-8734-1997.pdf"
+  },
+  {
+   "item": "Magnet N52 disc 4x2",
+   "qty": 12,
+   "spec": "4 +-0.05 x 2 mm, Ni-Cu-Ni; qty ESTIMATE: 3 blades x 2 detents x 2",
+   "est_price_eur": 3.24,
+   "display_build": true,
+   "v2_only": false,
+   "source_url": "https://www.jc-magnetics.com/Magnet-N52-4mm-2mm-Discs"
+  },
+  {
+   "item": "Heat-set insert M3 x 5.7 (CNC Kitchen standard)",
+   "qty": 8,
+   "spec": "hole 4.0, min wall 1.6; qty ESTIMATE (spinner, fins, plate)",
+   "est_price_eur": 0.97,
+   "display_build": true,
+   "v2_only": false,
+   "source_url": "https://www.3djake.com/cnc-kitchen/threaded-inserts-m3-standard",
+   "note": "sold per 100 (EUR 12.09)"
+  },
+  {
+   "item": "Socket head cap screw M3 (ISO 4762), A2",
+   "qty": 8,
+   "spec": "lengths set by CAD; qty ESTIMATE",
+   "est_price_eur": null,
+   "display_build": true,
+   "v2_only": false,
+   "source_url": null
+  },
+  {
+   "item": "Grub screw M3 x 4 cup point (ISO 4029), A2/A4",
+   "qty": 2,
+   "spec": "hex 1.5; hub on shaft flat, v2 coupler",
+   "est_price_eur": null,
+   "display_build": true,
+   "v2_only": false,
+   "source_url": "https://accu-components.com/us/cup-point-set-screws/5009-SSU-M3-4-A2"
+  },
+  {
+   "item": "Filament PETG",
+   "qty": 1,
+   "spec": "all wetted parts; mass set by CAD",
+   "est_price_eur": null,
+   "display_build": true,
+   "v2_only": false,
+   "source_url": "https://help.prusa3d.com/article/petg_2059"
+  },
+  {
+   "item": "Printed tow eye (nose)",
+   "qty": 1,
+   "spec": "integral to the nose shell; pull test >= 236 N",
+   "est_price_eur": 0.0,
+   "display_build": true,
+   "v2_only": false,
+   "source_url": null
+  },
+  {
+   "item": "Generator iPower GM4108H-120T",
+   "qty": 1,
+   "spec": "D47 x 22.7, 24N22P, 11.1 ohm, hollow 8 mm bore",
+   "est_price_eur": 43.9,
+   "display_build": false,
+   "v2_only": true,
+   "source_url": "https://iflight-rc.eu/en/products/ipower-gm4108h-120t-gimbal-motor",
+   "note": "display build prints a replica with the same envelope and base pattern"
+  },
+  {
+   "item": "Lip seal TC 8x16x5 NBR",
+   "qty": 1,
+   "spec": "double lip + garter spring; housing bore 16",
+   "est_price_eur": null,
+   "display_build": false,
+   "v2_only": true,
+   "source_url": "https://www.amazon.com/8x16x5-Rubber-Covered-Double-Garter/dp/B00MW7GOD6"
+  },
+  {
+   "item": "O-ring ISO 3601-143 (AS568-143)",
+   "qty": 2,
+   "spec": "61.60 x 2.62, EPDM 70 or NBR 70 (one spare)",
+   "est_price_eur": null,
+   "display_build": false,
+   "v2_only": true,
+   "source_url": "https://www.applerubber.com/src/pdf/iso-3601-metric-size-o-rings.pdf",
+   "note": "optional in the display build to demonstrate the gland"
+  },
+  {
+   "item": "Cable gland Hummel HSK-K M12x1.5 grey + additional thread O-ring",
+   "qty": 1,
+   "spec": "1.209.1200.50, clamp 3-6.5, IP68 with O-ring",
+   "est_price_eur": 0.93,
+   "display_build": false,
+   "v2_only": true,
+   "source_url": "https://www.hummel.com/en/cable-glands/products/plastic-cable-glands/hsk-k/1209120050-hsk-k-grey-m12x1-5/",
+   "note": "price from the 10-pack (https://tameson.com/products/hummel-hsk-k-m12-cable-gland-pa-gray-1209120050-10-pieces)"
+  },
+  {
+   "item": "3-core cable 3 x 0.5 mm2",
+   "qty": 1,
+   "spec": "OD 3-6.5 mm; length ASSUMED 5 m",
+   "est_price_eur": null,
+   "display_build": false,
+   "v2_only": true,
+   "source_url": null
+  },
+  {
+   "item": "3-phase rectifier + buck to 5 V USB",
+   "qty": 1,
+   "spec": "input >= 60 V (towed freewheel estimate); not specified here",
+   "est_price_eur": null,
+   "display_build": false,
+   "v2_only": true,
+   "source_url": null,
+   "note": "electronics are out of scope for v1"
+  }
+ ],
+ "totals": {
+  "display_build_known_eur": 14.25,
+  "v2_additional_known_eur": 44.83,
+  "unpriced_items": 9
+ }
+}

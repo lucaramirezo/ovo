@@ -1,0 +1,2938 @@
+{
+ "meta": {
+  "generated_by": "out/work/hardware/build_outputs.py",
+  "date": "2026-10-03",
+  "conventions": {
+   "KV": "rpm per volt of line-to-line PEAK back-EMF (hobby convention, = no-load rpm per DC bus volt)",
+   "Kt0": "60 / (2 pi KV) in Nm per DC-equivalent amp",
+   "copper_loss": "P_cu = (tau / Kt0)^2 * R_ll, R_ll = line-to-line = 2 x phase (star). Exact for six-step and for sinusoidal FOC with KV referenced to ll-peak.",
+   "confidence": "high = manufacturer datasheet/standard; medium = dealer, community or derived; low = inference, review article or single weak source"
+  },
+  "design_point": {
+   "rpm": [
+    550,
+    750
+   ],
+   "tau_Nm": [
+    0.2,
+    0.35
+   ],
+   "nominal_rpm": 650,
+   "nominal_tau_Nm": 0.27,
+   "nominal_shaft_W": 18.38,
+   "bem_points_provisional": [
+    {
+     "tsr": 4.0,
+     "rpm": 591.0,
+     "tau": 0.296
+    },
+    {
+     "tsr": 4.5,
+     "rpm": 665.0,
+     "tau": 0.259
+    },
+    {
+     "tsr": 5.0,
+     "rpm": 738.0,
+     "tau": 0.227
+    }
+   ]
+  },
+  "fx": {
+   "value": 1.1225,
+   "unit": "USD per EUR (2026-10-02)",
+   "source_url": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
+   "confidence": "high"
+  },
+  "assumptions": {
+   "schottky_vf_V": 0.4,
+   "tether_m": 5.0,
+   "tether_mm2": 0.5,
+   "print_tol_diameter_mm": 0.1
+  }
+ },
+ "generator": {
+  "envelope": {
+   "D_max_mm": 56.0,
+   "L_max_mm": 35.0
+  },
+  "Km_required_at_650rpm_0p27Nm": {
+   "value": {
+    "eta_60": 0.0996,
+    "eta_70": 0.115,
+    "eta_80": 0.1408,
+    "eta_90": 0.1992
+   },
+   "unit": "Nm/sqrt(W)",
+   "source_url": "code:out/work/hardware/hw_calc.py",
+   "confidence": "high",
+   "note": "copper-only efficiency targets 60/70/80/90%"
+  },
+  "tsr_sensitivity": {
+   "value": [
+    {
+     "TSR": 4.0,
+     "rpm": 650,
+     "tau_Nm": 0.27,
+     "cu_fraction_Km_0p07": 0.81,
+     "cu_fraction_Km_0p10": 0.397
+    },
+    {
+     "TSR": 5.0,
+     "rpm": 812,
+     "tau_Nm": 0.216,
+     "cu_fraction_Km_0p07": 0.518,
+     "cu_fraction_Km_0p10": 0.254
+    },
+    {
+     "TSR": 6.0,
+     "rpm": 975,
+     "tau_Nm": 0.18,
+     "cu_fraction_Km_0p07": 0.36,
+     "cu_fraction_Km_0p10": 0.176
+    }
+   ],
+   "unit": "-",
+   "source_url": "code:out/work/hardware/hw_calc.py",
+   "confidence": "high",
+   "note": "same shaft power at higher TSR -> lower torque -> lower copper fraction"
+  },
+  "candidates": [
+   {
+    "id": "ipower_gm4108h_120t",
+    "name": "iPower GM4108H-120T",
+    "cls": "gimbal outrunner",
+    "D": {
+     "value": 47.0,
+     "unit": "mm",
+     "source_url": "https://shop.iflight.com/ipower-motor-gm4108h-120t-brushless-gimbal-motor-pro217",
+     "confidence": "high",
+     "note": "Motor Out Diameter 47 +-0.05"
+    },
+    "L": {
+     "value": 22.7,
+     "unit": "mm",
+     "source_url": "https://shop.iflight.com/ipower-motor-gm4108h-120t-brushless-gimbal-motor-pro217",
+     "confidence": "medium",
+     "note": "iFlight page: 22.7 +-0.2. Dealer copies list 32.3 (iflight-rc.eu, insightfpv), which iFlight gives for the encoder variant incl. encoder housing. Reserve 33 mm in the bay."
+    },
+    "shaft": {
+     "value": "hollow, OD 10 (-0.008/-0.012), ID 8 (+0.05/0)",
+     "unit": "mm",
+     "source_url": "https://shop.iflight.com/ipower-motor-gm4108h-120t-brushless-gimbal-motor-pro217",
+     "confidence": "high"
+    },
+    "mount": {
+     "value": "base: 4 x M3 clearance holes on PCD 38.14 (adjacent spacing 26.97), centre clearance 16; rotor face: unconfirmed ('top mounting holes 12 mm center to center' on an older GBM4108H listing)",
+     "unit": "mm",
+     "source_url": "https://github.com/csunwc/simpleFOC-test",
+     "confidence": "medium",
+     "note": "PCD measured by code from community bracket mount2.STEP (step_mount.py); forum says holes 27 mm apart (https://community.simplefoc.com/t/ipower-gm4108h-120t-motor-mount-bracket-stl-file/2060); older-revision top-hole note from https://brushlessgimbal.ca/BRUSHLESS-GIMBAL-PTZ/Gimbal-Brushless-Motor/IPower-GBM4108H-120T-I-FLIGHT-Gimbal-Brushless-Motor-Hollow-Shaf (low)."
+    },
+    "config": {
+     "value": "24N22P (11 pole pairs)",
+     "unit": "-",
+     "source_url": "https://shop.iflight.com/ipower-motor-gm4108h-120t-brushless-gimbal-motor-pro217",
+     "confidence": "high"
+    },
+    "KV": {
+     "value": [
+      27.0,
+      32.0
+     ],
+     "unit": "rpm/V",
+     "source_url": "https://shop.iflight.com/ipower-motor-gm4108h-120t-brushless-gimbal-motor-pro217",
+     "confidence": "medium",
+     "note": "Not published. 27 = 540 rpm / 20 V from the no-load spec (513-567 rpm @ 20 V); ~32 used by a SimpleFOC user (https://community.simplefoc.com/t/motor-runs-amok-when-setting-kv-rating/6468), equal to 540/(20*sqrt3/2) for sine PWM."
+    },
+    "R": {
+     "value": 11.1,
+     "unit": "ohm",
+     "source_url": "https://shop.iflight.com/ipower-motor-gm4108h-120t-brushless-gimbal-motor-pro217",
+     "confidence": "medium",
+     "note": "'Motor internal resistance 11.1 ohm +-5%'; convention (line-to-line vs phase) not stated. Study bounds both readings: R_ll = 11.1 or 22.2."
+    },
+    "mass": {
+     "value": 124.0,
+     "unit": "g",
+     "source_url": "https://shop.iflight.com/ipower-motor-gm4108h-120t-brushless-gimbal-motor-pro217",
+     "confidence": "high"
+    },
+    "price": {
+     "value": {
+      "USD": 35.9,
+      "EUR": 43.9
+     },
+     "unit": "currency",
+     "source_url": "https://iflight-rc.eu/en/products/ipower-gm4108h-120t-gimbal-motor",
+     "confidence": "high",
+     "note": "USD on https://shop.iflight.com/ipower-motor-gm4108h-120t-brushless-gimbal-motor-pro217; EUR on iflight-rc.eu"
+    },
+    "other": {
+     "value": {
+      "no_load_A_at_20V": 0.07,
+      "load_torque_gcm": [
+       1200,
+       1800
+      ],
+      "load_current_A": 1.5,
+      "max_power_W": 25,
+      "hv_test": "DC500V 1mA@2sec"
+     },
+     "unit": "mixed",
+     "source_url": "https://shop.iflight.com/ipower-motor-gm4108h-120t-brushless-gimbal-motor-pro217",
+     "confidence": "medium"
+    },
+    "in_envelope_D56_L35": true,
+    "study": [
+     {
+      "KV_rpm_per_V": 27.0,
+      "KV_basis": "KV from no-load 513-567 rpm @ 20 V (mid), SVPWM reading",
+      "R_ll_ohm": 11.1,
+      "R_basis": "11.1 ohm read as line-to-line",
+      "Km_Nm_per_sqrtW": 0.1062,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 24.07,
+       "Voc_ll_rms_V": 17.02,
+       "Voc_phase_rms_V": 9.83,
+       "I_dc_equiv_A": 0.763,
+       "I_phase_rms_A": 0.623,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 6.47,
+       "P_rectifier_W": 0.61,
+       "eta_copper_only": 0.648,
+       "eta_copper_rectifier": 0.615
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       0.461,
+       0.774
+      ],
+      "P_max_matched_dc_at_650rpm_W": 13.05,
+      "tau_short_circuit_at_650rpm_Nm": 0.767,
+      "Voc_at_0p8m_s_V": 11.67,
+      "Voc_freewheel_towed_est_V": 54.7,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 822,
+       "tau_Nm": 0.193,
+       "P_shaft_W": 16.62,
+       "P_el_dc_W": 12.88,
+       "V_dc_V": 23.58,
+       "I_A": 0.546,
+       "eta": 0.775,
+       "tsr": 5.57,
+       "at_curve_edge": false
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     },
+     {
+      "KV_rpm_per_V": 27.0,
+      "KV_basis": "KV from no-load 513-567 rpm @ 20 V (mid), SVPWM reading",
+      "R_ll_ohm": 22.2,
+      "R_basis": "11.1 ohm read as per-phase",
+      "Km_Nm_per_sqrtW": 0.0751,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 24.07,
+       "Voc_ll_rms_V": 17.02,
+       "Voc_phase_rms_V": 9.83,
+       "I_dc_equiv_A": 0.763,
+       "I_phase_rms_A": 0.623,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 12.94,
+       "P_rectifier_W": 0.61,
+       "eta_copper_only": 0.296,
+       "eta_copper_rectifier": 0.263
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       -0.078,
+       0.548
+      ],
+      "P_max_matched_dc_at_650rpm_W": 6.53,
+      "tau_short_circuit_at_650rpm_Nm": 0.384,
+      "Voc_at_0p8m_s_V": 11.67,
+      "Voc_freewheel_towed_est_V": 54.7,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 886,
+       "tau_Nm": 0.168,
+       "P_shaft_W": 15.59,
+       "P_el_dc_W": 10.2,
+       "V_dc_V": 21.47,
+       "I_A": 0.475,
+       "eta": 0.654,
+       "tsr": 6.0,
+       "at_curve_edge": true
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     },
+     {
+      "KV_rpm_per_V": 32.0,
+      "KV_basis": "KV ~32 used by a SimpleFOC user (also = 540 rpm / (20 V x sqrt3/2), SPWM reading)",
+      "R_ll_ohm": 11.1,
+      "R_basis": "11.1 ohm read as line-to-line",
+      "Km_Nm_per_sqrtW": 0.0896,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 20.31,
+       "Voc_ll_rms_V": 14.36,
+       "Voc_phase_rms_V": 8.29,
+       "I_dc_equiv_A": 0.905,
+       "I_phase_rms_A": 0.739,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 9.09,
+       "P_rectifier_W": 0.72,
+       "eta_copper_only": 0.506,
+       "eta_copper_rectifier": 0.466
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       0.243,
+       0.683
+      ],
+      "P_max_matched_dc_at_650rpm_W": 9.29,
+      "tau_short_circuit_at_650rpm_Nm": 0.546,
+      "Voc_at_0p8m_s_V": 9.84,
+      "Voc_freewheel_towed_est_V": 46.1,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 872,
+       "tau_Nm": 0.173,
+       "P_shaft_W": 15.84,
+       "P_el_dc_W": 11.63,
+       "V_dc_V": 20.0,
+       "I_A": 0.581,
+       "eta": 0.734,
+       "tsr": 5.91,
+       "at_curve_edge": false
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     },
+     {
+      "KV_rpm_per_V": 32.0,
+      "KV_basis": "KV ~32 used by a SimpleFOC user (also = 540 rpm / (20 V x sqrt3/2), SPWM reading)",
+      "R_ll_ohm": 22.2,
+      "R_basis": "11.1 ohm read as per-phase",
+      "Km_Nm_per_sqrtW": 0.0633,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 20.31,
+       "Voc_ll_rms_V": 14.36,
+       "Voc_phase_rms_V": 8.29,
+       "I_dc_equiv_A": 0.905,
+       "I_phase_rms_A": 0.739,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 18.17,
+       "P_rectifier_W": 0.72,
+       "eta_copper_only": 0.011,
+       "eta_copper_rectifier": -0.028
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       -0.515,
+       0.365
+      ],
+      "P_max_matched_dc_at_650rpm_W": 4.65,
+      "tau_short_circuit_at_650rpm_Nm": 0.273,
+      "Voc_at_0p8m_s_V": 9.84,
+      "Voc_freewheel_towed_est_V": 46.1,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 886,
+       "tau_Nm": 0.168,
+       "P_shaft_W": 15.59,
+       "P_el_dc_W": 8.1,
+       "V_dc_V": 14.39,
+       "I_A": 0.563,
+       "eta": 0.52,
+       "tsr": 6.0,
+       "at_curve_edge": true
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     }
+    ]
+   },
+   {
+    "id": "rctimer_gbm4114hs",
+    "name": "Rctimer GBM4114HS 100T",
+    "cls": "gimbal outrunner",
+    "D": {
+     "value": 46.0,
+     "unit": "mm",
+     "source_url": "https://www.rctimer.com/4114-hollow-shaft-brushless-gimbal-motor-p0440.html",
+     "confidence": "medium"
+    },
+    "L": {
+     "value": 31.0,
+     "unit": "mm",
+     "source_url": "https://www.rctimer.com/4114-hollow-shaft-brushless-gimbal-motor-p0440.html",
+     "confidence": "medium"
+    },
+    "shaft": {
+     "value": "5.0 hollow",
+     "unit": "mm",
+     "source_url": "https://www.rctimer.com/4114-hollow-shaft-brushless-gimbal-motor-p0440.html",
+     "confidence": "medium"
+    },
+    "mount": {
+     "value": null,
+     "unit": "-",
+     "source_url": "https://www.rctimer.com/4114-hollow-shaft-brushless-gimbal-motor-p0440.html",
+     "confidence": "low",
+     "note": "not published"
+    },
+    "config": {
+     "value": "24 slots, 22 poles",
+     "unit": "-",
+     "source_url": "https://www.rctimer.com/4114-hollow-shaft-brushless-gimbal-motor-p0440.html",
+     "confidence": "medium"
+    },
+    "KV": {
+     "value": 32.0,
+     "unit": "rpm/V",
+     "source_url": "https://www.rctimer.com/4114-hollow-shaft-brushless-gimbal-motor-p0440.html",
+     "confidence": "medium"
+    },
+    "R": {
+     "value": 15.2,
+     "unit": "ohm",
+     "source_url": "https://www.rctimer.com/4114-hollow-shaft-brushless-gimbal-motor-p0440.html",
+     "confidence": "medium",
+     "note": "convention not stated"
+    },
+    "mass": {
+     "value": 150.0,
+     "unit": "g",
+     "source_url": "https://www.rctimer.com/4114-hollow-shaft-brushless-gimbal-motor-p0440.html",
+     "confidence": "medium"
+    },
+    "price": {
+     "value": {
+      "USD": 34.99
+     },
+     "unit": "currency",
+     "source_url": "https://www.rctimer.com/4114-hollow-shaft-brushless-gimbal-motor-p0440.html",
+     "confidence": "medium"
+    },
+    "in_envelope_D56_L35": true,
+    "study": [
+     {
+      "KV_rpm_per_V": 32.0,
+      "KV_basis": "datasheet KV 32",
+      "R_ll_ohm": 15.2,
+      "R_basis": "Ri 15.2 ohm read as line-to-line",
+      "Km_Nm_per_sqrtW": 0.0765,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 20.31,
+       "Voc_ll_rms_V": 14.36,
+       "Voc_phase_rms_V": 8.29,
+       "I_dc_equiv_A": 0.905,
+       "I_phase_rms_A": 0.739,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 12.44,
+       "P_rectifier_W": 0.72,
+       "eta_copper_only": 0.323,
+       "eta_copper_rectifier": 0.284
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       -0.037,
+       0.565
+      ],
+      "P_max_matched_dc_at_650rpm_W": 6.79,
+      "tau_short_circuit_at_650rpm_Nm": 0.399,
+      "Voc_at_0p8m_s_V": 9.84,
+      "Voc_freewheel_towed_est_V": 46.1,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 886,
+       "tau_Nm": 0.168,
+       "P_shaft_W": 15.59,
+       "P_el_dc_W": 10.32,
+       "V_dc_V": 18.33,
+       "I_A": 0.563,
+       "eta": 0.662,
+       "tsr": 6.0,
+       "at_curve_edge": true
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     },
+     {
+      "KV_rpm_per_V": 32.0,
+      "KV_basis": "datasheet KV 32",
+      "R_ll_ohm": 30.4,
+      "R_basis": "15.2 ohm read as per-phase",
+      "Km_Nm_per_sqrtW": 0.0541,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 20.31,
+       "Voc_ll_rms_V": 14.36,
+       "Voc_phase_rms_V": 8.29,
+       "I_dc_equiv_A": 0.905,
+       "I_phase_rms_A": 0.739,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 24.89,
+       "P_rectifier_W": 0.72,
+       "eta_copper_only": -0.354,
+       "eta_copper_rectifier": -0.393
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       -1.074,
+       0.131
+      ],
+      "P_max_matched_dc_at_650rpm_W": 3.39,
+      "tau_short_circuit_at_650rpm_Nm": 0.199,
+      "Voc_at_0p8m_s_V": 9.84,
+      "Voc_freewheel_towed_est_V": 46.1,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 886,
+       "tau_Nm": 0.168,
+       "P_shaft_W": 15.59,
+       "P_el_dc_W": 5.5,
+       "V_dc_V": 9.77,
+       "I_A": 0.563,
+       "eta": 0.353,
+       "tsr": 6.0,
+       "at_curve_edge": true
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     }
+    ]
+   },
+   {
+    "id": "cubemars_gl40_kv70",
+    "name": "CubeMars GL40 KV70",
+    "cls": "gimbal outrunner",
+    "D": {
+     "value": 46.5,
+     "unit": "mm",
+     "source_url": "https://www.cubemars.com/data/cms/202602/gl40-gimbal-motor-2d-drawing.pdf",
+     "confidence": "high"
+    },
+    "L": {
+     "value": 21.5,
+     "unit": "mm",
+     "source_url": "https://www.cubemars.com/data/cms/202602/gl40-gimbal-motor-2d-drawing.pdf",
+     "confidence": "high"
+    },
+    "shaft": {
+     "value": "8 through bore",
+     "unit": "mm",
+     "source_url": "https://www.cubemars.com/data/cms/202602/gl40-gimbal-motor-2d-drawing.pdf",
+     "confidence": "high"
+    },
+    "mount": {
+     "value": "rotor: 4-M3 x 2.5 deep on PCD 24; stator: 4-M3 x 3.5 deep on PCD 24 + 4-M2.5 x 3.5 deep on PCD 40",
+     "unit": "mm",
+     "source_url": "https://www.cubemars.com/data/cms/202602/gl40-gimbal-motor-2d-drawing.pdf",
+     "confidence": "high"
+    },
+    "config": {
+     "value": "14 pole pairs",
+     "unit": "-",
+     "source_url": "https://www.cubemars.com/goods-1132-GL40.html",
+     "confidence": "high"
+    },
+    "KV": {
+     "value": 63.5,
+     "unit": "rpm/V",
+     "source_url": "https://www.cubemars.com/goods-1132-GL40.html",
+     "confidence": "high",
+     "note": "Kt 0.150 Nm/A"
+    },
+    "R": {
+     "value": 4.5,
+     "unit": "ohm",
+     "source_url": "https://www.cubemars.com/goods-1132-GL40.html",
+     "confidence": "high",
+     "note": "phase-to-phase; inductance 1800 uH phase-to-phase; IP45"
+    },
+    "mass": {
+     "value": 107.0,
+     "unit": "g",
+     "source_url": "https://www.cubemars.com/goods-1132-GL40.html",
+     "confidence": "high"
+    },
+    "price": {
+     "value": {
+      "USD": 72.99
+     },
+     "unit": "currency",
+     "source_url": "https://www.cubemars.com/goods-1132-GL40.html",
+     "confidence": "high"
+    },
+    "in_envelope_D56_L35": true,
+    "study": [
+     {
+      "KV_rpm_per_V": 63.5,
+      "KV_basis": "datasheet Kv 63.5 (Kt 0.150)",
+      "R_ll_ohm": 4.5,
+      "R_basis": "datasheet phase-to-phase",
+      "Km_Nm_per_sqrtW": 0.0709,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 10.24,
+       "Voc_ll_rms_V": 7.24,
+       "Voc_phase_rms_V": 4.18,
+       "I_dc_equiv_A": 1.795,
+       "I_phase_rms_A": 1.466,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 14.51,
+       "P_rectifier_W": 1.44,
+       "eta_copper_only": 0.211,
+       "eta_copper_rectifier": 0.133
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       -0.209,
+       0.493
+      ],
+      "P_max_matched_dc_at_650rpm_W": 5.82,
+      "tau_short_circuit_at_650rpm_Nm": 0.342,
+      "Voc_at_0p8m_s_V": 4.96,
+      "Voc_freewheel_towed_est_V": 23.3,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 886,
+       "tau_Nm": 0.168,
+       "P_shaft_W": 15.59,
+       "P_el_dc_W": 9.08,
+       "V_dc_V": 8.13,
+       "I_A": 1.117,
+       "eta": 0.582,
+       "tsr": 6.0,
+       "at_curve_edge": true
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     }
+    ]
+   },
+   {
+    "id": "cubemars_gl40ii_kv82",
+    "name": "CubeMars GL40 II KV82.5",
+    "cls": "gimbal outrunner (integrated driver)",
+    "D": {
+     "value": 46.1,
+     "unit": "mm",
+     "source_url": "https://cubemars.com/goods-1182-GL40+II.html",
+     "confidence": "high"
+    },
+    "L": {
+     "value": 33.5,
+     "unit": "mm",
+     "source_url": "https://cubemars.com/goods-1182-GL40+II.html",
+     "confidence": "high"
+    },
+    "shaft": {
+     "value": "12.5 hollow",
+     "unit": "mm",
+     "source_url": "https://cubemars.com/goods-1182-GL40+II.html",
+     "confidence": "high"
+    },
+    "mount": {
+     "value": null,
+     "unit": "-",
+     "source_url": "https://cubemars.com/goods-1182-GL40+II.html",
+     "confidence": "low",
+     "note": "drawing not parsed"
+    },
+    "config": {
+     "value": "14 pole pairs, star",
+     "unit": "-",
+     "source_url": "https://cubemars.com/goods-1182-GL40+II.html",
+     "confidence": "high"
+    },
+    "KV": {
+     "value": 82.5,
+     "unit": "rpm/V",
+     "source_url": "https://cubemars.com/goods-1182-GL40+II.html",
+     "confidence": "high",
+     "note": "Kt 0.11 Nm/A (implies KV 86.8)"
+    },
+    "R": {
+     "value": 3.0,
+     "unit": "ohm",
+     "source_url": "https://cubemars.com/goods-1182-GL40+II.html",
+     "confidence": "high",
+     "note": "phase-to-phase; 1320 uH"
+    },
+    "mass": {
+     "value": 125.0,
+     "unit": "g",
+     "source_url": "https://cubemars.com/goods-1182-GL40+II.html",
+     "confidence": "high"
+    },
+    "price": {
+     "value": {
+      "USD": 133.99
+     },
+     "unit": "currency",
+     "source_url": "https://cubemars.com/goods-1182-GL40+II.html",
+     "confidence": "high"
+    },
+    "in_envelope_D56_L35": true,
+    "study": [
+     {
+      "KV_rpm_per_V": 82.5,
+      "KV_basis": "datasheet Kv 82.5",
+      "R_ll_ohm": 3.0,
+      "R_basis": "datasheet phase-to-phase",
+      "Km_Nm_per_sqrtW": 0.0668,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 7.88,
+       "Voc_ll_rms_V": 5.57,
+       "Voc_phase_rms_V": 3.22,
+       "I_dc_equiv_A": 2.333,
+       "I_phase_rms_A": 1.905,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 16.32,
+       "P_rectifier_W": 1.87,
+       "eta_copper_only": 0.112,
+       "eta_copper_rectifier": 0.01
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       -0.361,
+       0.43
+      ],
+      "P_max_matched_dc_at_650rpm_W": 5.17,
+      "tau_short_circuit_at_650rpm_Nm": 0.304,
+      "Voc_at_0p8m_s_V": 3.82,
+      "Voc_freewheel_towed_est_V": 17.9,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 886,
+       "tau_Nm": 0.168,
+       "P_shaft_W": 15.59,
+       "P_el_dc_W": 8.11,
+       "V_dc_V": 5.59,
+       "I_A": 1.451,
+       "eta": 0.52,
+       "tsr": 6.0,
+       "at_curve_edge": true
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     },
+     {
+      "KV_rpm_per_V": 86.81,
+      "KV_basis": "Kv implied by Kt 0.11 Nm/A",
+      "R_ll_ohm": 3.0,
+      "R_basis": "datasheet phase-to-phase",
+      "Km_Nm_per_sqrtW": 0.0635,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 7.49,
+       "Voc_ll_rms_V": 5.29,
+       "Voc_phase_rms_V": 3.06,
+       "I_dc_equiv_A": 2.455,
+       "I_phase_rms_A": 2.004,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 18.07,
+       "P_rectifier_W": 1.96,
+       "eta_copper_only": 0.017,
+       "eta_copper_rectifier": -0.09
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       -0.507,
+       0.369
+      ],
+      "P_max_matched_dc_at_650rpm_W": 4.67,
+      "tau_short_circuit_at_650rpm_Nm": 0.275,
+      "Voc_at_0p8m_s_V": 3.63,
+      "Voc_freewheel_towed_est_V": 17.0,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 886,
+       "tau_Nm": 0.168,
+       "P_shaft_W": 15.59,
+       "P_el_dc_W": 7.37,
+       "V_dc_V": 4.82,
+       "I_A": 1.527,
+       "eta": 0.473,
+       "tsr": 6.0,
+       "at_curve_edge": true
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     }
+    ]
+   },
+   {
+    "id": "tmotor_gb4106",
+    "name": "T-motor GB4106 KV53",
+    "cls": "gimbal outrunner",
+    "D": {
+     "value": 47.75,
+     "unit": "mm",
+     "source_url": "https://store.tmotor.com/product/gb4106-gimbal-type.html",
+     "confidence": "high"
+    },
+    "L": {
+     "value": 20.0,
+     "unit": "mm",
+     "source_url": "https://store.tmotor.com/product/gb4106-gimbal-type.html",
+     "confidence": "high"
+    },
+    "shaft": {
+     "value": "hole size 5.6",
+     "unit": "mm",
+     "source_url": "https://store.tmotor.com/product/gb4106-gimbal-type.html",
+     "confidence": "medium"
+    },
+    "mount": {
+     "value": null,
+     "unit": "-",
+     "source_url": "https://store.tmotor.com/product/gb4106-gimbal-type.html",
+     "confidence": "low"
+    },
+    "config": {
+     "value": "12N14P",
+     "unit": "-",
+     "source_url": "https://store.tmotor.com/product/gb4106-gimbal-type.html",
+     "confidence": "high"
+    },
+    "KV": {
+     "value": 53.0,
+     "unit": "rpm/V",
+     "source_url": "https://store.tmotor.com/product/gb4106-gimbal-type.html",
+     "confidence": "high"
+    },
+    "R": {
+     "value": 15.3,
+     "unit": "ohm",
+     "source_url": "https://store.tmotor.com/product/gb4106-gimbal-type.html",
+     "confidence": "medium",
+     "note": "convention not stated"
+    },
+    "mass": {
+     "value": 70.0,
+     "unit": "g",
+     "source_url": "https://store.tmotor.com/product/gb4106-gimbal-type.html",
+     "confidence": "high"
+    },
+    "price": {
+     "value": {
+      "USD": 45.9
+     },
+     "unit": "currency",
+     "source_url": "https://store.tmotor.com/product/gb4106-gimbal-type.html",
+     "confidence": "high"
+    },
+    "in_envelope_D56_L35": true,
+    "study": [
+     {
+      "KV_rpm_per_V": 53.0,
+      "KV_basis": "datasheet KV",
+      "R_ll_ohm": 15.3,
+      "R_basis": "internal resistance read as line-to-line",
+      "Km_Nm_per_sqrtW": 0.0461,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 12.26,
+       "Voc_ll_rms_V": 8.67,
+       "Voc_phase_rms_V": 5.01,
+       "I_dc_equiv_A": 1.499,
+       "I_phase_rms_A": 1.224,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 34.36,
+       "P_rectifier_W": 1.2,
+       "eta_copper_only": -0.869,
+       "eta_copper_rectifier": -0.935
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       -1.864,
+       -0.2
+      ],
+      "P_max_matched_dc_at_650rpm_W": 2.46,
+      "tau_short_circuit_at_650rpm_Nm": 0.144,
+      "Voc_at_0p8m_s_V": 5.94,
+      "Voc_freewheel_towed_est_V": 27.9,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 886,
+       "tau_Nm": 0.168,
+       "P_shaft_W": 15.59,
+       "P_el_dc_W": 1.54,
+       "V_dc_V": 1.65,
+       "I_A": 0.932,
+       "eta": 0.099,
+       "tsr": 6.0,
+       "at_curve_edge": true
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     }
+    ]
+   },
+   {
+    "id": "emax_gb4008_66kv",
+    "name": "EMAX GB4008 66KV",
+    "cls": "gimbal outrunner",
+    "D": {
+     "value": null,
+     "unit": "mm",
+     "source_url": "https://shop.emaxmodel.com/products/emax-gb4008-brushless-gimbal-motor-hollow-shaft-66kv-90t",
+     "confidence": "low",
+     "note": "not published (40 mm stator class)"
+    },
+    "L": {
+     "value": null,
+     "unit": "mm",
+     "source_url": "https://shop.emaxmodel.com/products/emax-gb4008-brushless-gimbal-motor-hollow-shaft-66kv-90t",
+     "confidence": "low"
+    },
+    "shaft": {
+     "value": "hollow",
+     "unit": "-",
+     "source_url": "https://shop.emaxmodel.com/products/emax-gb4008-brushless-gimbal-motor-hollow-shaft-66kv-90t",
+     "confidence": "medium"
+    },
+    "mount": {
+     "value": "base centre pitch 19x19 or 25x25",
+     "unit": "mm",
+     "source_url": "https://shop.emaxmodel.com/products/emax-gb4008-brushless-gimbal-motor-hollow-shaft-66kv-90t",
+     "confidence": "medium"
+    },
+    "config": {
+     "value": "24N22P",
+     "unit": "-",
+     "source_url": "https://shop.emaxmodel.com/products/emax-gb4008-brushless-gimbal-motor-hollow-shaft-66kv-90t",
+     "confidence": "high"
+    },
+    "KV": {
+     "value": 66.0,
+     "unit": "rpm/V",
+     "source_url": "https://shop.emaxmodel.com/products/emax-gb4008-brushless-gimbal-motor-hollow-shaft-66kv-90t",
+     "confidence": "high"
+    },
+    "R": {
+     "value": 7.5,
+     "unit": "ohm",
+     "source_url": "https://shop.emaxmodel.com/products/emax-gb4008-brushless-gimbal-motor-hollow-shaft-66kv-90t",
+     "confidence": "medium",
+     "note": "convention not stated"
+    },
+    "mass": {
+     "value": 101.0,
+     "unit": "g",
+     "source_url": "https://shop.emaxmodel.com/products/emax-gb4008-brushless-gimbal-motor-hollow-shaft-66kv-90t",
+     "confidence": "high"
+    },
+    "price": {
+     "value": {
+      "USD": 23.49
+     },
+     "unit": "currency",
+     "source_url": "https://shop.emaxmodel.com/products/emax-gb4008-brushless-gimbal-motor-hollow-shaft-66kv-90t",
+     "confidence": "medium",
+     "note": "out of stock"
+    },
+    "in_envelope_D56_L35": null,
+    "study": [
+     {
+      "KV_rpm_per_V": 66.0,
+      "KV_basis": "datasheet KV",
+      "R_ll_ohm": 7.5,
+      "R_basis": "resistance read as line-to-line",
+      "Km_Nm_per_sqrtW": 0.0528,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 9.85,
+       "Voc_ll_rms_V": 6.96,
+       "Voc_phase_rms_V": 4.02,
+       "I_dc_equiv_A": 1.866,
+       "I_phase_rms_A": 1.524,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 26.12,
+       "P_rectifier_W": 1.49,
+       "eta_copper_only": -0.421,
+       "eta_copper_rectifier": -0.502
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       -1.177,
+       0.088
+      ],
+      "P_max_matched_dc_at_650rpm_W": 3.23,
+      "tau_short_circuit_at_650rpm_Nm": 0.19,
+      "Voc_at_0p8m_s_V": 4.77,
+      "Voc_freewheel_towed_est_V": 22.4,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 886,
+       "tau_Nm": 0.168,
+       "P_shaft_W": 15.59,
+       "P_el_dc_W": 4.55,
+       "V_dc_V": 3.92,
+       "I_A": 1.161,
+       "eta": 0.292,
+       "tsr": 6.0,
+       "at_curve_edge": true
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     }
+    ]
+   },
+   {
+    "id": "cubemars_ri50_kv100",
+    "name": "CubeMars RI50 KV100 (frameless)",
+    "cls": "frameless inrunner torque motor",
+    "D": {
+     "value": 54.0,
+     "unit": "mm",
+     "source_url": "https://www.cubemars.com/product/ri50-kv100-frameless-inrunner-torque-motor.html",
+     "confidence": "high"
+    },
+    "L": {
+     "value": 27.0,
+     "unit": "mm",
+     "source_url": "https://www.cubemars.com/product/ri50-kv100-frameless-inrunner-torque-motor.html",
+     "confidence": "high"
+    },
+    "shaft": {
+     "value": "22 hollow (frameless rotor)",
+     "unit": "mm",
+     "source_url": "https://www.cubemars.com/product/ri50-kv100-frameless-inrunner-torque-motor.html",
+     "confidence": "high"
+    },
+    "mount": {
+     "value": null,
+     "unit": "-",
+     "source_url": "https://www.cubemars.com/product/ri50-kv100-frameless-inrunner-torque-motor.html",
+     "confidence": "low",
+     "note": "user housing"
+    },
+    "config": {
+     "value": "7 pole pairs, star",
+     "unit": "-",
+     "source_url": "https://www.cubemars.com/product/ri50-kv100-frameless-inrunner-torque-motor.html",
+     "confidence": "high"
+    },
+    "KV": {
+     "value": 100.0,
+     "unit": "rpm/V",
+     "source_url": "https://www.cubemars.com/product/ri50-kv100-frameless-inrunner-torque-motor.html",
+     "confidence": "high",
+     "note": "but Kt 0.120 Nm/A implies 79.6 and Ke 11.41 V/krpm implies 87.6"
+    },
+    "R": {
+     "value": 1.42,
+     "unit": "ohm",
+     "source_url": "https://www.cubemars.com/product/ri50-kv100-frameless-inrunner-torque-motor.html",
+     "confidence": "high",
+     "note": "phase-to-phase; 1500 uH"
+    },
+    "mass": {
+     "value": 180.8,
+     "unit": "g",
+     "source_url": "https://www.cubemars.com/product/ri50-kv100-frameless-inrunner-torque-motor.html",
+     "confidence": "high"
+    },
+    "price": {
+     "value": {
+      "USD": 61.9
+     },
+     "unit": "currency",
+     "source_url": "https://www.cubemars.com/product/ri50-kv100-frameless-inrunner-torque-motor.html",
+     "confidence": "high"
+    },
+    "in_envelope_D56_L35": true,
+    "study": [
+     {
+      "KV_rpm_per_V": 100.0,
+      "KV_basis": "nameplate Kv 100",
+      "R_ll_ohm": 1.42,
+      "R_basis": "datasheet phase-to-phase",
+      "Km_Nm_per_sqrtW": 0.0801,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 6.5,
+       "Voc_ll_rms_V": 4.6,
+       "Voc_phase_rms_V": 2.65,
+       "I_dc_equiv_A": 2.827,
+       "I_phase_rms_A": 2.309,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 11.35,
+       "P_rectifier_W": 2.26,
+       "eta_copper_only": 0.382,
+       "eta_copper_rectifier": 0.259
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       0.054,
+       0.603
+      ],
+      "P_max_matched_dc_at_650rpm_W": 7.44,
+      "tau_short_circuit_at_650rpm_Nm": 0.437,
+      "Voc_at_0p8m_s_V": 3.15,
+      "Voc_freewheel_towed_est_V": 14.8,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 886,
+       "tau_Nm": 0.168,
+       "P_shaft_W": 15.59,
+       "P_el_dc_W": 9.78,
+       "V_dc_V": 5.56,
+       "I_A": 1.759,
+       "eta": 0.628,
+       "tsr": 6.0,
+       "at_curve_edge": true
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     },
+     {
+      "KV_rpm_per_V": 79.58,
+      "KV_basis": "Kv implied by Kt 0.120 Nm/A",
+      "R_ll_ohm": 1.42,
+      "R_basis": "datasheet phase-to-phase",
+      "Km_Nm_per_sqrtW": 0.1007,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 8.17,
+       "Voc_ll_rms_V": 5.78,
+       "Voc_phase_rms_V": 3.33,
+       "I_dc_equiv_A": 2.25,
+       "I_phase_rms_A": 1.837,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 7.19,
+       "P_rectifier_W": 1.8,
+       "eta_copper_only": 0.609,
+       "eta_copper_rectifier": 0.511
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       0.401,
+       0.749
+      ],
+      "P_max_matched_dc_at_650rpm_W": 11.75,
+      "tau_short_circuit_at_650rpm_Nm": 0.69,
+      "Voc_at_0p8m_s_V": 3.96,
+      "Voc_freewheel_towed_est_V": 18.6,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 850,
+       "tau_Nm": 0.182,
+       "P_shaft_W": 16.21,
+       "P_el_dc_W": 11.73,
+       "V_dc_V": 7.73,
+       "I_A": 1.518,
+       "eta": 0.723,
+       "tsr": 5.76,
+       "at_curve_edge": false
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     }
+    ]
+   },
+   {
+    "id": "tmotor_mn5008_kv170",
+    "name": "T-motor MN5008 KV170",
+    "cls": "low-KV drone outrunner",
+    "D": {
+     "value": 55.6,
+     "unit": "mm",
+     "source_url": "https://store.tmotor.com/product/mn5008-kv170-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "L": {
+     "value": 32.0,
+     "unit": "mm",
+     "source_url": "https://store.tmotor.com/product/mn5008-kv170-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "shaft": {
+     "value": "6 (inner)",
+     "unit": "mm",
+     "source_url": "https://store.tmotor.com/product/mn5008-kv170-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "mount": {
+     "value": null,
+     "unit": "-",
+     "source_url": "https://store.tmotor.com/product/mn5008-kv170-motor-antigravity-type.html",
+     "confidence": "low",
+     "note": "drawing image only"
+    },
+    "config": {
+     "value": "24N28P",
+     "unit": "-",
+     "source_url": "https://store.tmotor.com/product/mn5008-kv170-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "KV": {
+     "value": 170.0,
+     "unit": "rpm/V",
+     "source_url": "https://store.tmotor.com/product/mn5008-kv170-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "R": {
+     "value": 0.27,
+     "unit": "ohm",
+     "source_url": "https://store.tmotor.com/product/mn5008-kv170-motor-antigravity-type.html",
+     "confidence": "medium",
+     "note": "convention not stated"
+    },
+    "mass": {
+     "value": 128.0,
+     "unit": "g",
+     "source_url": "https://store.tmotor.com/product/mn5008-kv170-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "price": {
+     "value": {
+      "USD": 89.99
+     },
+     "unit": "currency",
+     "source_url": "https://store.tmotor.com/product/mn5008-kv170-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "other": {
+     "value": {
+      "idle_A_at_22V": 0.4
+     },
+     "unit": "mixed",
+     "source_url": "https://store.tmotor.com/product/mn5008-kv170-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "in_envelope_D56_L35": true,
+    "study": [
+     {
+      "KV_rpm_per_V": 170.0,
+      "KV_basis": "datasheet KV",
+      "R_ll_ohm": 0.27,
+      "R_basis": "internal resistance read as line-to-line",
+      "Km_Nm_per_sqrtW": 0.1081,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 3.82,
+       "Voc_ll_rms_V": 2.7,
+       "Voc_phase_rms_V": 1.56,
+       "I_dc_equiv_A": 4.807,
+       "I_phase_rms_A": 3.925,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 6.24,
+       "P_rectifier_W": 3.85,
+       "eta_copper_only": 0.661,
+       "eta_copper_rectifier": 0.451
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       0.48,
+       0.782
+      ],
+      "P_max_matched_dc_at_650rpm_W": 13.54,
+      "tau_short_circuit_at_650rpm_Nm": 0.795,
+      "Voc_at_0p8m_s_V": 1.85,
+      "Voc_freewheel_towed_est_V": 8.7,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 863,
+       "tau_Nm": 0.177,
+       "P_shaft_W": 16.0,
+       "P_el_dc_W": 10.8,
+       "V_dc_V": 3.43,
+       "I_A": 3.151,
+       "eta": 0.675,
+       "tsr": 5.84,
+       "at_curve_edge": false
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     }
+    ]
+   },
+   {
+    "id": "tmotor_mn4006_kv380",
+    "name": "T-motor MN4006 KV380",
+    "cls": "low-KV drone outrunner",
+    "D": {
+     "value": 44.35,
+     "unit": "mm",
+     "source_url": "https://store.tmotor.com/product/mn4006-kv380-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "L": {
+     "value": 21.0,
+     "unit": "mm",
+     "source_url": "https://store.tmotor.com/product/mn4006-kv380-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "shaft": {
+     "value": null,
+     "unit": "mm",
+     "source_url": "https://store.tmotor.com/product/mn4006-kv380-motor-antigravity-type.html",
+     "confidence": "low"
+    },
+    "mount": {
+     "value": null,
+     "unit": "-",
+     "source_url": "https://store.tmotor.com/product/mn4006-kv380-motor-antigravity-type.html",
+     "confidence": "low"
+    },
+    "config": {
+     "value": "18N24P",
+     "unit": "-",
+     "source_url": "https://store.tmotor.com/product/mn4006-kv380-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "KV": {
+     "value": 380.0,
+     "unit": "rpm/V",
+     "source_url": "https://store.tmotor.com/product/mn4006-kv380-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "R": {
+     "value": 0.194,
+     "unit": "ohm",
+     "source_url": "https://store.tmotor.com/product/mn4006-kv380-motor-antigravity-type.html",
+     "confidence": "medium"
+    },
+    "mass": {
+     "value": 68.0,
+     "unit": "g",
+     "source_url": "https://store.tmotor.com/product/mn4006-kv380-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "price": {
+     "value": {
+      "USD": 149.9
+     },
+     "unit": "currency",
+     "source_url": "https://store.tmotor.com/product/mn4006-kv380-motor-antigravity-type.html",
+     "confidence": "high",
+     "note": "per pair"
+    },
+    "other": {
+     "value": {
+      "idle_A_at_22V": 0.3
+     },
+     "unit": "mixed",
+     "source_url": "https://store.tmotor.com/product/mn4006-kv380-motor-antigravity-type.html",
+     "confidence": "high"
+    },
+    "in_envelope_D56_L35": true,
+    "study": [
+     {
+      "KV_rpm_per_V": 380.0,
+      "KV_basis": "datasheet KV",
+      "R_ll_ohm": 0.194,
+      "R_basis": "internal resistance read as line-to-line",
+      "Km_Nm_per_sqrtW": 0.0571,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 1.71,
+       "Voc_ll_rms_V": 1.21,
+       "Voc_phase_rms_V": 0.7,
+       "I_dc_equiv_A": 10.744,
+       "I_phase_rms_A": 8.773,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 22.4,
+       "P_rectifier_W": 8.6,
+       "eta_copper_only": -0.219,
+       "eta_copper_rectifier": -0.686
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       -0.867,
+       0.218
+      ],
+      "P_max_matched_dc_at_650rpm_W": 3.77,
+      "tau_short_circuit_at_650rpm_Nm": 0.222,
+      "Voc_at_0p8m_s_V": 0.83,
+      "Voc_freewheel_towed_est_V": 3.9,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 886,
+       "tau_Nm": 0.168,
+       "P_shaft_W": 15.59,
+       "P_el_dc_W": 1.57,
+       "V_dc_V": 0.23,
+       "I_A": 6.685,
+       "eta": 0.101,
+       "tsr": 6.0,
+       "at_curve_edge": true
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     }
+    ]
+   },
+   {
+    "id": "maxon_ec45flat_70w_36v",
+    "name": "maxon EC 45 flat 70 W 36 V (411815)",
+    "cls": "industrial flat outrunner",
+    "D": {
+     "value": 45.0,
+     "unit": "mm",
+     "source_url": "https://www.maxongroup.com/maxon/view/product/motor/ecmotor/ecflat/ecflat45/411815",
+     "confidence": "high"
+    },
+    "L": {
+     "value": null,
+     "unit": "mm",
+     "source_url": "https://www.maxongroup.com/maxon/view/product/motor/ecmotor/ecflat/ecflat45/411815",
+     "confidence": "low",
+     "note": "in STEP only"
+    },
+    "shaft": {
+     "value": null,
+     "unit": "mm",
+     "source_url": "https://www.maxongroup.com/maxon/view/product/motor/ecmotor/ecflat/ecflat45/411815",
+     "confidence": "low"
+    },
+    "mount": {
+     "value": null,
+     "unit": "-",
+     "source_url": "https://www.maxongroup.com/maxon/view/product/motor/ecmotor/ecflat/ecflat45/411815",
+     "confidence": "low"
+    },
+    "config": {
+     "value": "8 pole pairs",
+     "unit": "-",
+     "source_url": "https://www.maxongroup.com/maxon/view/product/motor/ecmotor/ecflat/ecflat45/411815",
+     "confidence": "high"
+    },
+    "KV": {
+     "value": 179.0,
+     "unit": "rpm/V",
+     "source_url": "https://www.maxongroup.com/maxon/view/product/motor/ecmotor/ecflat/ecflat45/411815",
+     "confidence": "high"
+    },
+    "R": {
+     "value": 1.74,
+     "unit": "ohm",
+     "source_url": "https://www.maxongroup.com/maxon/view/product/motor/ecmotor/ecflat/ecflat45/411815",
+     "confidence": "high",
+     "note": "terminal resistance phase-to-phase"
+    },
+    "mass": {
+     "value": 141.0,
+     "unit": "g",
+     "source_url": "https://www.maxongroup.com/maxon/view/product/motor/ecmotor/ecflat/ecflat45/411815",
+     "confidence": "high"
+    },
+    "price": {
+     "value": {
+      "EUR": 226.94
+     },
+     "unit": "currency",
+     "source_url": "https://www.maxongroup.com/maxon/view/product/motor/ecmotor/ecflat/ecflat45/411815",
+     "confidence": "high"
+    },
+    "in_envelope_D56_L35": null,
+    "study": [
+     {
+      "KV_rpm_per_V": 179.0,
+      "KV_basis": "datasheet speed constant",
+      "R_ll_ohm": 1.74,
+      "R_basis": "terminal resistance phase-to-phase",
+      "Km_Nm_per_sqrtW": 0.0404,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 3.63,
+       "Voc_ll_rms_V": 2.57,
+       "Voc_phase_rms_V": 1.48,
+       "I_dc_equiv_A": 5.061,
+       "I_phase_rms_A": 4.132,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 44.57,
+       "P_rectifier_W": 4.05,
+       "eta_copper_only": -1.425,
+       "eta_copper_rectifier": -1.645
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       -2.715,
+       -0.557
+      ],
+      "P_max_matched_dc_at_650rpm_W": 1.89,
+      "tau_short_circuit_at_650rpm_Nm": 0.111,
+      "Voc_at_0p8m_s_V": 1.76,
+      "Voc_freewheel_towed_est_V": 8.2,
+      "mppt_best_at_1p5m_s": null,
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     }
+    ]
+   },
+   {
+    "id": "ipower_gm5208_24",
+    "name": "iPower GM5208-24 (outside envelope)",
+    "cls": "gimbal outrunner",
+    "D": {
+     "value": 59.5,
+     "unit": "mm",
+     "source_url": "https://iflighteurope.com/products/ipower-gm5208-24-gimbal-motor",
+     "confidence": "high"
+    },
+    "L": {
+     "value": 31.2,
+     "unit": "mm",
+     "source_url": "https://iflighteurope.com/products/ipower-gm5208-24-gimbal-motor",
+     "confidence": "high"
+    },
+    "shaft": {
+     "value": "hollow OD 15, ID 12.6",
+     "unit": "mm",
+     "source_url": "https://iflighteurope.com/products/ipower-gm5208-24-gimbal-motor",
+     "confidence": "high"
+    },
+    "mount": {
+     "value": null,
+     "unit": "-",
+     "source_url": "https://iflighteurope.com/products/ipower-gm5208-24-gimbal-motor",
+     "confidence": "low"
+    },
+    "config": {
+     "value": "24N22P",
+     "unit": "-",
+     "source_url": "https://iflighteurope.com/products/ipower-gm5208-24-gimbal-motor",
+     "confidence": "high"
+    },
+    "KV": {
+     "value": 20.8,
+     "unit": "rpm/V",
+     "source_url": "https://iflighteurope.com/products/ipower-gm5208-24-gimbal-motor",
+     "confidence": "medium",
+     "note": "396-436 rpm @ 20 V no-load (mid)"
+    },
+    "R": {
+     "value": 13.7,
+     "unit": "ohm",
+     "source_url": "https://iflighteurope.com/products/ipower-gm5208-24-gimbal-motor",
+     "confidence": "medium",
+     "note": "convention not stated"
+    },
+    "mass": {
+     "value": 204.0,
+     "unit": "g",
+     "source_url": "https://iflighteurope.com/products/ipower-gm5208-24-gimbal-motor",
+     "confidence": "high"
+    },
+    "price": {
+     "value": {
+      "USD": 51.0
+     },
+     "unit": "currency",
+     "source_url": "https://iflighteurope.com/products/ipower-gm5208-24-gimbal-motor",
+     "confidence": "medium"
+    },
+    "in_envelope_D56_L35": false,
+    "study": [
+     {
+      "KV_rpm_per_V": 20.8,
+      "KV_basis": "KV from no-load 396-436 rpm @ 20 V (mid)",
+      "R_ll_ohm": 13.7,
+      "R_basis": "13.7 ohm read as line-to-line",
+      "Km_Nm_per_sqrtW": 0.124,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 31.25,
+       "Voc_ll_rms_V": 22.1,
+       "Voc_phase_rms_V": 12.76,
+       "I_dc_equiv_A": 0.588,
+       "I_phase_rms_A": 0.48,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 4.74,
+       "P_rectifier_W": 0.47,
+       "eta_copper_only": 0.742,
+       "eta_copper_rectifier": 0.717
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       0.605,
+       0.834
+      ],
+      "P_max_matched_dc_at_650rpm_W": 17.82,
+      "tau_short_circuit_at_650rpm_Nm": 1.047,
+      "Voc_at_0p8m_s_V": 15.15,
+      "Voc_freewheel_towed_est_V": 71.0,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 790,
+       "tau_Nm": 0.206,
+       "P_shaft_W": 17.04,
+       "P_el_dc_W": 13.92,
+       "V_dc_V": 31.04,
+       "I_A": 0.449,
+       "eta": 0.817,
+       "tsr": 5.35,
+       "at_curve_edge": false
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     },
+     {
+      "KV_rpm_per_V": 20.8,
+      "KV_basis": "KV from no-load 396-436 rpm @ 20 V (mid)",
+      "R_ll_ohm": 27.4,
+      "R_basis": "13.7 ohm read as per-phase",
+      "Km_Nm_per_sqrtW": 0.0877,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 31.25,
+       "Voc_ll_rms_V": 22.1,
+       "Voc_phase_rms_V": 12.76,
+       "I_dc_equiv_A": 0.588,
+       "I_phase_rms_A": 0.48,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 9.48,
+       "P_rectifier_W": 0.47,
+       "eta_copper_only": 0.484,
+       "eta_copper_rectifier": 0.459
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       0.21,
+       0.669
+      ],
+      "P_max_matched_dc_at_650rpm_W": 8.91,
+      "tau_short_circuit_at_650rpm_Nm": 0.524,
+      "Voc_at_0p8m_s_V": 15.15,
+      "Voc_freewheel_towed_est_V": 71.0,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 870,
+       "tau_Nm": 0.174,
+       "P_shaft_W": 15.88,
+       "P_el_dc_W": 11.63,
+       "V_dc_V": 30.63,
+       "I_A": 0.38,
+       "eta": 0.732,
+       "tsr": 5.89,
+       "at_curve_edge": false
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     }
+    ]
+   },
+   {
+    "id": "tmotor_gb54_2",
+    "name": "T-motor GB54-2 KV26 (outside envelope)",
+    "cls": "gimbal outrunner",
+    "D": {
+     "value": 60.7,
+     "unit": "mm",
+     "source_url": "https://store.tmotor.com/goods-445-T-Motor+GB54-2++Gimbal+Type+3-6S+UAV+Drone+Motor+26KV.html",
+     "confidence": "high"
+    },
+    "L": {
+     "value": 25.0,
+     "unit": "mm",
+     "source_url": "https://store.tmotor.com/goods-445-T-Motor+GB54-2++Gimbal+Type+3-6S+UAV+Drone+Motor+26KV.html",
+     "confidence": "high"
+    },
+    "shaft": {
+     "value": "hollow, hole 12.7",
+     "unit": "mm",
+     "source_url": "https://store.tmotor.com/goods-445-T-Motor+GB54-2++Gimbal+Type+3-6S+UAV+Drone+Motor+26KV.html",
+     "confidence": "medium"
+    },
+    "mount": {
+     "value": null,
+     "unit": "-",
+     "source_url": "https://store.tmotor.com/goods-445-T-Motor+GB54-2++Gimbal+Type+3-6S+UAV+Drone+Motor+26KV.html",
+     "confidence": "low"
+    },
+    "config": {
+     "value": "12N14P",
+     "unit": "-",
+     "source_url": "https://store.tmotor.com/goods-445-T-Motor+GB54-2++Gimbal+Type+3-6S+UAV+Drone+Motor+26KV.html",
+     "confidence": "high"
+    },
+    "KV": {
+     "value": 26.0,
+     "unit": "rpm/V",
+     "source_url": "https://store.tmotor.com/goods-445-T-Motor+GB54-2++Gimbal+Type+3-6S+UAV+Drone+Motor+26KV.html",
+     "confidence": "high"
+    },
+    "R": {
+     "value": 15.0,
+     "unit": "ohm",
+     "source_url": "https://store.tmotor.com/goods-445-T-Motor+GB54-2++Gimbal+Type+3-6S+UAV+Drone+Motor+26KV.html",
+     "confidence": "medium"
+    },
+    "mass": {
+     "value": 156.0,
+     "unit": "g",
+     "source_url": "https://store.tmotor.com/goods-445-T-Motor+GB54-2++Gimbal+Type+3-6S+UAV+Drone+Motor+26KV.html",
+     "confidence": "high"
+    },
+    "price": {
+     "value": {
+      "USD": 74.9
+     },
+     "unit": "currency",
+     "source_url": "https://store.tmotor.com/goods-445-T-Motor+GB54-2++Gimbal+Type+3-6S+UAV+Drone+Motor+26KV.html",
+     "confidence": "high"
+    },
+    "in_envelope_D56_L35": false,
+    "study": [
+     {
+      "KV_rpm_per_V": 26.0,
+      "KV_basis": "datasheet KV",
+      "R_ll_ohm": 15.0,
+      "R_basis": "internal resistance read as line-to-line",
+      "Km_Nm_per_sqrtW": 0.0948,
+      "at_650rpm_0p27Nm": {
+       "Voc_ll_peak_V": 25.0,
+       "Voc_ll_rms_V": 17.68,
+       "Voc_phase_rms_V": 10.21,
+       "I_dc_equiv_A": 0.735,
+       "I_phase_rms_A": 0.6,
+       "P_shaft_W": 18.38,
+       "P_copper_W": 8.11,
+       "P_rectifier_W": 0.59,
+       "eta_copper_only": 0.559,
+       "eta_copper_rectifier": 0.527
+      },
+      "eta_copper_range_550_750rpm_0p20_0p35Nm": [
+       0.324,
+       0.717
+      ],
+      "P_max_matched_dc_at_650rpm_W": 10.42,
+      "tau_short_circuit_at_650rpm_Nm": 0.612,
+      "Voc_at_0p8m_s_V": 12.12,
+      "Voc_freewheel_towed_est_V": 56.8,
+      "mppt_best_at_1p5m_s": {
+       "rpm": 850,
+       "tau_Nm": 0.182,
+       "P_shaft_W": 16.21,
+       "P_el_dc_W": 12.13,
+       "V_dc_V": 24.45,
+       "I_A": 0.496,
+       "eta": 0.748,
+       "tsr": 5.76,
+       "at_curve_edge": false
+      },
+      "source_url": "code:out/work/hardware/hw_calc.py",
+      "confidence": "medium"
+     }
+    ]
+   }
+  ],
+  "rejected_categories": [
+   {
+    "category": "small axial-flux / coreless generators",
+    "finding": "no off-the-shelf unit with a datasheet within D 56 mm found; search hits start at 50 W - 20 kW industrial units",
+    "source_url": "https://www.permanent-magnetalternator.com/sale-13975594-low-rpm-axial-flux-coreless-permanent-magnet-generator-50w-20kw.html",
+    "confidence": "low"
+   },
+   {
+    "category": "industrial flat BLDC (maxon EC 45 flat)",
+    "finding": "Km 0.040: MPPT finds no positive-voltage point on the rotor curve; too high KV",
+    "source_url": "code:out/work/hardware/hw_calc.py",
+    "confidence": "high"
+   }
+  ],
+  "cross_reference": {
+   "xteam_4108_stator_holes": {
+    "value": "4 x M2.5 on 38.5; rotor 4 x M3 on 22; 40 turns 7.2 ohm",
+    "unit": "mm",
+    "source_url": "https://www.x-teamrc.com/product/x-team-4108-gimbal-brushless-motor/",
+    "confidence": "medium",
+    "note": "same 4108 class; corroborates a ~38 mm base PCD"
+   }
+  },
+  "recommendation": {
+   "choice": "iPower GM4108H-120T",
+   "why": [
+    "Its plausible Km band (0.063-0.106 Nm/sqrt(W)) reaches ~0.1, the value needed for ~60% copper-only efficiency at 650 rpm / 0.27 Nm (Km_required). Of the three in-envelope motors that can reach ~0.1 (GM4108H, MN5008, RI50) it is the only high-voltage, low-current, framed, bolt-in one.",
+    "High-voltage low-current winding: 20-24 V peak line-line at 650 rpm and ~0.8-0.9 A, so diode and tether losses stay below 1 W; raw 3-phase AC can run ashore on a thin cable.",
+    "Coupled to the provisional BEM curve with an MPPT load it delivers 8.1-12.9 W DC at 1.5 m/s across all four parameter readings; the best reading is the highest in the envelope and the worst is on par with the datasheet-grade CubeMars GL40 (9.1 W). Optima sit at TSR 5.6-6.0, above the Cp peak.",
+    "D 47 fits the tail bay up to x = 89.5 with 5 mm blade pockets and 2 mm margin; hollow 8 mm bore matches SHAFT_D.",
+    "USD 35.90 / EUR 43.90, mature SimpleFOC community support."
+   ],
+   "risks": [
+    "KV and the resistance convention are not published: copper-only efficiency at the nominal point spans 1-65% across the four readings. Bench test before v2 CAD freeze: measure lead-to-lead R (= R_ll) and spin with a drill at known rpm to measure Voc line-line (peak = RMS x sqrt2) -> KV.",
+    "Height listed as 22.7 (iFlight) and 32.3 (dealers); bay reserves 33 mm.",
+    "Base hole pattern (4 x M3 on PCD 38.1) comes from a community bracket (two independent community sources agree); rotor-face pattern unconfirmed. Use a printed motor-specific adapter plate and measure on receipt.",
+    "Unloaded towed freewheel could reach ~46-55 V peak (estimate, 2.5 m/s, TSR 6): electronics must tolerate >= 60 V.",
+    "If the 8 mm shaft passes through the motor bore, the motor bearings become a third support; use a compliant coupling or let the stator float on a compliant mount."
+   ],
+   "total_eff_at_650rpm_0p27Nm_with_iron_est": {
+    "value": [
+     {
+      "kv": 27.0,
+      "R_ll": 11.1,
+      "Km": 0.1062,
+      "P_elec_dc_W": 9.61,
+      "eta_total_est": 0.523
+     },
+     {
+      "kv": 27.0,
+      "R_ll": 22.2,
+      "Km": 0.0751,
+      "P_elec_dc_W": 3.14,
+      "eta_total_est": 0.171
+     },
+     {
+      "kv": 32.0,
+      "R_ll": 11.1,
+      "Km": 0.0896,
+      "P_elec_dc_W": 6.88,
+      "eta_total_est": 0.374
+     },
+     {
+      "kv": 32.0,
+      "R_ll": 22.2,
+      "Km": 0.0633,
+      "P_elec_dc_W": -2.2,
+      "eta_total_est": -0.12
+     }
+    ],
+    "unit": "-",
+    "source_url": "code:out/work/hardware/hw_calc.py",
+    "confidence": "low",
+    "note": "iron+friction 1.69 W estimated from 0.07 A x 20 V no-load at 540 rpm, scaled linearly with rpm"
+   },
+   "runner_up": "T-motor MN5008 KV170 (Km 0.108 if 0.27 ohm is line-line) only with in-hull active rectification and boost: Voc 3.8 V at 650 rpm and 4.8 A make diode (3.9 W) and tether (8 W) losses prohibitive; D 55.6 fits only at x <= 67.",
+   "cad_interface": {
+    "body_D_mm": {
+     "value": 47.0,
+     "unit": "mm",
+     "source_url": "https://shop.iflight.com/ipower-motor-gm4108h-120t-brushless-gimbal-motor-pro217",
+     "confidence": "high"
+    },
+    "body_L_mm": {
+     "value": 22.7,
+     "unit": "mm",
+     "source_url": "https://shop.iflight.com/ipower-motor-gm4108h-120t-brushless-gimbal-motor-pro217",
+     "confidence": "medium"
+    },
+    "bay_L_reserve_mm": {
+     "value": 33.0,
+     "unit": "mm",
+     "source_url": "code:out/work/hardware/hw_calc.py",
+     "confidence": "medium",
+     "note": "covers the 32.3 mm dealer listing + 0.7"
+    },
+    "radial_clearance_to_hull_mm": {
+     "value": 2.0,
+     "unit": "mm",
+     "source_url": "code:out/work/hardware/hw_calc.py",
+     "confidence": "medium",
+     "note": "design margin used in the fit check"
+    },
+    "x_max_fit_mm": {
+     "value": 89.5,
+     "unit": "mm",
+     "source_url": "code:out/work/hardware/hw_calc.py",
+     "confidence": "medium",
+     "note": "largest x where inner hull D minus 2 x 5 mm blade pockets >= 47 + 2 x 2"
+    },
+    "hollow_shaft_OD_mm": {
+     "value": 10.0,
+     "unit": "mm",
+     "source_url": "https://shop.iflight.com/ipower-motor-gm4108h-120t-brushless-gimbal-motor-pro217",
+     "confidence": "high",
+     "note": "-0.008/-0.012"
+    },
+    "hollow_shaft_ID_mm": {
+     "value": 8.0,
+     "unit": "mm",
+     "source_url": "https://shop.iflight.com/ipower-motor-gm4108h-120t-brushless-gimbal-motor-pro217",
+     "confidence": "high",
+     "note": "+0.05/0; slip fit over the 8 mm g6 shaft"
+    },
+    "base_holes": {
+     "value": {
+      "n": 4,
+      "thread": "M3",
+      "pcd": 38.14,
+      "angles_deg": [
+       0,
+       90,
+       180,
+       270
+      ],
+      "adjacent_spacing": 26.97,
+      "clearance_hole_in_bracket": 3.6,
+      "screw_head_counterbore": 6.6,
+      "centre_clearance": 16.0
+     },
+     "unit": "mm",
+     "source_url": "https://github.com/csunwc/simpleFOC-test",
+     "confidence": "medium",
+     "note": "measured by code from mount2.STEP; VERIFY on the purchased motor"
+    },
+    "rotor_coupling": {
+     "value": "through-shaft: 8 mm shaft in the motor's 8 mm bore, torque by a printed coupler on the rotor face or anaerobic retaining compound (required shear 0.17 MPa for 0.35 Nm over 20 mm, computed); reserve an 8 mm axial zone at the rotor face",
+     "unit": "-",
+     "source_url": "code:out/work/hardware/hw_calc.py",
+     "confidence": "low",
+     "note": "rotor-face hole pattern unconfirmed; inferred from the encoder variant that the hollow shaft rotates"
+    }
+   }
+  }
+ },
+ "bearings": {
+  "b608_2rs": {
+   "d": {
+    "value": 8.0,
+    "unit": "mm",
+    "source_url": "https://bearingsdirect.com/s608-2rs-stainless-steel-miniature-ball-bearing-8x22x7mm-sealed/",
+    "confidence": "high"
+   },
+   "D": {
+    "value": 22.0,
+    "unit": "mm",
+    "source_url": "https://bearingsdirect.com/s608-2rs-stainless-steel-miniature-ball-bearing-8x22x7mm-sealed/",
+    "confidence": "high"
+   },
+   "B": {
+    "value": 7.0,
+    "unit": "mm",
+    "source_url": "https://bearingsdirect.com/s608-2rs-stainless-steel-miniature-ball-bearing-8x22x7mm-sealed/",
+    "confidence": "high"
+   },
+   "stainless_S608_2RS": {
+    "material": {
+     "value": "AISI 440C",
+     "unit": "-",
+     "source_url": "https://bearingsdirect.com/s608-2rs-stainless-steel-miniature-ball-bearing-8x22x7mm-sealed/",
+     "confidence": "high"
+    },
+    "C_dyn": {
+     "value": 3296,
+     "unit": "N",
+     "source_url": "https://bearingsdirect.com/s608-2rs-stainless-steel-miniature-ball-bearing-8x22x7mm-sealed/",
+     "confidence": "high",
+     "note": "741 lbf"
+    },
+    "C0": {
+     "value": 1383,
+     "unit": "N",
+     "source_url": "https://bearingsdirect.com/s608-2rs-stainless-steel-miniature-ball-bearing-8x22x7mm-sealed/",
+     "confidence": "high",
+     "note": "311 lbf"
+    },
+    "max_rpm": {
+     "value": 34000,
+     "unit": "rpm",
+     "source_url": "https://bearingsdirect.com/s608-2rs-stainless-steel-miniature-ball-bearing-8x22x7mm-sealed/",
+     "confidence": "high"
+    },
+    "price": {
+     "value": {
+      "USD": 5.63
+     },
+     "unit": "currency",
+     "source_url": "https://bearingsdirect.com/s608-2rs-stainless-steel-miniature-ball-bearing-8x22x7mm-sealed/",
+     "confidence": "high"
+    }
+   },
+   "skf_stainless": {
+    "value": "W 608-2RS1 (8x22x7)",
+    "unit": "-",
+    "source_url": "https://www.skf.com/us/products/rolling-bearings/ball-bearings/deep-groove-ball-bearings/productid-W%20608-2RS1",
+    "confidence": "medium",
+    "note": "SKF page did not render; size from listing"
+   }
+  },
+  "b688_2rs": {
+   "d": {
+    "value": 8.0,
+    "unit": "mm",
+    "source_url": "https://bearingsdirect.com/688-2rs-miniature-ball-bearing-8x16x5-sealed-mr688-2rs/",
+    "confidence": "high"
+   },
+   "D": {
+    "value": 16.0,
+    "unit": "mm",
+    "source_url": "https://bearingsdirect.com/688-2rs-miniature-ball-bearing-8x16x5-sealed-mr688-2rs/",
+    "confidence": "high"
+   },
+   "B": {
+    "value": 5.0,
+    "unit": "mm",
+    "source_url": "https://bearingsdirect.com/688-2rs-miniature-ball-bearing-8x16x5-sealed-mr688-2rs/",
+    "confidence": "high"
+   },
+   "C_dyn": {
+    "value": 1254,
+    "unit": "N",
+    "source_url": "https://bearingsdirect.com/688-2rs-miniature-ball-bearing-8x16x5-sealed-mr688-2rs/",
+    "confidence": "high",
+    "note": "282 lbf; vxb lists 1600 N"
+   },
+   "C0": {
+    "value": 587,
+    "unit": "N",
+    "source_url": "https://bearingsdirect.com/688-2rs-miniature-ball-bearing-8x16x5-sealed-mr688-2rs/",
+    "confidence": "high",
+    "note": "132 lbf; vxb lists 710 N"
+   },
+   "price": {
+    "value": {
+     "USD": 4.38,
+     "stainless_SS688_2RS_USD": 5.63
+    },
+    "unit": "currency",
+    "source_url": "https://bearingsdirect.com/688-2rs-miniature-ball-bearing-8x16x5-sealed-mr688-2rs/",
+    "confidence": "high"
+   }
+  },
+  "load_check": {
+   "value": {
+    "T_at_1.5_m_s_N": 28.3,
+    "T_at_2.5_m_s_N": 78.5
+   },
+   "unit": "N",
+   "source_url": "code:out/work/hardware/hw_calc.py",
+   "confidence": "low",
+   "note": "ESTIMATE rotor thrust with C_T 0.85; both sizes have static ratings > 7x the towed thrust"
+  }
+ },
+ "lip_seal": {
+  "sizes_found": [
+   {
+    "value": "TC 8x16x5 NBR, double lip, garter spring",
+    "unit": "mm",
+    "source_url": "https://www.amazon.com/8x16x5-Rubber-Covered-Double-Garter/dp/B00MW7GOD6",
+    "confidence": "medium",
+    "note": "also NQK TC8x16x5 https://www.amazon.com/clp/B0CDK595PK"
+   },
+   {
+    "value": "TC 8x16x8 NBR",
+    "unit": "mm",
+    "source_url": "https://avxseals.com/products/tc8x16x8-shaft-oil-seal-rubber-double-lip",
+    "confidence": "medium"
+   },
+   {
+    "value": "8x16x7 HMS4 (SKF/CR)",
+    "unit": "mm",
+    "source_url": "https://intechbearing.com/products/8x16x7-mm-oil-seal",
+    "confidence": "medium"
+   },
+   {
+    "value": "8x16x7 BA NBR (Freudenberg)",
+    "unit": "mm",
+    "source_url": "https://tinex-bell.si/en/product/15135/oil-seals-freudenberg-8x16x7-ba-nbr",
+    "confidence": "medium"
+   },
+   {
+    "value": "8x14x4 NBR (OA)",
+    "unit": "mm",
+    "source_url": "https://www.123bearing.com/seals-OA-8X14X4-NBR",
+    "confidence": "medium"
+   }
+  ],
+  "recommended": {
+   "value": "TC 8x16x5 NBR (housing bore 16 shared with 688)",
+   "unit": "-",
+   "source_url": "https://www.amazon.com/8x16x5-Rubber-Covered-Double-Garter/dp/B00MW7GOD6",
+   "confidence": "medium",
+   "note": "premium alternative 8x16x7 HMS4 / BA; VERIFY garter spring material for water"
+  },
+  "installation": {
+   "value": {
+    "shaft_tol": "h11",
+    "shaft_hardness_HRC_min": 45,
+    "shaft_Ra_um": [
+     0.2,
+     0.8
+    ],
+    "housing_tol": "H8",
+    "housing_Ra_um": [
+     1.6,
+     6.3
+    ]
+   },
+   "unit": "-",
+   "source_url": "https://www.oil-seal-stocks.com/all-oil-seals/oil-seal-tc-rotary-shaft-seal/",
+   "confidence": "medium"
+  },
+  "lip_surface_speed_at_750rpm": {
+   "value": 0.314,
+   "unit": "m/s",
+   "source_url": "code:out/work/hardware/hw_calc.py",
+   "confidence": "high"
+  }
+ },
+ "shaft": {
+  "recommended": {
+   "value": "MISUMI PSSFJ8 (SUS440C, induction hardened 56 HRC~, g6)",
+   "unit": "-",
+   "source_url": "https://us.misumi-ec.com/pdf/fa/2019/2019_US_0202_003.pdf",
+   "confidence": "medium",
+   "note": "from search summary of the MISUMI catalogue PDF; meets the >= 45 HRC lip-seal guideline"
+  },
+  "g6_limits_8mm": {
+   "value": [
+    -0.005,
+    -0.014
+   ],
+   "unit": "mm",
+   "source_url": "https://us.misumi-ec.com/pdf/fa/2019/2019_US_0202_003.pdf",
+   "confidence": "medium"
+  }
+ },
+ "oring_equator": {
+  "recommended": {
+   "value": {
+    "designation": "ISO 3601 -143 (AS568-143)",
+    "ID": 61.6,
+    "ID_tol": 0.51,
+    "cs": 2.62,
+    "cs_tol": 0.08,
+    "material": "EPDM 70 (water) or NBR 70"
+   },
+   "unit": "mm",
+   "source_url": "https://www.applerubber.com/src/pdf/iso-3601-metric-size-o-rings.pdf",
+   "confidence": "high",
+   "note": "EPDM: 'used extensively for outdoor, weather-resistant uses and water applications' (Apple Rubber)"
+  },
+  "gland_table_2p62": {
+   "value": {
+    "radial_depth": [
+     2.03,
+     2.18
+    ],
+    "squeeze_pct": [
+     14,
+     25
+    ],
+    "diametral_clearance_max": 0.13,
+    "groove_width_no_backup": 3.56,
+    "groove_width_tol": 0.13,
+    "groove_radius": [
+     0.13,
+     0.51
+    ],
+    "eccentricity_max": 0.08
+   },
+   "unit": "mm",
+   "source_url": "https://www.applerubber.com/src/pdf/iso-3601-metric-size-o-rings.pdf",
+   "confidence": "high",
+   "note": "static radial gland"
+  },
+  "design_guidance": {
+   "value": {
+    "squeeze_pct": [
+     15,
+     30
+    ],
+    "fill_pct": [
+     60,
+     85
+    ],
+    "stretch_max_pct": 5
+   },
+   "unit": "%",
+   "source_url": "https://www.globaloring.com/o-ring-groove-design/",
+   "confidence": "medium"
+  },
+  "gland_design": {
+   "value": {
+    "spigot_groove_bottom_D": 63.14,
+    "groove_width": 3.56,
+    "gland_depth": 2.105,
+    "bore_D": 67.35,
+    "spigot_OD": 67.15,
+    "radial_clearance": 0.1,
+    "female_wall_at_equator": 3.83,
+    "spigot_ID_max_for_min_wall": 60.74
+   },
+   "unit": "mm",
+   "source_url": "code:out/work/hardware/hw_calc.py",
+   "confidence": "high",
+   "note": "2.5% nominal stretch on the groove bottom"
+  },
+  "performance": {
+   "value": {
+    "squeeze_nominal": 0.187,
+    "squeeze_worst": [
+     0.085,
+     0.284
+    ],
+    "fill_nominal": 0.703,
+    "fill_worst": 0.808,
+    "stretch_range": [
+     0.015,
+     0.0352
+    ]
+   },
+   "unit": "-",
+   "source_url": "code:out/work/hardware/hw_calc.py",
+   "confidence": "high",
+   "note": "worst case: +-0.10 mm printed diameters, full eccentricity, O-ring tolerances. Diametral clearance 0.20 exceeds the 0.13 table limit, which guards extrusion under pressure; at < 0.1 bar submersion this is acceptable."
+  },
+  "alternatives": {
+   "value": [
+    {
+     "oring": "ISO 3601 / AS568 -037",
+     "radial_clearance_mm": 0.1,
+     "bore_D_mm": 67.47,
+     "spigot_OD_mm": 67.27,
+     "female_wall_at_equator_mm": 3.77,
+     "squeeze_nominal": 0.241,
+     "squeeze_worst_range": [
+      0.089,
+      0.381
+     ],
+     "fill_worst": 0.937
+    },
+    {
+     "oring": "ISO 3601 / AS568 -037",
+     "radial_clearance_mm": 0.15,
+     "bore_D_mm": 67.47,
+     "spigot_OD_mm": 67.17,
+     "female_wall_at_equator_mm": 3.77,
+     "squeeze_nominal": 0.241,
+     "squeeze_worst_range": [
+      0.059,
+      0.408
+     ],
+     "fill_worst": 0.937
+    },
+    {
+     "oring": "ISO 3601 / AS568 -141",
+     "radial_clearance_mm": 0.1,
+     "bore_D_mm": 64.09,
+     "spigot_OD_mm": 63.89,
+     "female_wall_at_equator_mm": 5.45,
+     "squeeze_nominal": 0.187,
+     "squeeze_worst_range": [
+      0.085,
+      0.284
+     ],
+     "fill_worst": 0.808
+    },
+    {
+     "oring": "ISO 3601 / AS568 -141",
+     "radial_clearance_mm": 0.15,
+     "bore_D_mm": 64.09,
+     "spigot_OD_mm": 63.79,
+     "female_wall_at_equator_mm": 5.45,
+     "squeeze_nominal": 0.187,
+     "squeeze_worst_range": [
+      0.065,
+      0.303
+     ],
+     "fill_worst": 0.808
+    },
+    {
+     "oring": "ISO 3601 / AS568 -142",
+     "radial_clearance_mm": 0.1,
+     "bore_D_mm": 65.7,
+     "spigot_OD_mm": 65.5,
+     "female_wall_at_equator_mm": 4.65,
+     "squeeze_nominal": 0.187,
+     "squeeze_worst_range": [
+      0.085,
+      0.284
+     ],
+     "fill_worst": 0.808
+    },
+    {
+     "oring": "ISO 3601 / AS568 -142",
+     "radial_clearance_mm": 0.15,
+     "bore_D_mm": 65.7,
+     "spigot_OD_mm": 65.4,
+     "female_wall_at_equator_mm": 4.65,
+     "squeeze_nominal": 0.187,
+     "squeeze_worst_range": [
+      0.065,
+      0.303
+     ],
+     "fill_worst": 0.808
+    },
+    {
+     "oring": "ISO 3601 / AS568 -143",
+     "radial_clearance_mm": 0.1,
+     "bore_D_mm": 67.35,
+     "spigot_OD_mm": 67.15,
+     "female_wall_at_equator_mm": 3.83,
+     "squeeze_nominal": 0.187,
+     "squeeze_worst_range": [
+      0.085,
+      0.284
+     ],
+     "fill_worst": 0.808
+    },
+    {
+     "oring": "ISO 3601 / AS568 -143",
+     "radial_clearance_mm": 0.15,
+     "bore_D_mm": 67.35,
+     "spigot_OD_mm": 67.05,
+     "female_wall_at_equator_mm": 3.83,
+     "squeeze_nominal": 0.187,
+     "squeeze_worst_range": [
+      0.065,
+      0.303
+     ],
+     "fill_worst": 0.808
+    },
+    {
+     "oring": "ISO 3601 / AS568 -144",
+     "radial_clearance_mm": 0.1,
+     "bore_D_mm": 68.96,
+     "spigot_OD_mm": 68.76,
+     "female_wall_at_equator_mm": 3.02,
+     "squeeze_nominal": 0.187,
+     "squeeze_worst_range": [
+      0.085,
+      0.284
+     ],
+     "fill_worst": 0.808
+    },
+    {
+     "oring": "ISO 3601 / AS568 -144",
+     "radial_clearance_mm": 0.15,
+     "bore_D_mm": 68.96,
+     "spigot_OD_mm": 68.66,
+     "female_wall_at_equator_mm": 3.02,
+     "squeeze_nominal": 0.187,
+     "squeeze_worst_range": [
+      0.065,
+      0.303
+     ],
+     "fill_worst": 0.808
+    },
+    {
+     "oring": "ISO 3601 / AS568 -145",
+     "radial_clearance_mm": 0.1,
+     "bore_D_mm": 70.6,
+     "spigot_OD_mm": 70.4,
+     "female_wall_at_equator_mm": 2.2,
+     "squeeze_nominal": 0.187,
+     "squeeze_worst_range": [
+      0.085,
+      0.284
+     ],
+     "fill_worst": 0.809
+    },
+    {
+     "oring": "ISO 3601 / AS568 -145",
+     "radial_clearance_mm": 0.15,
+     "bore_D_mm": 70.6,
+     "spigot_OD_mm": 70.3,
+     "female_wall_at_equator_mm": 2.2,
+     "squeeze_nominal": 0.187,
+     "squeeze_worst_range": [
+      0.065,
+      0.303
+     ],
+     "fill_worst": 0.809
+    },
+    {
+     "oring": "ISO 3601 / AS568 -230",
+     "radial_clearance_mm": 0.1,
+     "bore_D_mm": 70.41,
+     "spigot_OD_mm": 70.21,
+     "female_wall_at_equator_mm": 2.3,
+     "squeeze_nominal": 0.178,
+     "squeeze_worst_range": [
+      0.097,
+      0.254
+     ],
+     "fill_worst": 0.818
+    },
+    {
+     "oring": "ISO 3601 / AS568 -230",
+     "radial_clearance_mm": 0.15,
+     "bore_D_mm": 70.41,
+     "spigot_OD_mm": 70.11,
+     "female_wall_at_equator_mm": 2.3,
+     "squeeze_nominal": 0.178,
+     "squeeze_worst_range": [
+      0.083,
+      0.268
+     ],
+     "fill_worst": 0.818
+    }
+   ],
+   "unit": "mm",
+   "source_url": "code:out/work/hardware/hw_calc.py",
+   "confidence": "high",
+   "note": "-037 (1.78) too sensitive to print error; -145 and -230 leave < 2.4 mm female wall"
+  }
+ },
+ "magnets": {
+  "n52_4x2": {
+   "D": {
+    "value": 4.0,
+    "unit": "mm",
+    "source_url": "https://www.jc-magnetics.com/Magnet-N52-4mm-2mm-Discs",
+    "confidence": "high",
+    "note": "+-0.05"
+   },
+   "H": {
+    "value": 2.0,
+    "unit": "mm",
+    "source_url": "https://www.jc-magnetics.com/Magnet-N52-4mm-2mm-Discs",
+    "confidence": "high"
+   },
+   "coating": {
+    "value": "Ni-Cu-Ni 15-25 um",
+    "unit": "-",
+    "source_url": "https://www.jc-magnetics.com/Magnet-N52-4mm-2mm-Discs",
+    "confidence": "high"
+   },
+   "pull": {
+    "value": [
+     4.05,
+     4.58
+    ],
+    "unit": "N",
+    "source_url": "https://www.jc-magnetics.com/Magnet-N52-4mm-2mm-Discs",
+    "confidence": "medium",
+    "note": "1.03 lb (jc) / 0.91 lb (https://themagnetbaron.com/collections/4mm-disc-magnets), magnet to steel plate"
+   },
+   "Br": {
+    "value": [
+     1.43,
+     1.48
+    ],
+    "unit": "T",
+    "source_url": "https://www.jc-magnetics.com/Magnet-N52-4mm-2mm-Discs",
+    "confidence": "high"
+   },
+   "max_temp": {
+    "value": 80,
+    "unit": "degC",
+    "source_url": "https://www.jc-magnetics.com/Magnet-N52-4mm-2mm-Discs",
+    "confidence": "high"
+   },
+   "price": {
+    "value": {
+     "USD_each": 0.3,
+     "USD_each_100plus": 0.17
+    },
+    "unit": "currency",
+    "source_url": "https://www.jc-magnetics.com/Magnet-N52-4mm-2mm-Discs",
+    "confidence": "high"
+   }
+  },
+  "n52_3x2_pull": {
+   "value": 2.54,
+   "unit": "N",
+   "source_url": "https://themagnetbaron.com/collections/3mm-disc-magnets",
+   "confidence": "medium",
+   "note": "0.57 lb"
+  },
+  "n52_5x2_pull": {
+   "value": 5.52,
+   "unit": "N",
+   "source_url": "https://themagnetbaron.com/collections/5mm-disc-magnets",
+   "confidence": "medium",
+   "note": "1.24 lb"
+  },
+  "note": "Pull is to a thick steel plate at contact; it falls steeply with any printed skin. Verify detent feel on the coupon."
+ },
+ "dowel_pins": {
+  "standard": {
+   "value": "ISO 8734 parallel pin, hardened steel (A) or martensitic stainless C1 (460-560 HV30)",
+   "unit": "-",
+   "source_url": "https://cdn.standards.iteh.ai/samples/20002/ba95529de6a64437ac7454e14dbd2ef6/ISO-8734-1997.pdf",
+   "confidence": "high"
+  },
+  "d": {
+   "value": 3.0,
+   "unit": "mm",
+   "source_url": "https://cdn.standards.iteh.ai/samples/20002/ba95529de6a64437ac7454e14dbd2ef6/ISO-8734-1997.pdf",
+   "confidence": "high",
+   "note": "tolerance m6 (ISO 8734 Table 1). engineeringhardware.com lists 'h6' for the same standard (https://engineeringhardware.com/guide/standard/iso-8734-dowel-pins/); irrelevant against printed holes"
+  },
+  "chamfer_c": {
+   "value": 0.5,
+   "unit": "mm",
+   "source_url": "https://cdn.standards.iteh.ai/samples/20002/ba95529de6a64437ac7454e14dbd2ef6/ISO-8734-1997.pdf",
+   "confidence": "high"
+  },
+  "length": {
+   "value": 16.0,
+   "unit": "mm",
+   "source_url": "https://cdn.standards.iteh.ai/samples/20002/ba95529de6a64437ac7454e14dbd2ef6/ISO-8734-1997.pdf",
+   "confidence": "high",
+   "note": "standard; tolerance 15.5-16.5; d=3 commercial lengths 8-30"
+  }
+ },
+ "heat_set_insert_m3": {
+  "cnc_kitchen_standard": {
+   "value": {
+    "L": 5.7,
+    "D1": 4.6,
+    "D2": 3.9,
+    "hole_D3": 4.0,
+    "min_wall_W": 1.6
+   },
+   "unit": "mm",
+   "source_url": "https://www.3djake.com/cnc-kitchen/threaded-inserts-m3-standard",
+   "confidence": "high"
+  },
+  "price": {
+   "value": {
+    "EUR_per_100_3djake": 12.09,
+    "EUR_per_100_cnckitchen_store": 9.4,
+    "EUR_per_100_ruthex": 8.99
+   },
+   "unit": "currency",
+   "source_url": "https://www.3djake.com/cnc-kitchen/threaded-inserts-m3-standard",
+   "confidence": "high",
+   "note": "https://cnckitchen.store/products/heat-set-insert-m3-x-5-7-100-pieces ; https://www.ruthex.de/en/products/ruthex-gewindeeinsatz-m3-100-stuck-rx-m3x5-7-messing-gewindebuchsen"
+  },
+  "hole_depth": {
+   "value": null,
+   "unit": "mm",
+   "source_url": "https://www.3djake.com/cnc-kitchen/threaded-inserts-m3-standard",
+   "confidence": "low",
+   "note": "not published; model >= L and verify"
+  }
+ },
+ "grub_screw_m3": {
+  "iso4029": {
+   "value": {
+    "pitch": 0.5,
+    "hex_key_s": 1.5,
+    "cup_point_d_max": 1.4,
+    "socket_depth_t_min": 1.2
+   },
+   "unit": "mm",
+   "source_url": "https://www.fasteners.eu/standards/iso/4029/",
+   "confidence": "medium"
+  },
+  "lengths_commercial": {
+   "value": [
+    3,
+    4
+   ],
+   "unit": "mm",
+   "source_url": "https://accu-components.com/us/cup-point-set-screws/5009-SSU-M3-4-A2",
+   "confidence": "medium",
+   "note": "A2 M3x4 and A4 M3x3 listings (https://accu-components.com/us/cup-point-set-screws/4898-SSU-M3-3-A4)"
+  }
+ },
+ "cable_gland": {
+  "hummel_hsk_k_m12": {
+   "value": {
+    "part": "1.209.1200.50",
+    "thread": "M12x1.5",
+    "thread_length": 8,
+    "clamping": [
+     3.0,
+     6.5
+    ],
+    "SW": 15,
+    "height": 21,
+    "ip": "IP68 10 bar/30 min with additional O-ring; IP54 without",
+    "torque_Nm": 1.5,
+    "material": "PA V0, NBR seal",
+    "temp_C": [
+     -40,
+     100
+    ]
+   },
+   "unit": "mm",
+   "source_url": "https://www.hummel.com/en/cable-glands/products/plastic-cable-glands/hsk-k/1209120050-hsk-k-grey-m12x1-5/",
+   "confidence": "high"
+  },
+  "lapp_skintop_st_m12": {
+   "value": {
+    "part": "53111000",
+    "clamping": [
+     3.5,
+     7.0
+    ],
+    "thread_length": 8,
+    "SW": 15,
+    "length": 30,
+    "ip": "IP66, IP68 5 bar, IP69"
+   },
+   "unit": "mm",
+   "source_url": "https://products.lappgroup.com/online-catalogue/cable-glands/skintop-cable-glands-plastic-metric/standard/skintop-st-m.html",
+   "confidence": "high"
+  },
+  "clearance_hole": {
+   "value": 12.5,
+   "unit": "mm",
+   "source_url": "https://www.metric-bolt-torque.com/metric-thread/cable-gland-sizes/",
+   "confidence": "medium",
+   "note": "drill hole for M12x1.5; or print/tap the thread"
+  },
+  "price": {
+   "value": {
+    "USD_per_10": 10.48
+   },
+   "unit": "currency",
+   "source_url": "https://tameson.com/products/hummel-hsk-k-m12-cable-gland-pa-gray-1209120050-10-pieces",
+   "confidence": "medium"
+  }
+ },
+ "tow_eye": {
+  "din580": {
+   "value": {
+    "smallest_in_standard": "M8",
+    "d2": 20,
+    "d3": 36,
+    "h": 36,
+    "k": 8,
+    "l": 13
+   },
+   "unit": "mm",
+   "source_url": "https://www.fasteners.eu/standards/DIN/580/",
+   "confidence": "high"
+  },
+  "din580_a4_m6": {
+   "value": {
+    "d3": 36,
+    "h": 36,
+    "l": 13,
+    "F1_max_N": 750
+   },
+   "unit": "mm",
+   "source_url": "https://www.jwwinco.com/en-us/products/3.4-Installing-Lifting-Damping-with-Leveling-Feet-Lifting-Gear-and-Rubber-Bumpers/Lifting-eye-bolts-Lifting-eye-nuts/DIN-580-A4-Stainless-Steel-Lifting-Eye-Bolts",
+   "confidence": "medium",
+   "note": "vendor offers M6 with the same eye as M8; values converted from inches"
+  },
+  "recommendation": {
+   "value": "printed eye integrated in the nose; pull-test to >= 3 x the 79 N towed thrust estimate (236 N)",
+   "unit": "-",
+   "source_url": "code:out/work/hardware/hw_calc.py",
+   "confidence": "medium",
+   "note": "DIN 580 eye (36 mm tall) is half the 75 mm hull diameter"
+  }
+ },
+ "printers": {
+  "a1": {
+   "value": [
+    256,
+    256,
+    256
+   ],
+   "unit": "mm",
+   "source_url": "https://bambulab.com/en-ca/a1/tech-specs",
+   "confidence": "medium",
+   "note": "search-result extract of the tech-specs page"
+  },
+  "p1s": {
+   "value": [
+    256,
+    256,
+    256
+   ],
+   "unit": "mm",
+   "source_url": "https://bambulab.com/en/p1?product=p1s",
+   "confidence": "medium",
+   "note": "search-result extract; enclosed shell (plastic & glass)"
+  },
+  "p1p": {
+   "value": [
+    256,
+    256,
+    256
+   ],
+   "unit": "mm",
+   "source_url": "https://public-cdn.bambulab.com/store/bambulab-P1P-tech-specs.pdf",
+   "confidence": "high",
+   "note": "ASA 'Capable'"
+  },
+  "x1c": {
+   "value": [
+    256,
+    256,
+    256
+   ],
+   "unit": "mm",
+   "source_url": "https://public-cdn.bambulab.com/store/bambulab-X1-carbon-tech-specs.pdf",
+   "confidence": "high",
+   "note": "ASA 'Yes', aluminium & glass shell"
+  }
+ },
+ "print_fits": {
+  "prusa_moving_parts_gap": {
+   "value": 0.3,
+   "unit": "mm",
+   "source_url": "https://help.prusa3d.com/article/modeling-with-3d-printing-in-mind_164135",
+   "confidence": "high",
+   "note": "'at least 0.3 mm'; printer accuracy ~0.2 mm"
+  },
+  "creative3dp_ladder_diametral": {
+   "value": {
+    "press": -0.1,
+    "snug": 0.05,
+    "close_running": 0.15,
+    "free": 0.35
+   },
+   "unit": "mm",
+   "source_url": "https://tools.creative3dp.com/blog/press-fit-tolerances-3d-printing/",
+   "confidence": "medium",
+   "note": "PLA/PETG/ABS, 5-25 mm"
+  },
+  "hole_undersize": {
+   "value": [
+    0.1,
+    0.3
+   ],
+   "unit": "mm",
+   "source_url": "https://tools.creative3dp.com/blog/press-fit-tolerances-3d-printing/",
+   "confidence": "medium"
+  },
+  "press_interference_per_side": {
+   "value": {
+    "PLA": [
+     0.05,
+     0.1
+    ],
+    "PETG_max": 0.1
+   },
+   "unit": "mm",
+   "source_url": "https://tools.creative3dp.com/blog/press-fit-tolerances-3d-printing/",
+   "confidence": "medium"
+  },
+  "bearing_608_pocket_PLA": {
+   "value": 21.95,
+   "unit": "mm",
+   "source_url": "https://tools.creative3dp.com/blog/press-fit-tolerances-3d-printing/",
+   "confidence": "medium",
+   "note": "with standard hole compensation"
+  },
+  "petg_sliding_total_clearance": {
+   "value": 0.3,
+   "unit": "mm",
+   "source_url": "https://tools.creative3dp.com/blog/press-fit-tolerances-3d-printing/",
+   "confidence": "medium"
+  },
+  "lead_in_chamfer": {
+   "value": "0.5 x 45 deg",
+   "unit": "-",
+   "source_url": "https://tools.creative3dp.com/blog/press-fit-tolerances-3d-printing/",
+   "confidence": "medium"
+  },
+  "crush_ribs": {
+   "value": "small standoffs that deform on press-in; 0.1 mm changes the fit noticeably",
+   "unit": "-",
+   "source_url": "https://hackaday.com/2020/10/15/adding-crush-ribs-to-3d-printed-parts-for-a-better-press-fit/",
+   "confidence": "medium"
+  }
+ },
+ "materials": {
+  "petg": {
+   "value": "water and humidity resistant; interior and most exterior use below 80 C; good layer adhesion",
+   "unit": "-",
+   "source_url": "https://help.prusa3d.com/article/petg_2059",
+   "confidence": "high"
+  },
+  "asa": {
+   "value": "suitable for outdoor use (UV, up to 93 C); needs enclosure and >= 100 C bed; warps; styrene fumes",
+   "unit": "-",
+   "source_url": "https://help.prusa3d.com/article/asa_1809",
+   "confidence": "high"
+  },
+  "recommendation": "PETG for every wetted part (all printers); ASA for long sun exposure, printed on P1S/X1C only; PLA only for display-only parts."
+ },
+ "prior_art": [
+  {
+   "product": "Enomad Estream",
+   "rotor_D": {
+    "value": 210,
+    "unit": "mm",
+    "source_url": "https://newatlas.com/enomad-estream-portable-water-turbine-charger/44897/",
+    "confidence": "high"
+   },
+   "power": {
+    "value": [
+     2.5,
+     5.0
+    ],
+    "unit": "W",
+    "source_url": "https://newatlas.com/enomad-estream-portable-water-turbine-charger/44897/",
+    "confidence": "medium",
+    "note": "flow speed for this power not published"
+   },
+   "stowed": {
+    "value": [
+     245,
+     65
+    ],
+    "unit": "mm",
+    "source_url": "https://newatlas.com/enomad-estream-portable-water-turbine-charger/44897/",
+    "confidence": "high"
+   },
+   "mass": {
+    "value": 800,
+    "unit": "g",
+    "source_url": "https://newatlas.com/enomad-estream-portable-water-turbine-charger/44897/",
+    "confidence": "high"
+   },
+   "price": {
+    "value": {
+     "USD": 180
+    },
+    "unit": "currency",
+    "source_url": "https://www.greenoptimistic.com/estream-portable-water-turbine-20160816/",
+    "confidence": "high",
+    "note": "Kickstarter pledge level, 2016"
+   },
+   "stowage": "folding blades, separate turbine and 6400 mAh battery modules"
+  },
+  {
+   "product": "WaterLily (discontinued)",
+   "rotor_D": {
+    "value": null,
+    "unit": "mm",
+    "source_url": "https://worldwaterreserve.com/waterlily-turbine-review/",
+    "confidence": "low",
+    "note": "unit is 7 in (178 mm) dia x 3 in"
+   },
+   "power": {
+    "value": 15,
+    "unit": "W",
+    "source_url": "https://get.waterlilyturbine.com/paddling-charger/",
+    "confidence": "high",
+    "note": "'up to 15 W'; '2-3 W under tow'"
+   },
+   "speed": {
+    "value": {
+     "min_km_h": 1,
+     "peak_mph": 7.2,
+     "max_mph": 9
+    },
+    "unit": "mixed",
+    "source_url": "https://www.popsci.com/gear/best-hydroelectric-generators/",
+    "confidence": "low",
+    "note": "peak/max speeds from https://worldwaterreserve.com/waterlily-turbine-review/"
+   },
+   "mass": {
+    "value": 1300,
+    "unit": "g",
+    "source_url": "https://worldwaterreserve.com/waterlily-turbine-review/",
+    "confidence": "medium",
+    "note": "2.85 lb; maker page says 2.8 lb"
+   },
+   "price": {
+    "value": {
+     "USD": 159
+    },
+    "unit": "currency",
+    "source_url": "https://www.theoutbound.com/neonconflagrations/waterlily-turbine-portable-power-generator-review",
+    "confidence": "medium"
+   },
+   "stowage": "rigid ducted wheel, tethered or towed, 10 ft cable"
+  },
+  {
+   "product": "Blue Freedom Portable",
+   "rotor_D": {
+    "value": 120,
+    "unit": "mm",
+    "source_url": "https://blue-freedom.net/hydro/portable/",
+    "confidence": "high"
+   },
+   "power": {
+    "value": 5,
+    "unit": "W",
+    "source_url": "https://blue-freedom.net/hydro/portable/",
+    "confidence": "high",
+    "note": "max; 15 V nominal; 5000 mAh LiPo"
+   },
+   "speed": {
+    "value": 1.0,
+    "unit": "m/s",
+    "source_url": "https://gigazine.net/gsc_news/en/20160418-blue-freedom/",
+    "confidence": "medium",
+    "note": "'at least 1 m/s' for 5 W"
+   },
+   "body": {
+    "value": [
+     220,
+     55
+    ],
+    "unit": "mm",
+    "source_url": "https://blue-freedom.net/hydro/portable/",
+    "confidence": "high"
+   },
+   "mass": {
+    "value": 690,
+    "unit": "g",
+    "source_url": "https://blue-freedom.net/hydro/portable/",
+    "confidence": "high"
+   },
+   "price": {
+    "value": {
+     "EUR": 299
+    },
+    "unit": "currency",
+    "source_url": "https://blue-freedom.net/hydro/portable/",
+    "confidence": "high"
+   },
+   "stowage": "propeller stored inside the body, flexible shaft to the generator body ashore"
+  },
+  {
+   "product": "Ampair Aquair UW (towed/stream, not for sale)",
+   "rotor_D": {
+    "value": 318,
+    "unit": "mm",
+    "source_url": "https://nooutage.com/aquair-uw.htm",
+    "confidence": "high",
+    "note": "12.5 in"
+   },
+   "power": {
+    "value": {
+     "6_mph_W": 70,
+     "9_mph_W": 100
+    },
+    "unit": "W",
+    "source_url": "https://nooutage.com/aquair-uw.htm",
+    "confidence": "high"
+   },
+   "mass": {
+    "value": 13600,
+    "unit": "g",
+    "source_url": "https://nooutage.com/aquair-uw.htm",
+    "confidence": "high",
+    "note": "30 lb"
+   },
+   "stowage": "fixed prop, pole or tow mount"
+  }
+ ],
+ "prior_art_power_check": {
+  "value": [
+   {
+    "product": "Enomad Estream",
+    "rotor_D_m": 0.21,
+    "P_W": 5.0,
+    "V_needed_at_Cp_el_0.20_m_s": 1.13,
+    "V_needed_at_Cp_el_0.30_m_s": 0.99
+   },
+   {
+    "product": "Blue Freedom Portable",
+    "rotor_D_m": 0.12,
+    "P_W": 5.0,
+    "V_m_s": 1.0,
+    "P_avail_W": 5.7,
+    "Cp_implied": 0.884,
+    "V_needed_at_Cp_el_0.20_m_s": 1.64,
+    "V_needed_at_Cp_el_0.30_m_s": 1.43
+   },
+   {
+    "product": "WaterLily (7 in housing as upper bound on rotor)",
+    "rotor_D_m": 0.1778,
+    "P_W": 15.0,
+    "V_m_s": 3.219,
+    "P_avail_W": 414.0,
+    "Cp_implied": 0.036,
+    "V_needed_at_Cp_el_0.20_m_s": 1.82,
+    "V_needed_at_Cp_el_0.30_m_s": 1.59
+   },
+   {
+    "product": "Aquair UW @6 mph",
+    "rotor_D_m": 0.3175,
+    "P_W": 70.0,
+    "V_m_s": 2.682,
+    "P_avail_W": 763.9,
+    "Cp_implied": 0.092,
+    "V_needed_at_Cp_el_0.20_m_s": 2.07,
+    "V_needed_at_Cp_el_0.30_m_s": 1.81
+   },
+   {
+    "product": "Aquair UW @9 mph",
+    "rotor_D_m": 0.3175,
+    "P_W": 100.0,
+    "V_m_s": 4.023,
+    "P_avail_W": 2578.2,
+    "Cp_implied": 0.039,
+    "V_needed_at_Cp_el_0.20_m_s": 2.33,
+    "V_needed_at_Cp_el_0.30_m_s": 2.03
+   },
+   {
+    "product": "HydroEgg BEM shaft (provisional)",
+    "rotor_D_m": 0.194,
+    "P_W": 18.38,
+    "V_m_s": 1.5,
+    "P_avail_W": 49.9,
+    "Cp_implied": 0.368,
+    "V_needed_at_Cp_el_0.20_m_s": 1.84,
+    "V_needed_at_Cp_el_0.30_m_s": 1.61
+   }
+  ],
+  "unit": "-",
+  "source_url": "code:out/work/hardware/hw_calc.py",
+  "confidence": "high",
+  "note": "Blue Freedom's 5 W at 1 m/s with a 120 mm rotor implies Cp 0.88 (> Betz 0.593): needs >= 1.43 m/s at Cp_el 0.30"
+ },
+ "references": [
+  {
+   "value": "Chica, Velasquez, Rubio-Clemente (2025) Energies 18:1657: 1.58 m 3-blade river HAHT, 1 kW at 1.5 m/s, measured Cp 0.4087",
+   "unit": "-",
+   "source_url": "https://doi.org/10.3390/en18071657",
+   "confidence": "high",
+   "note": "full-scale Cp benchmark"
+  },
+  {
+   "value": "Riglin et al. (2016) Renewable Energy 99:772-783, portable hydrokinetic turbine prototype",
+   "unit": "-",
+   "source_url": "https://doi.org/10.1016/j.renene.2016.07.065",
+   "confidence": "medium",
+   "note": "title only; abstract not retrieved"
+  }
+ ]
+}
