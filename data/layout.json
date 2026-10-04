@@ -4878,11 +4878,11 @@
    "tube": {
     "r_out_front_mm": 13.4,
     "r_out_rear_mm": 10.4,
-    "bore_front_mm": 22.0,
+    "bore_front_mm": 22,
     "shoulder_front_id_mm": 18.0,
-    "bore_rear_mm": 16.0,
+    "bore_rear_mm": 16,
     "shoulder_rear_id_mm": 12.5,
-    "seal_bore_mm": 16.0,
+    "seal_bore_mm": 16,
     "x_from": 62.0,
     "x_to": 108.0,
     "min_gap_to_pocket_floor_mm": 2.9315,
@@ -4898,7 +4898,7 @@
      107.5
     ],
     "lip": "main lip faces aft (water side)",
-    "bore_mm": 16.0,
+    "bore_mm": 16,
     "note": "v1 display: pocket only, seal optional"
    },
    "shaft": {
@@ -5738,9 +5738,9 @@
   "EQUATOR_X": 57.5,
   "LIP_SEAL": {
    "name": "TC 8x16x5",
-   "d": 8.0,
-   "D": 16.0,
-   "B": 5.0,
+   "d": 8,
+   "D": 16,
+   "B": 5,
    "x0": 102.5,
    "recess": 0.5
   },
@@ -5763,19 +5763,19 @@
     10.4,
     10.4
    ],
-   "seat_front_d": 22.0,
+   "seat_front_d": 22,
    "shoulder_front_id": 18.0,
    "shoulder_front_x": [
     70.0,
     96.0
    ],
-   "seat_rear_d": 16.0,
+   "seat_rear_d": 16,
    "seal_shoulder_x": [
     101.0,
     102.5
    ],
    "seal_shoulder_id": 12.5,
-   "seal_bore_d": 16.0,
+   "seal_bore_d": 16,
    "mouth_lead_in": 0.5,
    "seat_note": "printed seats = nominal D + 2 x PRESS_FIT; the 18 mm bore between the seats lets the 688 pass through the 608 seat",
    "ribs": {
@@ -6009,17 +6009,17 @@
   "POCKET_FLOOR_WALL": 2.0,
   "BEARING": {
    "name": "608-2RS",
-   "d": 8.0,
-   "D": 22.0,
-   "B": 7.0,
+   "d": 8,
+   "D": 22,
+   "B": 7,
    "x0": 63.0,
    "role": "front, locating"
   },
   "BEARING_ALT": {
    "name": "688-2RS",
-   "d": 8.0,
-   "D": 16.0,
-   "B": 5.0,
+   "d": 8,
+   "D": 16,
+   "B": 5,
    "x0": 96.0,
    "role": "rear, floating"
   },
