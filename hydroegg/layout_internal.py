@@ -183,6 +183,16 @@ FIN_CP_SPAN = 0.44                # ESTIMATE, spanwise centre of lift / span (re
 FIN_E_OSWALD = 0.8                # ESTIMATE
 FIN_CLMAX_3D_FACTOR = 0.9         # ESTIMATE, 3D CLmax / 2D CLmax
 FIN_CL_RESERVE = 0.75             # design CL <= this x CLmax_3D
+FIN_DESIGN_V = 1.5                # m/s, the fins are matched at the design flow (params.DESIGN_FLOW_V)
+FIN_SPEEDS = (1.0, 1.5, 2.5)      # m/s, flows at which the fin couple is evaluated (2.5 = tow case)
+FIN_TORQUE_MARGIN = 0.10          # fin couple at the design flow >= (1 + margin) x the recommended
+                                  # generator's load-line torque (data/blade_design.json): covers lift
+                                  # that a printed Clark Y at Re ~5e4 may not reach (NeuralFoil is
+                                  # smooth-surface) and the estimated GL40 drag torque; trimmed later
+                                  # with fin variants (fin_design: trim)
+FIN_RATIO_BAND = 0.05             # and <= (1 + margin)(1 + band): no fin that overshoots at zero incidence
+FIN_ALPHA_STEP = 0.25             # deg, incidence grid
+FIN_TRIM_DEG = 1.0                # deg, trim fin variant: root tongue turned by this about the pivot
 FIN_TIP_CLEAR = 5.0               # mm, margin to the blade-tip sweep torus ("torus" rule)
 FIN_FOLD_RULE = "index"           # merge decision: the blades fold only at the stowing index (the
                                   # pockets require it), checked against the swept blade surface;
@@ -445,6 +455,21 @@ def hardware_inputs() -> dict:
         hw["gland"].update(thread_L=_num(gl.get("thread_length")) or 8.0, SW=_num(gl.get("SW")) or 15.0,
                            height=_num(gl.get("height")) or 21.0, clamp_mm=gl.get("clamping", [3.0, 6.5]),
                            src="data/hardware.json cable_gland.hummel_hsk_k_m12; mass ESTIMATE")
+    # equator O-ring: the hardware study's final pick (size, groove form and diameters)
+    orj = hj.get("oring_equator") or {}
+    rec = (orj.get("recommended") or {}).get("value") or {}
+    gd = (orj.get("gland_design") or {}).get("value") or {}
+    if rec and gd:
+        hw["oring"] = dict(
+            designation=rec["designation"], dash="-" + rec["designation"].split("-")[1].split()[0],
+            id=_num(rec["ID"]), id_tol=_num(rec["ID_tol"]), cs=_num(rec["cs"]), cs_tol=_num(rec["cs_tol"]),
+            material=rec.get("material"), groove_form=gd.get("groove_form"), flank=gd.get("flank"),
+            groove_bottom_d=_num(gd["spigot_groove_bottom_D"]), groove_bottom_w=_num(gd["groove_bottom_width"]),
+            groove_top_w=_num(gd["groove_top_width"]), gland_depth=_num(gd["gland_depth"]),
+            groove_depth_in_spigot=_num(gd["groove_depth_in_spigot"]), bore_d=_num(gd["bore_D"]),
+            spigot_od=_num(gd["spigot_OD"]), radial_clearance=_num(gd["radial_clearance"]),
+            performance=(orj.get("performance") or {}).get("value") or {},
+            src="data/hardware.json oring_equator (recommended, gland_design, performance)")
     return hw
 
 
@@ -547,63 +572,97 @@ def _stretched_cs(cs: float, id_free: float, d_groove: float) -> float:
     return cs1
 
 
-def oring_pick(d_bore_max: float) -> dict:
-    """Largest AS568 1xx ring (cs 2.62) whose bore fits under d_bore_max with a nominal
-    stretch inside OR_STRETCH, then the worst-case gland check (print +-TOL_PRINT_D on
-    diameters, full eccentricity inside C_SEAL, ring ID and cs tolerances)."""
-    best = None
-    for dash, (idf, id_tol) in AS568_1XX.items():
-        st = min(OR_STRETCH[1] - 0.005, (d_bore_max - 2 * OR_DEPTH) / idf - 1)   # 3.5 % cap
-        if st < OR_STRETCH[0]:
-            continue
-        d_gr = idf * (1 + st)
-        if best is None or d_gr > best[2]:
-            best = (dash, st, d_gr)
-    dash, st, d_gr = best
-    idf, id_tol = AS568_1XX[dash]
-    d_gr = math.floor(d_gr * 20) / 20
-    d_bore = d_gr + 2 * OR_DEPTH
-    cs_n = _stretched_cs(OR_CS, idf, d_gr)
-    L_min = OR_DEPTH - TOL_PRINT_D - C_SEAL
-    L_max = OR_DEPTH + TOL_PRINT_D + C_SEAL
-    cs_min = _stretched_cs(OR_CS - OR_CS_TOL, idf + id_tol, d_gr + TOL_PRINT_D)
-    cs_max = _stretched_cs(OR_CS + OR_CS_TOL, idf - id_tol, d_gr - TOL_PRINT_D)
+def _gland_area(w_bot: float, local_depth: float, groove_depth: float) -> float:
+    """Gland cross-section between the groove bottom and the bore over a local radial depth, for a
+    groove with one 45 deg (tip-side) flank: the width grows 1:1 with height inside the groove (up
+    to groove_depth, the depth cut into the spigot), then stays at the top width in the radial
+    clearance above it (same model as the hardware study, hw_calc.gland_area)."""
+    h_in = min(local_depth, groove_depth)
+    return w_bot * local_depth + 0.5 * h_in * h_in + h_in * max(local_depth - groove_depth, 0.0)
 
-    def area(w_bot, depth):                       # groove with one 45 deg flank
-        return (w_bot + depth / 2) * depth
 
-    a_n = math.pi / 4 * cs_n ** 2
-    return dict(
-        designation=f"ISO 3601 / AS568 {dash}", material="EPDM 70 (water) or NBR 70",
-        cs_mm=OR_CS, id_free_mm=idf, id_tol_mm=id_tol,
-        groove_bottom_d_mm=d_gr, bore_d_mm=d_bore, spigot_seal_od_mm=d_bore - 2 * C_SEAL,
-        gland_depth_mm=OR_DEPTH, groove_bottom_w_mm=OR_GROOVE_W,
-        groove_top_w_mm=OR_GROOVE_W + OR_DEPTH, groove_forward_flank_deg=45.0,
-        radial_clearance_mm=C_SEAL, table_diametral_clearance_max_mm=OR_TABLE_DCLR,
+def oring_pick(d_bore_max: float, hw_or: dict | None = None) -> dict:
+    """Equator O-ring and spigot groove. With hw_or (data/hardware.json oring_equator) the
+    hardware study's final pick is adopted as is (size, groove bottom and bore diameters, bottom
+    width, 45 deg tip-side flank, radial clearance) and only checked here: the bore must fit under
+    d_bore_max (POCKET_FLOOR_WALL under the pockets over the seal zone). Without it, the largest
+    AS568 1xx ring whose bore fits is picked at OR_STRETCH. Either way the gland is re-evaluated with
+    the hardware study's worst-case model: print +-TOL_PRINT_D on diameters, full eccentricity in
+    the radial clearance, ring cs and ID tolerances in the adverse direction (thinnest section =
+    smallest cs and smallest free ID, i.e. most stretch), groove bottom width -0.13."""
+    if hw_or:
+        dash, idf, id_tol = hw_or["dash"], hw_or["id"], hw_or["id_tol"]
+        cs, cs_tol = hw_or["cs"], hw_or["cs_tol"]
+        d_gr, d_bore, c_rad = hw_or["groove_bottom_d"], hw_or["bore_d"], hw_or["radial_clearance"]
+        w_bot, depth = hw_or["groove_bottom_w"], hw_or["gland_depth"]
+        source = hw_or["src"]
+    else:
+        best = None
+        for dash_, (idf_, _) in AS568_1XX.items():
+            st = min(OR_STRETCH[1] - 0.005, (d_bore_max - 2 * OR_DEPTH) / idf_ - 1)   # 3.5 % cap
+            if st >= OR_STRETCH[0] and (best is None or idf_ * (1 + st) > best[1]):
+                best = (dash_, idf_ * (1 + st))
+        dash, d_gr = best
+        idf, id_tol = AS568_1XX[dash]
+        cs, cs_tol = OR_CS, OR_CS_TOL
+        d_gr = math.floor(d_gr * 20) / 20
+        depth, c_rad, w_bot = OR_DEPTH, C_SEAL, OR_GROOVE_W
+        d_bore = d_gr + 2 * depth
+        source = "layout_internal fallback pick (data/hardware.json has no oring_equator)"
+    g = depth - c_rad                                     # groove depth cut into the spigot
+    cs_n = _stretched_cs(cs, idf, d_gr)
+    L_min = depth - TOL_PRINT_D - c_rad
+    L_max = depth + TOL_PRINT_D + c_rad
+    cs_min = _stretched_cs(cs - cs_tol, idf - id_tol, d_gr + TOL_PRINT_D)
+    cs_max = _stretched_cs(cs + cs_tol, idf + id_tol, d_gr - TOL_PRINT_D)
+    a_max = math.pi / 4 * cs_max ** 2
+    out = dict(
+        designation=f"ISO 3601 / AS568 {dash}", material=(hw_or or {}).get("material") or "EPDM 70 (water) or NBR 70",
+        source=source, cs_mm=cs, id_free_mm=idf, id_tol_mm=id_tol,
+        groove_bottom_d_mm=d_gr, bore_d_mm=d_bore, spigot_seal_od_mm=d_bore - 2 * c_rad,
+        gland_depth_mm=depth, groove_depth_in_spigot_mm=g, groove_bottom_w_mm=w_bot,
+        groove_top_w_mm=w_bot + g, groove_forward_flank_deg=45.0, groove_aft_flank_deg=90.0,
+        groove_form="aft flank radial; tip-side (forward) flank 45 deg from the groove bottom up to the spigot "
+                    "OD, so the spigot prints tip-up without support",
+        radial_clearance_mm=c_rad, table_diametral_clearance_max_mm=OR_TABLE_DCLR,
         table_groove_w_rect_mm=OR_TABLE_W, table_squeeze_pct=list(OR_TABLE_SQUEEZE),
+        bore_limit_d_mm=d_bore_max, bore_fits=bool(d_bore <= d_bore_max + 1e-9),
         stretch_nom_pct=100 * (d_gr / idf - 1),
         stretch_range_pct=[100 * ((d_gr - TOL_PRINT_D) / (idf + id_tol) - 1),
                            100 * ((d_gr + TOL_PRINT_D) / (idf - id_tol) - 1)],
-        squeeze_nom_pct=100 * (cs_n - OR_DEPTH) / cs_n,
+        squeeze_nom_pct=100 * (cs_n - depth) / cs_n,
         squeeze_worst_pct=[100 * (cs_min - L_max) / cs_min, 100 * (cs_max - L_min) / cs_max],
-        fill_nom_pct=100 * a_n / area(OR_GROOVE_W, OR_DEPTH),
-        fill_worst_pct=100 * (math.pi / 4 * cs_max ** 2) / area(OR_GROOVE_W - 0.13, OR_DEPTH - TOL_PRINT_D),
+        fill_nom_pct=100 * (math.pi / 4 * cs_n ** 2) / _gland_area(w_bot, depth, g),
+        fill_worst_no_ecc_pct=100 * a_max / _gland_area(w_bot - 0.13, depth - TOL_PRINT_D, g - TOL_PRINT_D),
+        fill_worst_pct=100 * a_max / _gland_area(w_bot - 0.13, L_min, L_min),
         guidance="Apple Rubber static radial table for cs 2.62: depth 2.03-2.18, width 3.56, "
                  "squeeze 14-25 %, diametral clearance <= 0.13; globaloring: fill 60-85 %, "
                  "stretch <= 5 %. Worst cases include +-0.10 mm print error on each diameter "
                  "and full eccentricity. 0.20 mm diametral clearance exceeds the 0.13 table "
                  "limit, which guards extrusion under pressure: acceptable at < 0.1 bar",
     )
+    perf = (hw_or or {}).get("performance") or {}
+    if perf:
+        out["hardware_study_performance"] = dict(
+            squeeze_nom_pct=100 * perf["squeeze_nominal"], squeeze_worst_pct=[100 * v for v in perf["squeeze_worst"]],
+            fill_nom_pct=100 * perf["fill_nominal"], fill_worst_pct=100 * perf["fill_worst"],
+            note="data/hardware.json oring_equator.performance; the values above are recomputed here with "
+                 "the same model and must agree")
+    return out
 
 
-def joint(x_eq: float, pk: Pockets) -> dict:
+def joint(x_eq: float, pk: Pockets, hw_or: dict | None = None) -> dict:
     """Radial stack and axial stations of the bayonet + O-ring joint.
 
     Spigot on the aft shell (printed tail-down, the spigot is its top); socket in the
     front shell (printed equator-down). Seal zone at the spigot root, so the bayonet
-    sits on the dry side; lugs at the spigot tip pass through the seal bore.
+    sits on the dry side; lugs at the spigot tip pass through the seal bore. hw_or: the
+    hardware study's O-ring and groove (adopted when its bore fits the walls, else the
+    fallback pick of oring_pick, e.g. in the equator trade).
     """
-    groove_top = OR_GROOVE_W + OR_DEPTH                  # 45 deg forward flank
+    g_sp = (hw_or["groove_depth_in_spigot"] if hw_or else OR_DEPTH - C_SEAL)
+    w_bot = hw_or["groove_bottom_w"] if hw_or else OR_GROOVE_W
+    groove_top = w_bot + g_sp                            # 45 deg forward flank over the spigot groove depth
     L_seal = OR_LAND_ROOT + groove_top + OR_LAND_TIP
     x_seal0 = x_eq - L_seal
     x_lip0 = x_seal0 - LIP_T
@@ -612,10 +671,13 @@ def joint(x_eq: float, pk: Pockets) -> dict:
     ro = r_out(xs)
     rb_lim = np.minimum(ro - P.HULL_WALL, ro - pk.depth(xs) - POCKET_FLOOR_WALL)
     xs_seal = xs >= x_seal0
-    oring = oring_pick(2 * float(rb_lim[xs_seal].min()))
+    d_lim = 2 * float(rb_lim[xs_seal].min())
+    oring = oring_pick(d_lim, hw_or)
+    if hw_or and not oring["bore_fits"]:
+        return joint(x_eq, pk, None)
     r_b = oring["bore_d_mm"] / 2                        # seal bore radius (socket)
     r_gr = oring["groove_bottom_d_mm"] / 2
-    r_s2 = r_b - C_SEAL
+    r_s2 = r_b - oring["radial_clearance_mm"]
     r_lug = r_b - P.CLEAR_SLIDE                          # lugs pass through the seal bore
     r_s1 = r_lug - LUG_H
     r_lip = r_s1 + P.CLEAR_SLIDE
@@ -623,7 +685,7 @@ def joint(x_eq: float, pk: Pockets) -> dict:
     r_sp_in = min(r_gr - T_MIN, r_s1 - T_MIN)
     x_ch0 = x_tip - CH_EXTRA                             # channel forward wall (at r_ch)
     x_ring0 = x_ch0 - (r_ch - r_lip)                     # 45 deg ceiling closes at r_lip
-    groove = dict(x_aft=x_eq - OR_LAND_ROOT, x_fwd_bottom=x_eq - OR_LAND_ROOT - OR_GROOVE_W,
+    groove = dict(x_aft=x_eq - OR_LAND_ROOT, x_fwd_bottom=x_eq - OR_LAND_ROOT - w_bot,
                   x_fwd_top=x_eq - OR_LAND_ROOT - groove_top)
 
     # angular layout: lugs centred between pockets; the channel swept by a lug from entry to
@@ -1313,11 +1375,53 @@ def _fin_polar(Re: float) -> dict:
                 CLmax=float(CL.max()), alpha_CLmax=float(a[np.argmax(CL)]), Re=Re)
 
 
+_GEN_LL: dict = {}
+
+
+def gen_load_line() -> dict:
+    """Operating points of the recommended generator on its load line (final blade, BEM study:
+    data/blade_design.json generator_coupling_estimate.load_line_by_flow, the 'capped' point =
+    best net power with the cavitation cap), by flow speed; {} if the BEM file lacks it."""
+    if "points" in _GEN_LL or "none" in _GEN_LL:
+        return _GEN_LL
+    bd = _load(BLADE_JSON) or {}
+    gc = bd.get("generator_coupling_estimate") or {}
+    rec = next((g for g in (gc.get("load_line_by_flow") or {}).get("generators", [])
+                if g.get("role") == "recommended"), None)
+    if not rec:
+        _GEN_LL["none"] = True
+        return _GEN_LL
+    best = next((r_ for r_ in gc.get("rows", []) if r_.get("role") == "recommended" and r_.get("blade") == "final"),
+                None)
+    pts = {}
+    for p_ in rec["points"]:
+        q = dict(p_.get("capped") or p_["unconstrained"])
+        q["cap_binding"] = bool(p_.get("cap_binding"))
+        pts[round(float(p_["flow_m_s"]), 2)] = q
+    _GEN_LL.update(generator=rec["generator"], short=rec.get("short"), kv=rec.get("kv"), r_ll_ohm=rec.get("r_ll_ohm"),
+                   points=pts, best_net_1p5=(best or {}).get("best_net"),
+                   source="data/blade_design.json generator_coupling_estimate.load_line_by_flow (recommended "
+                          "generator, final blade, 'capped' point = best net power with the cavitation cap)",
+                   model=gc.get("model"))
+    return _GEN_LL
+
+
 def roll_torque(v: float, ri: dict) -> dict:
+    """Shaft torque the hull must react at flow v: the recommended generator's load-line point
+    (rotor torque = generator electromagnetic + drag torque, both react on the stator, i.e. the
+    hull). The old layout rule (Cp 0.35 at TSR 4) is kept as Q_cp_rule_Nm for reference."""
     R = ri["r_tip"] / 1000
     P_ = CP_DESIGN * 0.5 * RHO * math.pi * R ** 2 * v ** 3
     om = P.DESIGN_TSR * v / R
-    return dict(v_m_s=v, P_W=P_, omega_rad_s=om, rpm=om * 60 / (2 * math.pi), Q_Nm=P_ / om)
+    ll = gen_load_line()
+    pt = (ll.get("points") or {}).get(round(float(v), 2))
+    if pt:
+        return dict(v_m_s=v, Q_Nm=pt["torque_Nm"], tsr=pt["tsr"], rpm=pt["rpm"], shaft_power_W=pt["shaft_power_W"],
+                    net_power_W=pt["net_power_W"], cap_binding=pt["cap_binding"],
+                    basis="%s load line (BEM, capped point)" % ll["generator"], Q_cp_rule_Nm=P_ / om)
+    return dict(v_m_s=v, P_W=P_, omega_rad_s=om, rpm=om * 60 / (2 * math.pi), Q_Nm=P_ / om, tsr=P.DESIGN_TSR,
+                basis="layout rule Cp %.2f at TSR %g (no generator load line in data/blade_design.json)"
+                      % (CP_DESIGN, P.DESIGN_TSR), Q_cp_rule_Nm=P_ / om)
 
 
 def upstream_factor(x_mm: float, x_rotor: float, R_mm: float) -> float:
@@ -1574,7 +1678,7 @@ def _clarky_area_ratio() -> float:
 def _fin_eval(c: float, s: float, r_cp: float, alpha_set: float, x_mid: float, x_rotor: float,
               ri: dict) -> dict:
     res = {}
-    for v in (1.0, 1.5):
+    for v in FIN_SPEEDS:
         vf = upstream_factor(x_mid, x_rotor, ri["r_tip"]) * v
         pol = fin_polar(vf * c / 1000 / NU)
         a0 = pol["a0_per_rad"]
@@ -1588,6 +1692,7 @@ def _fin_eval(c: float, s: float, r_cp: float, alpha_set: float, x_mid: float, x
         Q = roll_torque(v, ri)["Q_Nm"]
         res[v] = dict(v_fin_m_s=vf, Re=pol["Re"], CL=CL, CLmax3D=CLmax3, CL_alpha_3D_per_rad=ar,
                       alpha_L0_deg=pol["alpha_L0_deg"], torque_Nm=tau, Q_gen_Nm=Q, ratio=tau / Q,
+                      ratio_per_deg=2 * q * S * ar * math.radians(1.0) * r_cp / 1000 / Q,
                       authority_ratio=2 * q * S * FIN_CL_RESERVE * CLmax3 * r_cp / 1000 / Q,
                       stall_reserve=CLmax3 / CL if CL > 0 else float("inf"),
                       roll_damping_Nm_s=2 * q * S * ar * (r_cp / 1000) ** 2 / vf,
@@ -1597,8 +1702,10 @@ def _fin_eval(c: float, s: float, r_cp: float, alpha_set: float, x_mid: float, x
 
 def fin_design(ri: dict, x_rotor: float, pk: Pockets, rule: str = FIN_FOLD_RULE,
                x_eq: float = P.EQUATOR_X, compare: bool = True) -> dict:
-    """Fin pair with the smallest tip-to-tip size whose fixed incidence balances the generator
-    torque at both 1.0 and 1.5 m/s with CL <= FIN_CL_RESERVE x CLmax_3D, TE at the rule's limit
+    """Fin pair with the smallest tip-to-tip size whose fixed incidence gives, at the design flow
+    FIN_DESIGN_V, a couple of (1 + FIN_TORQUE_MARGIN) to (1 + FIN_TORQUE_MARGIN)(1 + FIN_RATIO_BAND)
+    times the recommended generator's load-line torque (roll_torque), with CL <= FIN_CL_RESERVE x
+    CLmax_3D at every flow in FIN_SPEEDS, TE at the rule's limit
     (fin_te_limit), LE on the nose, and whose YAWED rail pads (fin_frame: pad yawed with the fin
     about a pivot) clear the asymmetric pockets by FIN_POCKET_CLEAR and (rule 'index') whose pads
     and fins clear the blades folding at the stowing index by FIN_FOLD_CLEAR; theta and the pivot
@@ -1610,12 +1717,14 @@ def fin_design(ri: dict, x_rotor: float, pk: Pockets, rule: str = FIN_FOLD_RULE,
             continue
         for s in np.arange(40.0, 130.01, 5.0):
             ok, alpha_ok, res, rl = False, None, {}, None
-            for alpha_set in np.arange(0.0, 14.01, 0.25):
+            target = 1.0 + FIN_TORQUE_MARGIN
+            for alpha_set in np.arange(0.0, 14.0 + 1e-9, FIN_ALPHA_STEP):
                 rl = fin_root_line(x_te - c * math.cos(math.radians(alpha_set)), x_te)
                 r_cp = rl["y_mean"] + FIN_CP_SPAN * s
                 res = _fin_eval(c, s, r_cp, alpha_set, x_te - c / 2, x_rotor, ri)
-                if all(m["ratio"] >= 1.0 for m in res.values()):
-                    ok = all(m["CL"] <= FIN_CL_RESERVE * m["CLmax3D"] for m in res.values())
+                if res[FIN_DESIGN_V]["ratio"] >= target:
+                    ok = (all(m["CL"] <= FIN_CL_RESERVE * m["CLmax3D"] for m in res.values())
+                          and res[FIN_DESIGN_V]["ratio"] <= target * (1.0 + FIN_RATIO_BAND))
                     alpha_ok = float(alpha_set)
                     break
             row = dict(chord_mm=c, span_mm=float(s), AR=s / c, area_cm2=c * s / 100,
@@ -1689,6 +1798,35 @@ def fin_design(ri: dict, x_rotor: float, pk: Pockets, rule: str = FIN_FOLD_RULE,
     pocket_cl = b["pocket_clear_mm"]
     fold_c = b["fold"]
     off_te, off_le, off_end = (float(fin_offset(fg, v)) for v in (x_te, x_le, fg["x_end"]))
+    qd = roll_torque(FIN_DESIGN_V, ri)
+    md = res[FIN_DESIGN_V]
+    far = max(b["pivot"], 1.0 - b["pivot"]) * c                # chord length from the pivot to the far end
+    torque_basis = dict(
+        generator=gen_load_line().get("generator"), basis=qd["basis"], design_flow_m_s=FIN_DESIGN_V,
+        Q_design_Nm=qd["Q_Nm"], tsr=qd.get("tsr"), rpm=qd.get("rpm"), margin_pct=100 * FIN_TORQUE_MARGIN,
+        target_ratio=1.0 + FIN_TORQUE_MARGIN, target_ratio_max=(1.0 + FIN_TORQUE_MARGIN) * (1.0 + FIN_RATIO_BAND),
+        fin_torque_Nm=md["torque_Nm"], ratio=md["ratio"], Q_cp_rule_Nm=qd["Q_cp_rule_Nm"],
+        source=gen_load_line().get("source"),
+        margin_reason="+%.0f %% over the load-line torque: NeuralFoil polars are smooth-surface, and a printed "
+                      "Clark Y at Re ~%.0f k tends to give less lift; the GL40 drag torque (%.4f N m in the BEM "
+                      "model) is an estimate. Lift shortfall is the likelier error, so the bias is deliberate; "
+                      "if the prototype over-balances, a trim fin with less incidence corrects it"
+                      % (100 * FIN_TORQUE_MARGIN, md["Re"] / 1000,
+                         next((r_["drag_Nm"] for r_ in ((_load(BLADE_JSON) or {}).get("generator_coupling_estimate")
+                                                        or {}).get("rows", []) if r_.get("role") == "recommended"),
+                              float("nan"))),
+        old_rule_note="the merge sized the fins for Q = Cp %.2f at TSR %g (%.3f N m at %.1f m/s), %.2f x the "
+                      "load-line torque" % (CP_DESIGN, P.DESIGN_TSR, qd["Q_cp_rule_Nm"], FIN_DESIGN_V,
+                                            qd["Q_cp_rule_Nm"] / qd["Q_Nm"]))
+    trim = dict(
+        variant_deg=FIN_TRIM_DEG, ratio_change_per_deg_at_design_flow=md["ratio_per_deg"],
+        torque_change_per_deg_Nm=md["ratio_per_deg"] * md["Q_gen_Nm"],
+        fin_box_shift_max_mm=far * math.sin(math.radians(FIN_TRIM_DEG)),
+        how="print fin variants whose root tongue is turned +-%g deg about the yaw pivot relative to the chord: "
+            "the shell's yawed pad and groove stay, the incidence changes by +-%g deg (%.0f %% of the "
+            "torque per degree); the fin box moves by at most %.2f mm at its far end, inside the fold "
+            "clearance" % (FIN_TRIM_DEG, FIN_TRIM_DEG, 100 * md["ratio_per_deg"],
+                           far * math.sin(math.radians(FIN_TRIM_DEG))))
     return dict(
         section=FIN_SECTION + " (flat lower surface, t/c 0.117), printed flat, no supports",
         polars="NeuralFoil large, n_crit 5, cached in out/work/layout_internal/polars_fin.json",
@@ -1704,7 +1842,7 @@ def fin_design(ri: dict, x_rotor: float, pk: Pockets, rule: str = FIN_FOLD_RULE,
         chord_mm=c, span_mm=s, AR=AR, area_each_cm2=c * s / 100,
         root=rl, r_root_mean_mm=rl["y_mean"], r_tip_max_mm=rl["y_te"] + s, r_cp_mm=pick["r_cp_mm"],
         tip_to_tip_mm=2 * (rl["y_te"] + s),
-        x_le_mm=x_le, x_te_mm=x_te, incidence_deg=inc, margins=res,
+        x_le_mm=x_le, x_te_mm=x_te, incidence_deg=inc, margins=res, torque_basis=torque_basis, trim=trim,
         yaw=dict(pivot_chord_frac=b["pivot"], pivot_x_mm=fg["x_p"], te_side="-theta" if fg["sense"] < 0 else "+theta",
                  offset_per_mm_x=fg["si"] / fg["ci"], pad_half_width_at_constant_x_mm=RAIL_W / 2 / fg["ci"],
                  offset_at_le_mm=off_le, offset_at_te_mm=off_te, offset_at_pad_end_mm=off_end,
@@ -1756,9 +1894,13 @@ def fin_design(ri: dict, x_rotor: float, pk: Pockets, rule: str = FIN_FOLD_RULE,
                                "torus: TE root point >= sweep length + clearance from the hinge circle",
                        rule="yawed rail pad >= %.1f mm (arc) from any pocket edge" % FIN_POCKET_CLEAR),
         alternative_rule=alt,
-        selection="smallest fin-tip diameter (handling, stowage) among fins that balance the torque AND "
-                  "whose yawed pads / fins clear the pockets and the folding blades; candidates evaluated in "
-                  "that order; the least-area feasible fin is listed for comparison",
+        selection="smallest fin-tip diameter (handling, stowage) among fins whose couple at %.1f m/s is "
+                  "%.2f-%.3f x the %s load-line torque (CL <= %.2f CLmax_3D at %s m/s) AND whose yawed pads / "
+                  "fins clear the pockets and the blades folding at the stowing index; candidates evaluated in "
+                  "that order; the least-area feasible fin is listed for comparison"
+                  % (FIN_DESIGN_V, 1 + FIN_TORQUE_MARGIN, (1 + FIN_TORQUE_MARGIN) * (1 + FIN_RATIO_BAND),
+                     gen_load_line().get("short") or "generator", FIN_CL_RESERVE,
+                     "/".join("%g" % v for v in FIN_SPEEDS)),
         least_area_alternative=min_area,
         sweep=rows,
     )
@@ -1783,10 +1925,19 @@ def roll_summary(ri: dict, fins: dict, mb: dict) -> dict:
                                                     if W * BG > 0 else 90.0),
                                  bridle_stiffness_Nm_rad=k_br,
                                  bridle_heel_deg=math.degrees(abs(dT) / k_br))
+    q10, q15, q25 = (out[k]["Q_Nm"] for k in ("1_m_s", "1.5_m_s", "2.5_m_s"))
+    m15 = fins["margins"][FIN_DESIGN_V]
+    p_free = m15["torque_Nm"] / m15["roll_damping_Nm_s"]
     return dict(
         torque=out,
-        Q_scaling="Q = Cp 0.5 rho pi R^3 v^2 / TSR grows with v^2 like the fin lift, so a fin set "
-                  "matched at one speed stays matched at constant TSR and Cp (apart from Re effects)",
+        Q_scaling="on the %s load line the operating TSR rises with flow (%s), so Q does not grow with v^2 "
+                  "like the fin lift: Q(1.0) / Q(1.5) = %.3f against (1.0 / 1.5)^2 = %.3f, Q(2.5) / Q(1.5) = %.3f "
+                  "against %.3f (the 2.5 m/s point is held by the cavitation cap). A fixed fin set matched at "
+                  "1.5 m/s therefore under-balances at 1.0 m/s and over-balances at 2.5 m/s (balance below)"
+                  % (gen_load_line().get("short") or "generator",
+                     ", ".join("TSR %.2f at %g m/s" % (out[k].get("tsr") or float("nan"), out[k]["v_m_s"])
+                               for k in ("1_m_s", "1.5_m_s", "2.5_m_s")),
+                     q10 / q15, (1.0 / 1.5) ** 2, q25 / q15, (2.5 / 1.5) ** 2),
         balance=bal,
         pendulum_righting_max_Nm=W * BG, pendulum_vs_Qdesign=W * BG / Qd,
         bridle=dict(eyes="two eyes at +-Y on the nose", a_mm=BRIDLE_A, leg_mm=BRIDLE_L,
@@ -1795,9 +1946,10 @@ def roll_summary(ri: dict, fins: dict, mb: dict) -> dict:
                    "pendulum (near-neutral hull) is negligible, so any mismatch turns into a slow "
                    "hull roll that twists the cable. v2 should add a roll reference: a two-leg "
                    "bridle on two nose eyes (numbers above) or a cable swivel/slip ring",
+        freewheel_roll_rate_1p5_m_s_rpm=p_free * 60 / (2 * math.pi),
         freewheel_note="with no electrical load Q ~ 0 and the fins roll the hull the other way at "
-                       "p ~ tau_fin / damping; v2 must keep a load (MPPT near TSR 4, dump load when "
-                       "the battery is full)",
+                       "p ~ tau_fin / damping (%.0f rpm at 1.5 m/s); v2 must keep a load on the generator "
+                       "(the load line above, a dump load when the battery is full)" % (p_free * 60 / (2 * math.pi)),
     )
 
 
@@ -2840,7 +2992,7 @@ def equator_trade(pk: Pockets, ri: dict, hw: dict) -> tuple[list, list]:
     rows = []
     mo = hw["motor"]
     for x_eq in (52.5, 55.0, 57.5, 60.0):
-        J = joint(x_eq, pk)
+        J = joint(x_eq, pk, hw.get("oring"))
         bay = generator_bay(J, pk, ri, hw)
         fr = bay["frontier"]
         rows.append(dict(x_eq_mm=x_eq, oring=J["oring"]["designation"], seal_bore_d_mm=2 * J["r_bore"],
@@ -2853,7 +3005,7 @@ def equator_trade(pk: Pockets, ri: dict, hw: dict) -> tuple[list, list]:
     for d in (2.0, 4.0, 6.0, 8.0, 10.0):
         ri2 = dict(pk.ri, depth=d, depth_x=None, depth_v=None, width_v=None)
         pk2 = Pockets(ri2)
-        J = joint(P.EQUATOR_X, pk2)
+        J = joint(P.EQUATOR_X, pk2, hw.get("oring"))
         bay = generator_bay(J, pk2, ri, hw)
         fr = bay["frontier"]
         sens.append(dict(pocket_depth_mm=d, oring=J["oring"]["designation"],
@@ -2875,7 +3027,7 @@ def run(x_eq: float | None = None, trades: bool = True) -> dict:
     hw = hardware_inputs()
     pk = Pockets(ri)
     x_eq = P.EQUATOR_X if x_eq is None else x_eq
-    J = joint(x_eq, pk)
+    J = joint(x_eq, pk, hw.get("oring"))
     bay = generator_bay(J, pk, ri, hw)
     DT = drivetrain(J, bay, ri, hw, pk)
     fins = fin_design(ri, DT["stations_mm"]["rotor_load_plane"], pk)
@@ -2918,7 +3070,7 @@ def pocket_depth_limit(ri: dict, hw: dict, D_need: float, L: float | None = None
     def dmax(d):
         pk2 = Pockets(dict(ri, depth=d, depth_x=None, depth_v=None, width_v=None,
                            x0=POCKET_FALLBACK["x0"], x1=POCKET_FALLBACK["x1"]))
-        J = joint(P.EQUATOR_X, pk2)
+        J = joint(P.EQUATOR_X, pk2, hw.get("oring"))
         fr = generator_bay(J, pk2, ri, hw)["frontier"]
         return float(np.interp(L, [f["L_mm"] for f in fr], [f["D_max_mm"] for f in fr]))
 
@@ -2942,34 +3094,82 @@ def summarize(res: dict) -> dict:
     trade_L = bay["length_trade"]
     t33 = next((t for t in trade_L if abs(t["L_mm"] - mo["L_reserve"]) < 1e-6), None)
     fm = fins["margins"]
+    tube, cn, gl_, rl_ = DT["tube"], nose_d["gland"]["cable_notch"], nose_d["gland"], fins["root"]
+    x_car0 = g["x_fwd_mm"] - CARRIER_T
+    pk_ = res["_pk"]
     proposed = dict(
         EQUATOR_X=J["x_eq"],
-        BEARING_FRONT=dict(P.BEARING, x0_mm=st["bearing_front_608"][0]),
-        BEARING_REAR=dict(P.BEARING_ALT, x0_mm=st["bearing_rear_688"][0]),
-        LIP_SEAL=dict(P.LIP_SEAL, x0_mm=st["lip_seal"][0]),
+        BEARING_FRONT=dict(P.BEARING, x0=st["bearing_front_608"][0], role="front, locating"),
+        BEARING_REAR=dict(P.BEARING_ALT, x0=st["bearing_rear_688"][0], role="rear, floating"),
+        LIP_SEAL=dict(P.LIP_SEAL, x0=st["lip_seal"][0], recess=SEAL_RECESS),
+        BEARING_TUBE=dict(
+            x0=tube["x_from"], x1=tube["x_to"], r_out_front=tube["r_out_front_mm"], r_out_rear=tube["r_out_rear_mm"],
+            profile_x=[tube["x_from"], st["bearing_front_608"][1] + 2, st["bearing_rear_688"][0] - 2,
+                       st["bearing_rear_688"][0], tube["x_to"]],
+            profile_r=[tube["r_out_front_mm"], tube["r_out_front_mm"], tube["r_out_rear_mm"] + 1.0,
+                       tube["r_out_rear_mm"], tube["r_out_rear_mm"]],
+            seat_front_d=P.BEARING["D"], shoulder_front_id=FRONT_SHOULDER_ID,
+            shoulder_front_x=[st["bearing_front_608"][1], st["bearing_rear_688"][0]],
+            seat_rear_d=P.BEARING_ALT["D"], seal_shoulder_x=st["seal_shoulder"], seal_shoulder_id=SEAL_SHOULDER_ID,
+            seal_bore_d=P.LIP_SEAL["D"], mouth_lead_in=TUBE_LEAD_IN,
+            seat_note="printed seats = nominal D + 2 x PRESS_FIT; the 18 mm bore between the seats lets the 688 "
+                      "pass through the 608 seat",
+            ribs=dict(n=3, t=2.0, theta_deg=sorted(pk_.theta), x=[tube["x_from"], tube["x_to"]],
+                      rule="radial ribs under the pocket floors, tube to shell")),
+        TAIL_END_BLOCK=dict(x0=st["bearing_rear_688"][1], x1=ri["static_tail_x"],
+                            note="solid ring: seal shoulder, seal bore, the 3 notch floors and the stowed-detent "
+                                 "magnet seats (layout_rotor.json detents.stowed)"),
         GENERATOR=dict(name=mo["name"], D=mo["D"], L=mo["L"], mount_pcd=mo["pcd"], mount_screw="M3",
                        n_mount=mo["n_screw"], rotor_face_pcd=mo.get("rotor_pcd"),
                        bay_D=g["D_mm"], bay_L=g["L_mm"], x_bay_fwd=g["x_fwd_mm"], x_rotor_face=g["x_aft_mm"],
+                       motor_body_x=g["motor_body_x_mm"], adapter_spacer_L=g["adapter_spacer_L_mm"],
                        alternative=mo.get("alt_name"), alt_mount_pcd=mo.get("alt_pcd")),
-        ORING_EQUATOR=dict(cs=OR_CS, name=o["designation"], id=o["id_free_mm"],
-                           groove_d=o["groove_bottom_d_mm"], bore_d=o["bore_d_mm"]),
-        BAYONET=dict(n_lugs=LUG_N, lug_w_deg=LUG_W_DEG, lug_h=LUG_H, lug_t=LUG_T, twist_deg=b["engage_deg"],
-                     lock_theta_deg=b["lock_theta_deg"]),
-        SHAFT=dict(d=P.SHAFT_D, x0=st["shaft"][0], x1=st["shaft"][1], L=st["shaft"][1] - st["shaft"][0]),
+        CARRIER=dict(x0=x_car0, t=CARRIER_T, r=g["r_carrier_mm"], twist_deg=30.0, centre_bore_d=16.0,
+                     screw_pattern_clock_deg=45.0,
+                     ring=dict(x=[x_car0 - CARRIER_RING_OVER, g["x_fwd_mm"] + CARRIER_RING_OVER], t_radial=CARRIER_RING,
+                               r_in_at_plate=cn["carrier_ring_inner_r_mm"]),
+                     cable_notch=dict(theta_deg=cn["theta_deg"], width=cn["width_mm"], depth=cn["depth_from_rim_mm"],
+                                      bottom_r=cn["bottom_r_mm"])),
         COUPLER=dict(od=COUPLER_OD, claw_a_L=CLAW_A_L, float=CLAW_FLOAT, claw_b_L=CLAW_B_L,
+                     claw_a_x=st["claw_A"], claw_b_x=st["claw_B_thrust_collar"],
+                     claw_b_step_od=CLAW_B_STEP_OD, claw_b_step_L=CLAW_B_STEP_L, shim_od=SHIM_OD, shim_t=0.5,
                      thrust_collar="Ruland MSC-8-SS 8x16x8"),
-        CARRIER=dict(x0=g["x_fwd_mm"] - CARRIER_T, t=CARRIER_T, r=g["r_carrier_mm"]),
+        SHAFT=dict(d=P.SHAFT_D, x0=st["shaft"][0], x1=st["shaft"][1], L=st["shaft"][1] - st["shaft"][0],
+                   hub_flat_x=(ri.get("rotor") or {}).get("grub_x"), hub_flat_depth=0.5, aft_tap="M3 x 8"),
+        JOINT=dict(x_eq=J["x_eq"], x_spigot_tip=J["x_tip"], x_lip=[J["x_lip0"], J["x_seal0"]],
+                   x_seal_zone=[J["x_seal0"], J["x_eq"]], x_channel=[J["x_ch0"], J["x_lip0"]],
+                   x_ring_ceiling_start=J["x_ring0"], groove_x=J["groove"],
+                   seal_bore_d=2 * J["r_bore"], spigot_seal_od=2 * J["r_spigot_seal"],
+                   groove_bottom_d=2 * J["r_groove"], lug_od=2 * J["r_lug"], spigot_lug_zone_od=2 * J["r_spigot_lug"],
+                   lip_d=2 * J["r_lip"], channel_d=2 * J["r_channel"], spigot_bore_d=2 * J["r_spigot_in"],
+                   root_ring_L=J["root_ring_L"], land_root=OR_LAND_ROOT, land_tip=OR_LAND_TIP),
+        ORING_EQUATOR=dict(cs=o["cs_mm"], name=o["designation"], id=o["id_free_mm"],
+                           groove_d=o["groove_bottom_d_mm"], bore_d=o["bore_d_mm"], spigot_od=o["spigot_seal_od_mm"],
+                           groove_bottom_w=o["groove_bottom_w_mm"], groove_top_w=o["groove_top_w_mm"],
+                           groove_depth=o["groove_depth_in_spigot_mm"], gland_depth=o["gland_depth_mm"],
+                           flank="aft flank radial, tip-side flank 45 deg", radial_clearance=o["radial_clearance_mm"]),
+        BAYONET=dict(n_lugs=LUG_N, lug_w_deg=LUG_W_DEG, lug_h=LUG_H, lug_t=LUG_T, twist_deg=b["engage_deg"],
+                     lock_theta_deg=b["lock_theta_deg"], entry_theta_deg=b["entry_theta_deg"], gap_w_deg=GAP_W_DEG,
+                     lip_t=LIP_T, channel_extra=CH_EXTRA),
         FIN=dict(section=FIN_SECTION, chord=fins["chord_mm"], span=fins["span_mm"],
                  incidence_deg=fins["incidence_deg"], x_le=fins["x_le_mm"], x_te=fins["x_te_mm"],
                  theta_deg=fins["theta_deg"], yaw_pivot_chord_frac=fins["yaw"]["pivot_chord_frac"],
-                 te_side=fins["yaw"]["te_side"], rail_w=RAIL_W, rail_h_min=RAIL_H,
-                 pad_x=fins["rail"]["pad_x_mm"]),
-        GLAND=dict(thread="M12x1.5", x=nose_d["gland"]["seat_x_mm"], theta_deg=GLAND_THETA,
-                   tilt_from_normal_deg=nose_d["gland"]["axis_tilt_from_normal_deg"],
-                   axis_angle_from_x_deg=nose_d["gland"]["axis_angle_from_x_deg"],
-                   seat_d=GLAND_SEAT_D, boss_d=GLAND_BOSS_D),
+                 yaw_pivot_x=fins["yaw"]["pivot_x_mm"], te_side=fins["yaw"]["te_side"],
+                 root_r_le=rl_["y_le"], root_r_te=rl_["y_te"], rail_w=RAIL_W, rail_h_min=RAIL_H,
+                 groove_w_mean=GROOVE_W, groove_depth=RAIL_H, groove_form="half dovetail, 45 deg flank",
+                 pad_x=fins["rail"]["pad_x_mm"], end_stop_x=fins["x_te_mm"],
+                 retention="M3 grub in a heat-set insert", trim_variant_deg=FIN_TRIM_DEG),
+        GLAND=dict(thread="M12x1.5", x=gl_["seat_x_mm"], theta_deg=GLAND_THETA,
+                   tilt_from_normal_deg=gl_["axis_tilt_from_normal_deg"],
+                   axis_angle_from_x_deg=gl_["axis_angle_from_x_deg"],
+                   seat_d=GLAND_SEAT_D, boss_d=GLAND_BOSS_D, seat_raise=gl_["seat_raise_mm"],
+                   inner_end_x=gl_["inner_end_x_mm"], inner_end_r=gl_["inner_end_r_mm"]),
         TOW_EYE=dict(hole_d=EYE_HOLE_D, ring_w=EYE_W, ring_t=EYE_T, plane=EYE_PLANE,
                      hole_centre_x=nose_d["eye"]["hole_centre_x_mm"]),
+        NOSE_PLUG=dict(x_45=nose_d["nose_plug"]["x_45_mm"], bridge_d=nose_d["nose_plug"]["bridge_d_mm"]),
+        SPINNER_ACCESS=dict(d=SPINNER_ACCESS_D, x=mb["rotor_wet"]["access_bore_x_mm"], aft_wall=SPINNER_AFT_WALL),
+        BALLAST_V2=dict(lead_g=mb["v2_ballast"]["lead_g"], x=mb["v2_ballast"]["x_mm"], theta_deg=180.0),
+        POCKET_FLOOR_WALL=POCKET_FLOOR_WALL,
     )
     fc = fins["clearance"]
     alt_f = fins.get("alternative_rule") or {}
@@ -2986,19 +3186,30 @@ def summarize(res: dict) -> dict:
                                              ", ".join(c_["name"] for c_ in bay["candidate_fits"] if c_["fits_bay"]),
                                              mo["L_reserve"],
                                              t33["span_mm"] if t33 and t33.get("fits") else float("nan"), SPAN_MIN),
-        ORING_EQUATOR_reason="cs 2.62 per the hardware study; the real pockets are %.1f mm deep at the joint "
-                             "(fallback 6), so the bore grows to D%.2f and %s fits"
-                             % (float(res["_pk"].depth(J["x_eq"])), o["bore_d_mm"], o["designation"].split()[-1]),
+        ORING_EQUATOR_reason="the hardware study's final pick, adopted as is: %s, groove bottom D%.2f (stretch %.1f %%), "
+                             "bore D%.2f, spigot OD %.2f, bottom width %.2f with a 45 deg tip-side flank (top %.3f); "
+                             "the bore fits the wall limit D%.2f (%.2f mm of shell under the %.1f mm deep pockets at "
+                             "the joint); recomputed here: squeeze %.1f %% nominal, %.1f-%.1f %% worst, fill %.1f %% "
+                             "nominal, %.1f %% worst"
+                             % (o["designation"], o["groove_bottom_d_mm"], o["stretch_nom_pct"], o["bore_d_mm"],
+                                o["spigot_seal_od_mm"], o["groove_bottom_w_mm"], o["groove_top_w_mm"],
+                                o["bore_limit_d_mm"], J["walls"]["socket_at_pocket_mm"],
+                                float(res["_pk"].depth(J["x_eq"])), o["squeeze_nom_pct"], *o["squeeze_worst_pct"],
+                                o["fill_nom_pct"], o["fill_worst_pct"]),
         BAYONET_reason="3 x %g deg lugs locked at theta %s, %g deg twist; the twist channel stays %.1f mm clear of "
                        "the asymmetric pockets; lug shear util %.2f at the tow design load"
                        % (LUG_W_DEG, "/".join("%.1f" % v for v in b["lock_theta_deg"]), b["engage_deg"],
                           b["channel_to_pocket_edge_mm"] or float("nan"), JS["util_lug"]),
-        FIN_reason="smallest tip-to-tip fin pair that balances the generator torque at 1.0 and 1.5 m/s with CL "
-                   "<= 0.75 CLmax_3D and whose YAWED rail pads (pad yawed with the fin about the LE-side pivot "
-                   "%.2f c, TE toward %s) clear the pockets; fins on the front shell (TE x %.1f) at theta %g/%g, "
-                   "pad-to-pocket %.2f mm; blades folding at the stowing index clear pads and fins by %.2f mm. The "
-                   "any-azimuth fold-torus rule would force %g x %g fins at x %.1f-%.1f, %.0f mm tip to tip"
-                   % (fins["yaw"]["pivot_chord_frac"], fins["yaw"]["te_side"],
+        FIN_reason="smallest tip-to-tip fin pair whose couple at %.1f m/s is %.3f x the %s load-line torque "
+                   "(%.4f N m at TSR %.2f; %.0f %% margin) with CL <= %.2f CLmax_3D, and whose YAWED rail pads (pad "
+                   "yawed with the fin about the pivot at %.2f c, TE toward %s) clear the pockets; fins on the front "
+                   "shell (TE x %.1f) at theta %g/%g, pad-to-pocket %.2f mm; blades folding at the stowing index "
+                   "clear pads and fins by %.2f mm. The any-azimuth fold-torus rule would force %g x %g fins at x "
+                   "%.1f-%.1f, %.0f mm tip to tip"
+                   % (FIN_DESIGN_V, fins["torque_basis"]["ratio"], fins["torque_basis"]["generator"],
+                      fins["torque_basis"]["Q_design_Nm"], fins["torque_basis"]["tsr"] or float("nan"),
+                      fins["torque_basis"]["margin_pct"], FIN_CL_RESERVE,
+                      fins["yaw"]["pivot_chord_frac"], fins["yaw"]["te_side"],
                       fins["x_te_mm"], *fins["theta_deg"], fc["stowed_pockets"]["min_clear_mm"] or float("nan"),
                       min(v for v in ((fc.get("fold_at_index") or {}).get("pad_clear_min_mm"),
                                       (fc.get("fold_at_index") or {}).get("fin_clear_min_mm")) if v is not None)
@@ -3006,6 +3217,23 @@ def summarize(res: dict) -> dict:
                       alt_f.get("chord_mm", float("nan")), alt_f.get("span_mm", float("nan")),
                       alt_f.get("x_le_mm", float("nan")), alt_f.get("x_te_mm", float("nan")),
                       alt_f.get("tip_to_tip_mm", float("nan"))),
+        BEARING_TUBE_reason="aft-shell tube: 608 seat at the mouth, 18 mm bore, 688 seat, seal shoulder and seal "
+                            "bore, one stepped bore pressed from the front; 3 ribs under the pocket floors",
+        TAIL_END_BLOCK_reason="solid end of the aft shell behind the 688 (seal boss, notch floors, magnet seats)",
+        JOINT_reason="radial stack and stations of the bayonet + O-ring joint from joint(); spigot on the aft "
+                     "shell, socket in the front shell",
+        NOSE_PLUG_reason="forward of x %.1f the nose inner wall leans past 45 deg (printed nose-up): infilled "
+                         "plug closed by a %.1f mm bridge" % (nose_d["nose_plug"]["x_45_mm"],
+                                                               nose_d["nose_plug"]["bridge_d_mm"]),
+        SPINNER_ACCESS_reason="the spinner aft of the hub face is printed solid (closed perimeters + infill) "
+                              "around a D%g screw-access bore that floods; the buoyancy counts it wet" % SPINNER_ACCESS_D,
+        BALLAST_V2_reason="v2 only, to reach +0.3 N net buoyancy if needed (0 g means the hull is already below "
+                          "the target and needs float, see mass_buoyancy.v2_needs)",
+        CARRIER_reason="twist-lock bulkhead at the forward limit set by the PCD 38.14 adapter; screw pattern "
+                       "clocked 45 deg so the cable notch at theta 180 misses the counterbores",
+        COUPLER_reason="blind self-finding claw across the joint; claw B is the thrust collar and steps to OD "
+                       "%g over its last %g mm (%.2f mm radial clearance in the static tube mouth)"
+                       % (CLAW_B_STEP_OD, CLAW_B_STEP_L, DT["coupler"]["tube_mouth"]["min_radial_clear_mm"]),
     )
     fr_L = [f_ for f_ in bay["frontier"] if f_["D_max_mm"] > 0]
     decisions = [
@@ -3055,10 +3283,13 @@ def summarize(res: dict) -> dict:
              "%.2f deg, on raised dovetail pads yawed with the fins (pivot %.2f c), fin x %.1f-%.1f, pads to x %.1f"
              % (fins["chord_mm"], fins["span_mm"], *fins["theta_deg"], fins["incidence_deg"],
                 fins["yaw"]["pivot_chord_frac"], fins["x_le_mm"], fins["x_te_mm"], fins["rail"]["pad_x_mm"][1]),
-             why="balance the generator torque at both speeds (ratio %.3f at 1.0, %.3f at 1.5 m/s); blades "
-                 "fold at the stowing index, so the fins only need to clear that sweep"
-                 % (fm[1.0]["ratio"] if 1.0 in fm else fm["1.0"]["ratio"],
-                    fm[1.5]["ratio"] if 1.5 in fm else fm["1.5"]["ratio"])),
+             why="sized on the %s load line: at %.1f m/s the couple is %.3f x its %.4f N m (%.0f %% margin, see "
+                 "fins.torque_basis); off design the ratio is %.3f at 1.0 m/s and %.3f at 2.5 m/s because the load "
+                 "line's TSR moves with the flow; +-%g deg trim fins change it by +-%.0f %%. Blades fold at the "
+                 "stowing index, so the fins only need to clear that sweep"
+                 % (fins["torque_basis"]["generator"], FIN_DESIGN_V, fm[1.5]["ratio"],
+                    fins["torque_basis"]["Q_design_Nm"], fins["torque_basis"]["margin_pct"], fm[1.0]["ratio"],
+                    fm[2.5]["ratio"], FIN_TRIM_DEG, 100 * fins["trim"]["ratio_change_per_deg_at_design_flow"])),
         dict(topic="part split", decision="front shell (nose up) and aft shell with integral tube, ribs "
              "and spigot (tail down): no supports on either shell", why="both fit the 256 mm bed; the fin pads run "
              "down to the equator face (no ledge) and the pocket floors rise at most %.0f deg from vertical "
@@ -3076,19 +3307,23 @@ def summarize(res: dict) -> dict:
         "Bay length: the bay is D%g x L%g (largest that fits). The hardware study's L%g reserve (GM4108H "
         "encoder variant, GL40 II, GBM4114HS) does not fit with a %g mm span; it would leave %.1f mm."
         % (g["D_mm"], g["L_mm"], mo["L_reserve"], SPAN_MIN, t33["span_mm"] if t33 and t33.get("fits") else float("nan")),
-        "Roll: fins balance the mean torque but nothing restores roll angle (pendulum %.4f N m vs Q %.3f N m "
-        "at 1.5 m/s); a %.1f %% mismatch rolls the hull at %.1f rpm. v2 needs a bridle on two nose eyes "
-        "(heel %.1f deg) or a cable swivel." % (roll["pendulum_righting_max_Nm"], roll["torque"]["1.5_m_s"]["Q_Nm"],
-                                               roll["balance"]["1.5_m_s"]["excess_pct"],
-                                               roll["balance"]["1.5_m_s"]["free_roll_rate_rpm"],
-                                               roll["balance"]["1.5_m_s"]["bridle_heel_deg"]),
+        "Roll: the fins carry the mean torque but nothing restores roll angle (pendulum %.4f N m vs Q %.3f N m "
+        "at 1.5 m/s). If the models are exact, the fin couple is %+.0f %% of Q at 1.5 m/s (hull rolls %.1f rpm %s), "
+        "%+.0f %% at 1.0 m/s (%.1f rpm %s) and %+.0f %% at 2.5 m/s (%.1f rpm %s). v2 needs a bridle on two nose eyes "
+        "(heel %.1f deg at 1.5 m/s) or a cable swivel; trim fins (+-%g deg) set the balance after the first wet test."
+        % (roll["pendulum_righting_max_Nm"], roll["torque"]["1.5_m_s"]["Q_Nm"],
+           *[w for k in ("1.5_m_s", "1_m_s", "2.5_m_s")
+             for w in (roll["balance"][k]["excess_pct"], abs(roll["balance"][k]["free_roll_rate_rpm"]),
+                       "against the rotor" if roll["balance"][k]["excess_pct"] > 0 else "with the rotor")],
+           roll["balance"]["1.5_m_s"]["bridle_heel_deg"], FIN_TRIM_DEG),
         "Fins: %.0f mm tip to tip (rotor %.0f mm), removable for transport. They clear the blades only when "
         "the blades fold at the stowing index; folding at another rotor azimuth with the fins on can touch "
-        "a fin (assembly guide: index the rotor, or remove the fins, before folding). Margins are thin: "
-        "yawed pad to pocket %.2f mm, folding blades to pad %.2f mm (limits %.1f); the pad footprint and the "
-        "pocket raster are sampled, so confirm both on the CAD."
+        "a fin (assembly guide: index the rotor, or remove the fins, before folding). Margins: yawed pad to "
+        "pocket %.2f mm, folding blades to pad %.2f mm and to fin %.2f mm (limits %.1f); the pad footprint, the "
+        "pocket raster and the fold sweep (1 deg steps) are sampled, so confirm them on the CAD."
         % (fins["tip_to_tip_mm"], 2 * ri["r_tip"], fins["clearance"]["stowed_pockets"]["min_clear_mm"],
-           (fins["clearance"].get("fold_at_index") or {}).get("pad_clear_min_mm") or float("nan"), FIN_POCKET_CLEAR),
+           (fins["clearance"].get("fold_at_index") or {}).get("pad_clear_min_mm") or float("nan"),
+           (fins["clearance"].get("fold_at_index") or {}).get("fin_clear_min_mm") or float("nan"), FIN_POCKET_CLEAR),
         "v2 buoyancy: net %+.2f N without ballast (blade slots, spinner access bore and gap counted wet); "
         "reaching +%.1f N needs %.0f g less mass (4-perimeter shells save %.0f g) or ~%.0f cc of external "
         "float." % (mb["v2_needs"]["net_buoyancy_no_ballast_N"], mb["v2_needs"]["target_net_buoyancy_N"],
@@ -3107,6 +3342,7 @@ def summarize(res: dict) -> dict:
         m = fm.get(v) if v in fm else fm.get(str(v))
         return dict(v_fin_m_s=m["v_fin_m_s"], Re=m["Re"], CL=m["CL"], CLmax_3D=m["CLmax3D"],
                     fin_torque_Nm=m["torque_Nm"], generator_torque_Nm=m["Q_gen_Nm"], torque_ratio=m["ratio"],
+                    torque_ratio_per_deg_incidence=m["ratio_per_deg"],
                     authority_ratio_at_CL_reserve=m["authority_ratio"], stall_reserve=m["stall_reserve"],
                     roll_damping_Nm_s=m["roll_damping_Nm_s"], neuralfoil_confidence_min=m["nf_confidence_min"])
 
@@ -3190,7 +3426,7 @@ def summarize(res: dict) -> dict:
         ),
         nose=nose_d,
         fins=dict({k: v for k, v in fins.items() if k not in ("margins", "sweep")},
-                  margins={"1.0_m_s": fins_margin(1.0), "1.5_m_s": fins_margin(1.5)},
+                  margins={f"{v:.1f}_m_s": fins_margin(v) for v in FIN_SPEEDS},
                   sweep_feasible=[r_ for r_ in fins["sweep"] if r_["feasible"]]),
         roll=roll,
         mass_buoyancy=dict(model=mb["model"], display_PLA=mb["display_PLA"], v2_PETG=mb["v2"],
@@ -3388,53 +3624,80 @@ def merged(res: dict, summ: dict) -> dict:
                                                                                 res["joint_strength"]["util_lip"])),
     ]
 
-    # ---- cross-study check: roll torque basis vs the BEM generator load line
-    bd = _load(BLADE_JSON) or {}
-    rows_g = (bd.get("generator_coupling_estimate") or {}).get("rows", [])
-    gl = next((r_ for r_ in rows_g if r_.get("role") == "recommended" and r_.get("blade") == "final"), None)
-    fm15 = fins["margins"][1.5]
-    cross = []
-    if gl:
-        q_bem = gl["best_net"]["torque_Nm"]
+    # ---- cross-study checks: roll torque basis vs the BEM generator load line; O-ring vs the hardware study
+    fm15 = fins["margins"][FIN_DESIGN_V]
+    tb = fins["torque_basis"]
+    cross = [dict(
+        check="fin couple at %.1f m/s vs the %s load-line torque (BEM)" % (FIN_DESIGN_V, tb["generator"]),
+        fin_torque_Nm=fm15["torque_Nm"], load_line_torque_Nm=tb["Q_design_Nm"], tsr=tb["tsr"], rpm=tb["rpm"],
+        ratio=fm15["ratio"], limit=[tb["target_ratio"], tb["target_ratio_max"]],
+        passed=bool(tb["target_ratio"] - 1e-9 <= fm15["ratio"] <= tb["target_ratio_max"] + 1e-9),
+        off_design={f"{v:.1f}_m_s": dict(ratio=fins["margins"][v]["ratio"], load_line_torque_Nm=fins["margins"][v]["Q_gen_Nm"])
+                    for v in FIN_SPEEDS if v != FIN_DESIGN_V},
+        note="fins sized on the load line with a %.0f %% margin (fins.torque_basis); the merge's Cp 0.35 / TSR 4 rule "
+             "(%.3f N m) is retired" % (tb["margin_pct"], tb["Q_cp_rule_Nm"]))]
+    o_ = J["oring"]
+    hw_o = hw.get("oring") or {}
+    if hw_o:
+        dev = max(abs(o_["bore_d_mm"] - hw_o["bore_d"]), abs(o_["groove_bottom_d_mm"] - hw_o["groove_bottom_d"]),
+                  abs(o_["spigot_seal_od_mm"] - hw_o["spigot_od"]), abs(o_["groove_top_w_mm"] - hw_o["groove_top_w"]))
+        hp = o_.get("hardware_study_performance") or {}
         cross.append(dict(
-            check="fin torque at 1.5 m/s vs the BEM electrical optimum of the recommended generator",
-            fin_torque_Nm=fm15["torque_Nm"], layout_generator_torque_Nm=fm15["Q_gen_Nm"],
-            bem_best_net=dict(generator=gl["generator"], tsr=gl["best_net"]["tsr"], rpm=gl["best_net"]["rpm"],
-                              torque_Nm=q_bem),
-            ratio_fin_over_bem=fm15["torque_Nm"] / q_bem,
-            note="the fins are sized for Q = Cp 0.35 at TSR 4 (layout rule); on the BEM's best-net load line "
-                 "the GL40 takes less torque, so fixed fins over-balance and roll the hull the other way"))
-    issues_cross = ["Roll torque basis: the fins balance Q = %.3f N m at 1.5 m/s (Cp %.2f at TSR %g), but the BEM's "
-                    "best-net operating point for the %s is TSR %g, %.0f rpm, %.3f N m: fixed fins would give %.2f x "
-                    "the generator torque there. Size the fins (or an adjustable incidence) against the chosen "
-                    "generator load line." % (fm15["Q_gen_Nm"], CP_DESIGN, P.DESIGN_TSR, gl["generator"],
-                                              gl["best_net"]["tsr"], gl["best_net"]["rpm"],
-                                              gl["best_net"]["torque_Nm"], fm15["torque_Nm"] / gl["best_net"]["torque_Nm"])
-                    ] if gl else []
+            check="equator O-ring and groove: layout = hardware study (%s)" % hw_o["designation"],
+            max_dimension_deviation_mm=dev, passed=bool(dev < 1e-6 and o_["bore_fits"]),
+            layout=dict(bore_d_mm=o_["bore_d_mm"], groove_bottom_d_mm=o_["groove_bottom_d_mm"],
+                        spigot_od_mm=o_["spigot_seal_od_mm"], groove_top_w_mm=o_["groove_top_w_mm"],
+                        squeeze_worst_pct=o_["squeeze_worst_pct"], fill_worst_pct=o_["fill_worst_pct"]),
+            hardware=dict(bore_d_mm=hw_o["bore_d"], groove_bottom_d_mm=hw_o["groove_bottom_d"],
+                          spigot_od_mm=hw_o["spigot_od"], groove_top_w_mm=hw_o["groove_top_w"],
+                          squeeze_worst_pct=hp.get("squeeze_worst_pct"), fill_worst_pct=hp.get("fill_worst_pct")),
+            note="the layout adopts the hardware study's ring and groove and recomputes the gland with the same "
+                 "worst-case model"))
+    issues_cross = []
 
     # ---- consolidated params.py proposal
     rp = rj["proposed_params"]
     ip = summ["proposed_param_updates"]
     params = {k: rp[k] for k in rp}
+    det = rj["detents"]
     params.update(
-        EQUATOR_X=ip["EQUATOR_X"],
-        BEARING=dict(P.BEARING, x0=st["bearing_front_608"][0], role="front, locating"),
-        BEARING_ALT=dict(P.BEARING_ALT, x0=st["bearing_rear_688"][0], role="rear, floating"),
-        LIP_SEAL=dict(P.LIP_SEAL, x0=st["lip_seal"][0]),
-        GENERATOR=ip["GENERATOR"], ORING_EQUATOR=ip["ORING_EQUATOR"], BAYONET=ip["BAYONET"],
-        SHAFT=ip["SHAFT"], COUPLER=ip["COUPLER"], CARRIER=ip["CARRIER"], FIN=ip["FIN"],
-        GLAND=ip["GLAND"], TOW_EYE=ip["TOW_EYE"], POCKET_FLOOR_WALL=POCKET_FLOOR_WALL,
+        ROTOR_HUB=dict(x_front=ch["hub_front_x_mm"], x_aft_face=hub["hub_aft_face_x_mm"], bore_d=hub["bore_d_mm"],
+                       d_flat_depth=hub["d_flat_depth_mm"], grub=hub["grub"]["size"], grub_x=hub["grub"]["x_mm"],
+                       grub_psi_deg=hub["grub"]["azimuth_psi_deg"], stop_face_x=det["deployed"]["stop_face_x_mm"],
+                       ear_hole_d=hub["pin"]["ear_hole_d_mm"], knuckle_bore_d=hub["pin"]["knuckle_bore_d_mm"],
+                       pin_channel_tau=hub["pin"]["insertion_channel_tau_mm"],
+                       spinner_wall=ch["spinner_wall_mm"], spinner_gap=ch["spinner_gap_mm"],
+                       slot_table="data/layout_rotor.json hub_slot (cut per blade, hinge-plane coords)"),
+        DETENTS=dict(magnet=det["magnet"],
+                     deployed_hub_magnet_x_re_tau=det["deployed"]["hub_magnet_hinge_plane_x_re_tau_mm"],
+                     deployed_blade_magnet_blade_frame=det["deployed"]["blade_magnet_blade_frame_mm"],
+                     stowed_x=det["stowed"]["x_mm"], stowed_az_deg=det["stowed"]["az_deg"],
+                     stowed_static_magnet_r=det["stowed"]["static_magnet_centre_r_mm"],
+                     stowed_boss_top_r=det["stowed"]["boss_top_r_mm"],
+                     stowed_blade_magnet_blade_frame=det["stowed"]["blade_magnet_centre_blade_frame_mm"]),
+        POCKETS=dict(x=[ri["x0"], x_end], theta_deg=list(pk.theta),
+                     tables="data/layout_rotor.json pocket_depth (x, depth, floor_r, keepout_r, az_lo, az_hi per x; "
+                            "theta = -psi)", floor_print_deg=ri.get("floor_overhang_max_deg")),
+        BLADE_AXIS=dict(table="data/layout_rotor.json axis (solved curved pitch axis)",
+                        lead_mm=[rj["axis"]["lead_mm"][0], rj["axis"]["lead_mm"][-1]]),
     )
+    params.update({k: v for k, v in ip.items() if not k.endswith("_reason")})
+    params["BEARING"] = params.pop("BEARING_FRONT")
+    params["BEARING_ALT"] = params.pop("BEARING_REAR")
     reasons = {f"{k}_reason": v for k, v in ROTOR_PARAM_REASONS.items() if k in rp}
     reasons.update({k: v for k, v in ip.items() if k.endswith("_reason")})
     reasons["BEARING_ALT_reason"] = reasons.get("BEARING_reason", "")
+    reasons["ROTOR_HUB_reason"] = "rotor half (layout.py): hub, grub, stop face, pin holes and spinner shell"
+    reasons["DETENTS_reason"] = ("rotor half: N52 4x2 magnet pairs, deployed (heel <-> hub stop face) and stowed "
+                                 "(blade root <-> boss on the static notch floor)")
+    reasons["POCKETS_reason"] = ("rotor half: pocket tables, printable floor (<= %.0f deg) and asymmetric azimuth span"
+                                 % P.MAX_OVERHANG)
+    reasons["BLADE_AXIS_reason"] = "rotor half: solved hull-following pitch axis the blade CAD sweeps along"
     reasons["LIP_SEAL_reason"] = ("TC 8x16x5 in the 688's 16 mm bore, %.1f mm recessed from the static tail end, "
                                   "%.1f mm ahead of the hub front" % (SEAL_RECESS, ch["hub_front_x_mm"] - st["lip_seal"][1]))
     reasons["SHAFT_reason"] = ("8 x %.1f from claw B (x %.1f) to the hub aft face (x %.1f): hub D-flat under the "
                                "M3 grub at x %.1f, M3 x 8 tapped aft end for the spinner screw"
                                % (st["shaft"][1] - st["shaft"][0], st["shaft"][0], st["shaft"][1], hub["grub"]["x_mm"]))
-    reasons["COUPLER_reason"] = "blind self-finding claw across the joint; claw B is the thrust collar"
-    reasons["CARRIER_reason"] = "twist-lock bulkhead at the forward limit set by the PCD 38.14 adapter"
     reasons["GLAND_reason"] = ("M12x1.5 beside the eye, bottom, seat x %.2f, axis %.0f deg from the surface normal "
                                "toward the nose: the whole boss (D%g seat + D%g thread boss) ends %.2f mm ahead of "
                                "the carrier (the boss at x 12 ran into it)"
@@ -3448,10 +3711,10 @@ def merged(res: dict, summ: dict) -> dict:
                                            "stricter than the rotor keep-out at MIN_WALL)")
 
     # ---- open issues: rotor items still open + internal items
+    bem_open = next((t for t in rj.get("open_issues", []) if t.startswith("BEM")), None)
     rotor_open = [
-        "BEM ran with hinge (124, 18.5) and a straight 12 deg axis; re-run it with hinge (116, 14), the solved "
-        "curved axis (rotor.axis) and r_aero_root 30. The rotor load plane used here (x %.1f) comes from that "
-        "axis, not from the BEM." % st["rotor_load_plane"],
+        (bem_open + " " if bem_open else "") + "The rotor load plane used by the bearing checks (x %.1f) is the "
+        "solved axis at 0.7 R (ESTIMATE), not a BEM thrust centroid." % st["rotor_load_plane"],
         "In-plane lead (pitch axis toward the LE, %.1f mm at the root to %.1f mm at the tip) yaws the sections "
         "by up to %.0f deg against the local tangential flow (rotor.stowed_sections.yaw_vs_local_tangent_deg); "
         "BEM assumes 0." % (rj["axis"]["lead_mm"][0], rj["axis"]["lead_mm"][-1],
@@ -3491,6 +3754,17 @@ def merged(res: dict, summ: dict) -> dict:
         "(D%g x L%g, carrier ring included) and candidate fits are tested against it; the pocket floors are "
         "printable (<= 45 deg); the end-view figures say 'seen from aft, looking upstream'."
         % (fins["yaw"]["pivot_chord_frac"], nose_d["gland"]["seat_x_mm"], CLAW_B_STEP_OD, g["D_mm"], g["L_mm"]),
+        "Fix round completion: the equator joint adopts the hardware study's %s (bore D%.2f, groove bottom D%.2f, "
+        "spigot OD %.2f, 45 deg tip-side flank, top width %.3f), recomputed with the corrected worst case "
+        "(squeeze %.1f-%.1f %%, fill %.1f %%); the fins are re-sized on the %s load line (%.4f N m at TSR %.2f, "
+        "1.5 m/s) with a %.0f %% margin: %g x %g mm at %.2f deg, %.0f mm tip to tip (the Cp 0.35 / TSR 4 rule gave "
+        "%.3f N m, %.2f x the load-line torque)."
+        % (J["oring"]["designation"], J["oring"]["bore_d_mm"], J["oring"]["groove_bottom_d_mm"],
+           J["oring"]["spigot_seal_od_mm"], J["oring"]["groove_top_w_mm"], *J["oring"]["squeeze_worst_pct"],
+           J["oring"]["fill_worst_pct"], fins["torque_basis"]["generator"], fins["torque_basis"]["Q_design_Nm"],
+           fins["torque_basis"]["tsr"] or float("nan"), fins["torque_basis"]["margin_pct"], fins["chord_mm"],
+           fins["span_mm"], fins["incidence_deg"], fins["tip_to_tip_mm"], fins["torque_basis"]["Q_cp_rule_Nm"],
+           fins["torque_basis"]["Q_cp_rule_Nm"] / fins["torque_basis"]["Q_design_Nm"]),
     ]
     rot_keep = {k: rj[k] for k in ("chosen", "axis", "fold_choice", "stowed_sections", "stowed_max_over_hull",
                                    "pocket_depth", "pocket_summary", "pocket_width_mm", "pocket_theta_deg",
@@ -3567,9 +3841,11 @@ def merged(res: dict, summ: dict) -> dict:
                      mo["L_reserve"], next((t["span_mm"] for t in bay["length_trade"]
                                             if abs(t["L_mm"] - mo["L_reserve"]) < 1e-6 and t.get("fits")), float("nan")))),
             dict(topic="fins", decision="stowing-index fold rule, fins %g x %g at theta %g/%g, x %.1f-%.1f, pads "
-                 "yawed with the fins (pivot %.2f c) and run to the equator face"
+                 "yawed with the fins (pivot %.2f c) and run to the equator face; sized on the %s load line at "
+                 "%.1f m/s with a %.0f %% margin"
                  % (fins["chord_mm"], fins["span_mm"], *fins["theta_deg"], fins["x_le_mm"], fins["x_te_mm"],
-                    fins["yaw"]["pivot_chord_frac"]),
+                    fins["yaw"]["pivot_chord_frac"], fins["torque_basis"]["generator"], FIN_DESIGN_V,
+                    fins["torque_basis"]["margin_pct"]),
                  why="the any-azimuth torus rule gives %s" % (
                      "%g x %g fins, %.0f mm tip to tip" % (fins["alternative_rule"]["chord_mm"],
                                                           fins["alternative_rule"]["span_mm"],
