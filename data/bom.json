@@ -2,22 +2,26 @@
  "meta": {
   "generated_by": "out/work/hardware/build_outputs.py",
   "date": "2026-10-03",
+  "revision": "fix round 2",
   "currency": "EUR",
   "fx": {
    "usd_per_eur": 1.1225,
    "source_url": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
   },
-  "note": "est_price_eur null = not sourced; quantities marked ESTIMATE wait for the CAD"
+  "note": "est_price_eur = per-piece price x qty (pro-rata); purchase_eur = what the smallest pack or minimum order of that line costs; null = not sourced; quantities marked ESTIMATE wait for the CAD"
  },
  "items": [
   {
    "item": "Deep groove ball bearing S608-2RS",
    "qty": 2,
    "spec": "8x22x7, AISI 440C stainless, 2RS",
-   "est_price_eur": 10.04,
+   "est_price_eur": 10.03,
    "display_build": true,
    "v2_only": false,
    "source_url": "https://bearingsdirect.com/s608-2rs-stainless-steel-miniature-ball-bearing-8x22x7mm-sealed/",
+   "purchase_qty": 2,
+   "purchase_eur": 10.03,
+   "purchase_basis": "sold singly, USD 5.63 each, no minimum (bearingsdirect)",
    "note": "688-2RS (8x16x5) is the compact alternative (USD 4.38, stainless USD 5.63)"
   },
   {
@@ -28,25 +32,49 @@
    "display_build": true,
    "v2_only": false,
    "source_url": "https://us.misumi-ec.com/pdf/fa/2019/2019_US_0202_003.pdf",
+   "purchase_qty": null,
+   "purchase_eur": null,
+   "purchase_basis": "not priced",
    "note": "display build may use any 8 mm h6/g6 stainless rod; v2 needs >= 45 HRC under the lip seal"
   },
   {
-   "item": "Dowel pin ISO 8734 3x16",
-   "qty": 3,
-   "spec": "d 3 m6, l 16, type A or C1 stainless; one per blade hinge",
+   "item": "Shaft collar 8 mm, set screw, stainless (Ruland MSC-8-SS)",
+   "qty": 1,
+   "spec": "bore 8, OD 16, width 8, 303 stainless; axial stop forward of the forward bearing (rotor thrust pulls aft)",
    "est_price_eur": null,
    "display_build": true,
    "v2_only": false,
-   "source_url": "https://cdn.standards.iteh.ai/samples/20002/ba95529de6a64437ac7454e14dbd2ef6/ISO-8734-1997.pdf"
+   "source_url": "https://www.amazon.com/Ruland-MSC-8-SS-Collar-Stainless-Metric/dp/B0063KWIYC",
+   "purchase_qty": null,
+   "purchase_eur": null,
+   "purchase_basis": "not priced",
+   "note": "alternative: DIN 471 A8 circlip (s 0.8, groove 7.6 x 0.9) if the shaft is plain rod and can be grooved"
+  },
+  {
+   "item": "Dowel pin ISO 8734 3x22",
+   "qty": 3,
+   "spec": "d 3 m6, l 22 (21.5-22.5), type A or C1 stainless; one per blade hinge; length from data/layout_rotor.json (ear-knuckle-ear)",
+   "est_price_eur": null,
+   "display_build": true,
+   "v2_only": false,
+   "source_url": "https://cdn.standards.iteh.ai/samples/20002/ba95529de6a64437ac7454e14dbd2ef6/ISO-8734-1997.pdf",
+   "purchase_qty": null,
+   "purchase_eur": null,
+   "purchase_basis": "not priced",
+   "note": "22 is in the ISO 8734 length series; check stock, the layout study's fallback is 3x20 with thinner ears"
   },
   {
    "item": "Magnet N52 disc 4x2",
-   "qty": 12,
-   "spec": "4 +-0.05 x 2 mm, Ni-Cu-Ni; qty ESTIMATE: 3 blades x 2 detents x 2",
-   "est_price_eur": 3.24,
+   "qty": 16,
+   "spec": "4 +-0.05 x 2 mm, Ni-Cu-Ni; 12 blade detents (layout_rotor: 4 per blade) + 4 bayonet detent (layout_internal: 2 pairs)",
+   "est_price_eur": 4.28,
    "display_build": true,
    "v2_only": false,
-   "source_url": "https://www.jc-magnetics.com/Magnet-N52-4mm-2mm-Discs"
+   "source_url": "https://www.jc-magnetics.com/Magnet-N52-4mm-2mm-Discs",
+   "purchase_qty": 50,
+   "purchase_eur": 13.36,
+   "purchase_basis": "JC Magnetics minimum order 50 at USD 0.30 each (USD 0.17 from 100)",
+   "note": "Magnet Baron sells 100 x 4x2 N52 for USD 15.99 (https://themagnetbaron.com/collections/4mm-disc-magnets)"
   },
   {
    "item": "Heat-set insert M3 x 5.7 (CNC Kitchen standard)",
@@ -56,7 +84,10 @@
    "display_build": true,
    "v2_only": false,
    "source_url": "https://www.3djake.com/cnc-kitchen/threaded-inserts-m3-standard",
-   "note": "sold per 100 (EUR 12.09)"
+   "purchase_qty": 100,
+   "purchase_eur": 12.09,
+   "purchase_basis": "pack of 100 (3DJake EUR 12.09; cnckitchen.store EUR 9.40, ruthex EUR 8.99)",
+   "note": "sold per 100"
   },
   {
    "item": "Socket head cap screw M3 (ISO 4762), A2",
@@ -65,16 +96,22 @@
    "est_price_eur": null,
    "display_build": true,
    "v2_only": false,
-   "source_url": null
+   "source_url": null,
+   "purchase_qty": null,
+   "purchase_eur": null,
+   "purchase_basis": "not priced"
   },
   {
    "item": "Grub screw M3 x 4 cup point (ISO 4029), A2/A4",
    "qty": 2,
-   "spec": "hex 1.5; hub on shaft flat, v2 coupler",
+   "spec": "hex 1.5; hub on shaft flat, generator hub",
    "est_price_eur": null,
    "display_build": true,
    "v2_only": false,
-   "source_url": "https://accu-components.com/us/cup-point-set-screws/5009-SSU-M3-4-A2"
+   "source_url": "https://accu-components.com/us/cup-point-set-screws/5009-SSU-M3-4-A2",
+   "purchase_qty": null,
+   "purchase_eur": null,
+   "purchase_basis": "not priced"
   },
   {
    "item": "Filament PETG",
@@ -83,26 +120,47 @@
    "est_price_eur": null,
    "display_build": true,
    "v2_only": false,
-   "source_url": "https://help.prusa3d.com/article/petg_2059"
+   "source_url": "https://help.prusa3d.com/article/petg_2059",
+   "purchase_qty": null,
+   "purchase_eur": null,
+   "purchase_basis": "not priced"
   },
   {
    "item": "Printed tow eye (nose)",
    "qty": 1,
-   "spec": "integral to the nose shell; pull test >= 236 N",
+   "spec": "integral to the nose shell; pull test >= 211 N (3 x BEM rotor thrust at 2.5 m/s) plus hull drag",
    "est_price_eur": 0.0,
    "display_build": true,
    "v2_only": false,
-   "source_url": null
+   "source_url": null,
+   "purchase_qty": 0,
+   "purchase_eur": 0.0,
+   "purchase_basis": "printed"
   },
   {
-   "item": "Generator iPower GM4108H-120T",
+   "item": "Generator CubeMars GL40 KV70",
    "qty": 1,
-   "spec": "D47 x 22.7, 24N22P, 11.1 ohm, hollow 8 mm bore",
-   "est_price_eur": 43.9,
+   "spec": "D46.5 x 21.5, 14 pole pairs, KV 63.5, 4.5 ohm ph-ph, 1.8 mH, 8 mm through bore; stator 4-M3 PCD 24 + 4-M2.5 PCD 40 (same axes), pad block at 45 deg; rotor 4-M3 PCD 24; rated 0.25 Nm / 1.62 A",
+   "est_price_eur": 65.02,
    "display_build": false,
    "v2_only": true,
-   "source_url": "https://iflight-rc.eu/en/products/ipower-gm4108h-120t-gimbal-motor",
-   "note": "display build prints a replica with the same envelope and base pattern"
+   "source_url": "https://www.cubemars.com/goods-1132-GL40.html",
+   "purchase_qty": 1,
+   "purchase_eur": 65.02,
+   "purchase_basis": "sold singly, USD 72.99",
+   "note": "display build prints a replica with the same envelope, hole patterns and pad window; low-cost alternative iPower GM4108H-120T (EUR 43.90) only after a bench test"
+  },
+  {
+   "item": "M3 screws for the generator (ISO 4762 / ISO 7380), A2",
+   "qty": 8,
+   "spec": "4 stator (thread 3.5 deep) + 4 rotor hub (thread 2.5 deep); length = clamped part + 3.0 / 2.0 max",
+   "est_price_eur": null,
+   "display_build": false,
+   "v2_only": true,
+   "source_url": "https://www.cubemars.com/data/cms/202602/gl40-gimbal-motor-2d-drawing.pdf",
+   "purchase_qty": null,
+   "purchase_eur": null,
+   "purchase_basis": "not priced"
   },
   {
    "item": "Lip seal TC 8x16x5 NBR",
@@ -111,16 +169,22 @@
    "est_price_eur": null,
    "display_build": false,
    "v2_only": true,
-   "source_url": "https://www.amazon.com/8x16x5-Rubber-Covered-Double-Garter/dp/B00MW7GOD6"
+   "source_url": "https://www.amazon.com/8x16x5-Rubber-Covered-Double-Garter/dp/B00MW7GOD6",
+   "purchase_qty": null,
+   "purchase_eur": null,
+   "purchase_basis": "not priced"
   },
   {
-   "item": "O-ring ISO 3601-143 (AS568-143)",
+   "item": "O-ring ISO 3601-141 (AS568-141)",
    "qty": 2,
-   "spec": "61.60 x 2.62, EPDM 70 or NBR 70 (one spare)",
+   "spec": "58.42 x 2.62, EPDM 70 or NBR 70 (one spare)",
    "est_price_eur": null,
    "display_build": false,
    "v2_only": true,
    "source_url": "https://www.applerubber.com/src/pdf/iso-3601-metric-size-o-rings.pdf",
+   "purchase_qty": null,
+   "purchase_eur": null,
+   "purchase_basis": "not priced",
    "note": "optional in the display build to demonstrate the gland"
   },
   {
@@ -131,7 +195,22 @@
    "display_build": false,
    "v2_only": true,
    "source_url": "https://www.hummel.com/en/cable-glands/products/plastic-cable-glands/hsk-k/1209120050-hsk-k-grey-m12x1-5/",
+   "purchase_qty": 10,
+   "purchase_eur": 9.34,
+   "purchase_basis": "pack of 10, USD 10.48 (tameson)",
    "note": "price from the 10-pack (https://tameson.com/products/hummel-hsk-k-m12-cable-gland-pa-gray-1209120050-10-pieces)"
+  },
+  {
+   "item": "Locknut M12x1.5 PA (Hummel 1.261.1200.50)",
+   "qty": 1,
+   "spec": "gland ships without a locknut; or a printed boss >= 8 mm deep",
+   "est_price_eur": 0.06,
+   "display_build": false,
+   "v2_only": true,
+   "source_url": "https://actif-shop.eu/en/welcome/5460-hummel-polyamide-cable-gland-nut-m12-x-15-grey-ral-7035-1261120050.html",
+   "purchase_qty": 1,
+   "purchase_eur": 0.06,
+   "purchase_basis": "per piece, EUR 0.06 excl. tax, no minimum stated (actif-shop)"
   },
   {
    "item": "3-core cable 3 x 0.5 mm2",
@@ -140,22 +219,31 @@
    "est_price_eur": null,
    "display_build": false,
    "v2_only": true,
-   "source_url": null
+   "source_url": null,
+   "purchase_qty": null,
+   "purchase_eur": null,
+   "purchase_basis": "not priced"
   },
   {
-   "item": "3-phase rectifier + buck to 5 V USB",
+   "item": "3-phase rectifier + buck-boost to 5 V USB",
    "qty": 1,
-   "spec": "input >= 60 V (towed freewheel estimate); not specified here",
+   "spec": "input >= 60 V with the GL40 (open-circuit freewheel 35.2 V at 2.5 m/s, the towing state); >= 100 V if the GM4108H is used (82.8 V); buck-boost because the 1.0 m/s optimum is ~4.55 V; current limit so the winding copper loss stays at the rated 11.81 W (DC side 1.62 A block model / 1.715 A time-domain). No continuous phase-short brake (it would put 69.6 W into the windings at 2.5 m/s). Optional dump load 10.02 ohm across the DC link (29.47 W at 2.5 m/s; rate >= 2x)",
    "est_price_eur": null,
    "display_build": false,
    "v2_only": true,
    "source_url": null,
+   "purchase_qty": null,
+   "purchase_eur": null,
+   "purchase_basis": "not priced",
    "note": "electronics are out of scope for v1"
   }
  ],
  "totals": {
-  "display_build_known_eur": 14.25,
-  "v2_additional_known_eur": 44.83,
-  "unpriced_items": 9
+  "display_build_known_eur": 15.28,
+  "display_build_purchase_eur": 35.48,
+  "v2_additional_known_eur": 66.01,
+  "v2_additional_purchase_eur": 74.42,
+  "note": "'known' totals are pro-rata per-piece costs; 'purchase' totals are the cash outlay for the priced lines (MOQ and pack sizes)",
+  "unpriced_items": 11
  }
 }
