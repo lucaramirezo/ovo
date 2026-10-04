@@ -14,7 +14,7 @@ numbers quoted in the prose are taken from them.
 |---|---|
 | blade design TSR / Cp peak at 1.5 m/s | 4 / Cp 0.367 at TSR 3.82 |
 | at the Cp peak, 1.5 m/s: shaft power, rpm, torque | 18.3 W, 564 rpm, 0.310 N m |
-| at the Cp peak, 1.5 m/s: thrust, flap moment per blade at the hinge | 23.8 N, 0.418 N m |
+| at the Cp peak, 1.5 m/s: thrust, flap moment per blade at the hinge | 23.8 N, 0.456 N m |
 | Cp cost of all constraints at the design TSR | 0.3757 (BEM optimum) to 0.3666 (-2.4 %) |
 | shaft power at the Cp peak, 1 / 2.5 m/s | 5.1 W / 87.9 W |
 | runaway (no load) at 2.5 m/s: rpm, thrust | 2236 rpm, 59.9 N |
@@ -47,7 +47,7 @@ moment by about 6 % (section 7).
 | blades | 3 |
 | tip radius (perpendicular to axis) | 97 mm (swept D 194 mm) |
 | aerodynamic root radius | 30 mm |
-| hinge radius / hinge x | 18.5 mm / 124 mm |
+| hinge radius / hinge x | 14 mm / 116 mm |
 | aft pre-cone (straight pitch axis) | 12 deg |
 | design flow / design TSR | 1.5 m/s / 4 |
 | TSR of the Cp peak at 1.5 m/s | 3.82 |
@@ -56,7 +56,7 @@ moment by about 6 % (section 7).
 | thickness ratio (linear in r) | 0.18 to 0.12 (NACA 44xx) |
 | trailing edge | 0.6 mm blunt, added to the NACA section |
 | pitch (stacking) axis | 0.3 chord from the LE |
-| shank | r 18.5 to 30 mm, stadium (rounded slot) lug 22 x 8 mm, pin 3 mm |
+| shank | r 14 to 30 mm, stadium (rounded slot) lug 22 x 8 mm, pin 3 mm |
 | rotation seen from upstream | clockwise (Omega along +X) |
 <!-- /bem:rotor -->
 
@@ -89,27 +89,27 @@ Stations of the final blade (21, aero root to tip):
 <!-- bem:stations -->
 | r (mm) | chord (mm) | twist (deg) | t/c | section | t max (mm) | TE/c | pitch axis x (mm) | span from hinge (mm) |
 |--:|--:|--:|--:|---|--:|--:|--:|--:|
-| 30.00 | 25.10 | 17.20 | 0.180 | NACA 4418 | 4.71 | 0.024 | 126.44 | 11.76 |
-| 33.35 | 24.55 | 16.60 | 0.177 | NACA 4418 | 4.53 | 0.024 | 127.16 | 15.18 |
-| 36.70 | 23.99 | 16.00 | 0.174 | NACA 4417 | 4.36 | 0.025 | 127.87 | 18.61 |
-| 40.05 | 23.43 | 15.40 | 0.171 | NACA 4417 | 4.20 | 0.026 | 128.58 | 22.03 |
-| 43.40 | 22.88 | 14.80 | 0.168 | NACA 4417 | 4.03 | 0.026 | 129.29 | 25.46 |
-| 46.75 | 22.32 | 14.20 | 0.165 | NACA 4416 | 3.87 | 0.027 | 130.00 | 28.88 |
-| 50.10 | 21.77 | 13.60 | 0.162 | NACA 4416 | 3.72 | 0.028 | 130.72 | 32.31 |
-| 53.45 | 21.21 | 13.00 | 0.159 | NACA 4416 | 3.56 | 0.028 | 131.43 | 35.73 |
-| 56.80 | 20.66 | 12.40 | 0.156 | NACA 4416 | 3.41 | 0.029 | 132.14 | 39.16 |
-| 60.15 | 20.11 | 11.80 | 0.153 | NACA 4415 | 3.27 | 0.030 | 132.85 | 42.58 |
-| 63.50 | 19.55 | 11.20 | 0.150 | NACA 4415 | 3.12 | 0.031 | 133.56 | 46.01 |
-| 66.85 | 19.00 | 10.60 | 0.147 | NACA 4415 | 2.98 | 0.032 | 134.28 | 49.43 |
-| 70.20 | 18.44 | 10.00 | 0.144 | NACA 4414 | 2.85 | 0.033 | 134.99 | 52.85 |
-| 73.55 | 17.89 | 9.40 | 0.141 | NACA 4414 | 2.71 | 0.034 | 135.70 | 56.28 |
-| 76.90 | 17.33 | 8.80 | 0.138 | NACA 4414 | 2.58 | 0.035 | 136.41 | 59.70 |
-| 80.25 | 16.77 | 8.20 | 0.135 | NACA 4414 | 2.46 | 0.036 | 137.12 | 63.13 |
-| 83.60 | 16.22 | 7.60 | 0.132 | NACA 4413 | 2.33 | 0.037 | 137.84 | 66.55 |
-| 86.95 | 15.66 | 7.00 | 0.129 | NACA 4413 | 2.21 | 0.038 | 138.55 | 69.98 |
-| 90.30 | 15.11 | 6.40 | 0.126 | NACA 4413 | 2.10 | 0.040 | 139.26 | 73.40 |
-| 93.65 | 14.55 | 5.80 | 0.123 | NACA 4412 | 1.99 | 0.041 | 139.97 | 76.83 |
-| 97.00 | 14.00 | 5.20 | 0.120 | NACA 4412 | 1.88 | 0.043 | 140.69 | 80.25 |
+| 30.00 | 25.10 | 17.20 | 0.180 | NACA 4418 | 4.71 | 0.024 | 119.40 | 16.36 |
+| 33.35 | 24.55 | 16.60 | 0.177 | NACA 4418 | 4.53 | 0.024 | 120.11 | 19.78 |
+| 36.70 | 23.99 | 16.00 | 0.174 | NACA 4417 | 4.36 | 0.025 | 120.83 | 23.21 |
+| 40.05 | 23.43 | 15.40 | 0.171 | NACA 4417 | 4.20 | 0.026 | 121.54 | 26.63 |
+| 43.40 | 22.88 | 14.80 | 0.168 | NACA 4417 | 4.03 | 0.026 | 122.25 | 30.06 |
+| 46.75 | 22.32 | 14.20 | 0.165 | NACA 4416 | 3.87 | 0.027 | 122.96 | 33.48 |
+| 50.10 | 21.77 | 13.60 | 0.162 | NACA 4416 | 3.72 | 0.028 | 123.67 | 36.91 |
+| 53.45 | 21.21 | 13.00 | 0.159 | NACA 4416 | 3.56 | 0.028 | 124.39 | 40.33 |
+| 56.80 | 20.66 | 12.40 | 0.156 | NACA 4416 | 3.41 | 0.029 | 125.10 | 43.76 |
+| 60.15 | 20.11 | 11.80 | 0.153 | NACA 4415 | 3.27 | 0.030 | 125.81 | 47.18 |
+| 63.50 | 19.55 | 11.20 | 0.150 | NACA 4415 | 3.12 | 0.031 | 126.52 | 50.61 |
+| 66.85 | 19.00 | 10.60 | 0.147 | NACA 4415 | 2.98 | 0.032 | 127.23 | 54.03 |
+| 70.20 | 18.44 | 10.00 | 0.144 | NACA 4414 | 2.85 | 0.033 | 127.95 | 57.46 |
+| 73.55 | 17.89 | 9.40 | 0.141 | NACA 4414 | 2.71 | 0.034 | 128.66 | 60.88 |
+| 76.90 | 17.33 | 8.80 | 0.138 | NACA 4414 | 2.58 | 0.035 | 129.37 | 64.31 |
+| 80.25 | 16.77 | 8.20 | 0.135 | NACA 4414 | 2.46 | 0.036 | 130.08 | 67.73 |
+| 83.60 | 16.22 | 7.60 | 0.132 | NACA 4413 | 2.33 | 0.037 | 130.79 | 71.16 |
+| 86.95 | 15.66 | 7.00 | 0.129 | NACA 4413 | 2.21 | 0.038 | 131.51 | 74.58 |
+| 90.30 | 15.11 | 6.40 | 0.126 | NACA 4413 | 2.10 | 0.040 | 132.22 | 78.00 |
+| 93.65 | 14.55 | 5.80 | 0.123 | NACA 4412 | 1.99 | 0.041 | 132.93 | 81.43 |
+| 97.00 | 14.00 | 5.20 | 0.120 | NACA 4412 | 1.88 | 0.043 | 133.64 | 84.85 |
 <!-- /bem:stations -->
 
 ![Chord and twist: optimum vs final](../figures/bem_chord_twist.png)
@@ -413,10 +413,10 @@ At the Cp peak (MPPT):
 <!-- bem:performance -->
 | flow (m/s) | TSR | rpm | Cp | power (W) | torque (N m) | thrust (N) | flap moment / blade (N m) | edge moment / blade (N m) |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|
-| 1 | 3.78 | 372 | 0.348 | 5.1 | 0.132 | 10.3 | 0.181 | 0.032 |
-| 1.5 | 3.82 | 564 | 0.367 | 18.3 | 0.310 | 23.8 | 0.418 | 0.074 |
-| 2 | 3.95 | 777 | 0.375 | 44.4 | 0.545 | 42.9 | 0.754 | 0.131 |
-| 2.5 | 4.05 | 996 | 0.380 | 87.9 | 0.842 | 67.6 | 1.189 | 0.202 |
+| 1 | 3.78 | 372 | 0.348 | 5.1 | 0.132 | 10.3 | 0.198 | 0.035 |
+| 1.5 | 3.82 | 564 | 0.367 | 18.3 | 0.310 | 23.8 | 0.456 | 0.082 |
+| 2 | 3.95 | 777 | 0.375 | 44.4 | 0.545 | 42.9 | 0.821 | 0.144 |
+| 2.5 | 4.05 | 996 | 0.380 | 87.9 | 0.842 | 67.6 | 1.295 | 0.223 |
 <!-- /bem:performance -->
 
 Load held at the design TSR 4:
@@ -424,10 +424,10 @@ Load held at the design TSR 4:
 <!-- bem:performance_fixed -->
 | flow (m/s) | rpm | Cp | power (W) | torque (N m) | thrust (N) | flap moment / blade (N m) |
 |---|--:|--:|--:|--:|--:|--:|
-| 1 | 394 | 0.347 | 5.1 | 0.124 | 10.5 | 0.185 |
-| 1.5 | 591 | 0.367 | 18.3 | 0.296 | 24.1 | 0.423 |
-| 2 | 788 | 0.375 | 44.4 | 0.538 | 43.0 | 0.757 |
-| 2.5 | 984 | 0.380 | 87.8 | 0.852 | 67.4 | 1.185 |
+| 1 | 394 | 0.347 | 5.1 | 0.124 | 10.5 | 0.201 |
+| 1.5 | 591 | 0.367 | 18.3 | 0.296 | 24.1 | 0.461 |
+| 2 | 788 | 0.375 | 44.4 | 0.538 | 43.0 | 0.824 |
+| 2.5 | 984 | 0.380 | 87.8 | 0.852 | 67.4 | 1.291 |
 <!-- /bem:performance_fixed -->
 
 Runaway (zero torque) and envelopes (maximum over every TSR from 1.5 up to runaway):
@@ -435,10 +435,10 @@ Runaway (zero torque) and envelopes (maximum over every TSR from 1.5 up to runaw
 <!-- bem:performance_limits -->
 | flow (m/s) | runaway TSR | runaway rpm | runaway thrust (N) | runaway flap moment (N m) | max thrust (N) | max flap moment (N m) | max torque (N m) |
 |---|--:|--:|--:|--:|--:|--:|--:|
-| 1 | 8.06 | 793 | 10.1 | 0.189 | 10.9 | 0.197 | 0.158 |
-| 1.5 | 8.61 | 1271 | 22.4 | 0.425 | 25.0 | 0.454 | 0.402 |
-| 2 | 8.90 | 1753 | 39.0 | 0.745 | 44.9 | 0.811 | 0.742 |
-| 2.5 | 9.09 | 2236 | 59.9 | 1.150 | 70.3 | 1.269 | 1.183 |
+| 1 | 8.06 | 793 | 10.1 | 0.205 | 10.9 | 0.214 | 0.158 |
+| 1.5 | 8.61 | 1271 | 22.4 | 0.460 | 25.0 | 0.493 | 0.402 |
+| 2 | 8.90 | 1753 | 39.0 | 0.806 | 44.9 | 0.881 | 0.742 |
+| 2.5 | 9.09 | 2236 | 59.9 | 1.244 | 70.3 | 1.379 | 1.183 |
 <!-- /bem:performance_limits -->
 
 ![Cp versus TSR](../figures/bem_cp_tsr.png)
@@ -459,9 +459,9 @@ Runaway (zero torque) and envelopes (maximum over every TSR from 1.5 up to runaw
 <!-- bem:structure_summary -->
 | quantity | value |
 |---|--:|
-| blade mass, solid PLA (aero part) | 5.8 g (4.0 g) |
+| blade mass, solid PLA (aero part) | 6.5 g (4.0 g) |
 | lug section 22 x 8 mm stadium: area, Z thin, Z wide | 162 mm^2, 200 mm^3, 517 mm^3 |
-| max flap moment per blade up to runaway, 2.5 m/s | 1.269 N m |
+| max flap moment per blade up to runaway, 2.5 m/s | 1.379 N m |
 | max rotor thrust up to runaway, 2.5 m/s | 70.3 N |
 | max flap moment per blade up to runaway, 2.5 m/s, layout-study hinge and axis | 1.343 N m |
 <!-- /bem:structure_summary -->
@@ -469,9 +469,9 @@ Runaway (zero torque) and envelopes (maximum over every TSR from 1.5 up to runaw
 <!-- bem:structure -->
 | case | rpm | flap moment (N m) | edge moment (N m) | centrifugal relief | flap stress, thin / wide (MPa) |
 |---|--:|--:|--:|--:|--:|
-| MPPT 1.5 m/s | 564 | 0.418 | 0.074 | 1.7 % | 2.1 / 0.8 |
-| MPPT 2.5 m/s | 996 | 1.189 | 0.202 | 1.9 % | 6.0 / 2.3 |
-| runaway 2.5 m/s | 2236 | 1.150 | -0.003 | 9.9 % | 5.8 / 2.2 |
+| MPPT 1.5 m/s | 564 | 0.455 | 0.082 | 1.8 % | 2.3 / 0.9 |
+| MPPT 2.5 m/s | 996 | 1.295 | 0.223 | 1.9 % | 6.5 / 2.5 |
+| runaway 2.5 m/s | 2236 | 1.244 | -0.003 | 10.1 % | 6.2 / 2.4 |
 <!-- /bem:structure -->
 
 - The flap moment about the hinge is the dominant blade load and it pushes the blade aft onto the deployed
@@ -490,12 +490,12 @@ not depend on it. Flying the final blade on the layout geometry:
 <!-- bem:layout_axis -->
 | flow (m/s) | Cp peak, nominal / layout axis | flap moment at MPPT (N m), nominal / layout | edge moment at MPPT (N m), nominal / layout | max flap moment up to runaway (N m), nominal / layout | change |
 |---|--:|--:|--:|--:|--:|
-| 1 | 0.3477 / 0.3474 | 0.181 / 0.194 | 0.032 / 0.036 | 0.197 / 0.208 | +5.6 % |
-| 1.5 | 0.3670 / 0.3669 | 0.418 / 0.446 | 0.074 / 0.086 | 0.454 / 0.480 | +5.7 % |
-| 2 | 0.3753 / 0.3752 | 0.754 / 0.804 | 0.131 / 0.151 | 0.811 / 0.858 | +5.8 % |
-| 2.5 | 0.3804 / 0.3802 | 1.189 / 1.268 | 0.202 / 0.233 | 1.269 / 1.343 | +5.8 % |
+| 1 | 0.3477 / 0.3474 | 0.198 / 0.194 | 0.035 / 0.036 | 0.214 / 0.208 | -2.7 % |
+| 1.5 | 0.3670 / 0.3669 | 0.456 / 0.446 | 0.082 / 0.086 | 0.493 / 0.480 | -2.7 % |
+| 2 | 0.3753 / 0.3752 | 0.821 / 0.804 | 0.144 / 0.151 | 0.881 / 0.858 | -2.6 % |
+| 2.5 | 0.3804 / 0.3802 | 1.295 / 1.268 | 0.223 / 0.233 | 1.379 / 1.343 | -2.6 % |
 
-Layout geometry read from `data/layout_rotor.json`: hinge x 116 mm, r 14 mm (nominal here: x 124, r 18.5); shank 16 mm (perpendicular, nominal 11.5); local cone 25.0 deg at the aero root to -16.0 deg at the tip.
+Layout geometry read from `data/layout_rotor.json`: hinge x 116 mm, r 14 mm (nominal here: x 116, r 14); shank 16 mm (perpendicular, nominal 16); local cone 25.0 deg at the aero root to -16.0 deg at the tip.
 <!-- /bem:layout_axis -->
 
 - The Cp peak is unchanged (0.3804 against 0.3802 at 2.5 m/s). The flap moment about the hinge rises by
@@ -537,8 +537,8 @@ Cavitation margin (sigma + Cp_min at the worst element, sigma from the local rel
 | cone 0 deg (straight axis) | 0.3663 | 3.84 | -0.2 % |
 | cone 8 deg (straight axis) | 0.3667 | 3.83 | -0.1 % |
 | cone 15 deg (straight axis) | 0.3673 | 3.81 | +0.1 % |
-| hull-following curved axis (estimate) | 0.3668 | 3.82 | -0.1 % |
-| hub-loss radius 19.8 mm (hub surface) | 0.3839 | 3.77 | +4.6 % |
+| hull-following curved axis (estimate) | 0.3668 | 3.83 | -0.1 % |
+| hub-loss radius 23.4 mm (hub surface) | 0.3809 | 3.79 | +3.8 % |
 | no hub loss | 0.3856 | 3.76 | +5.0 % |
 | n_crit 9 (clean inflow, smooth blade) | 0.3446 | 4.03 | -6.1 % |
 | forced transition x/c 0.05 (rough print) | 0.3459 | 3.69 | -5.8 % |

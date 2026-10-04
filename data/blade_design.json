@@ -14,8 +14,8 @@
   "n_blades": 3,
   "r_tip_mm": 97.0,
   "r_aero_root_mm": 30.0,
-  "hinge_r_mm": 18.5,
-  "hinge_x_mm": 124.0,
+  "hinge_r_mm": 14.0,
+  "hinge_x_mm": 116.0,
   "hinge_status": "provisional, see provisional",
   "cone_deg": 12.0,
   "cone_note": "straight pitch axis at the nominal cone; the hull-following curved axis is evaluated as a sensitivity (see sensitivity)",
@@ -240,73 +240,73 @@
    1.876
   ],
   "pitch_axis_x_mm": [
-   126.444,
-   127.156,
-   127.869,
-   128.581,
-   129.293,
-   130.005,
-   130.717,
-   131.429,
-   132.141,
-   132.853,
-   133.565,
-   134.277,
-   134.989,
-   135.701,
-   136.413,
-   137.125,
-   137.837,
-   138.549,
-   139.262,
-   139.974,
-   140.686
+   119.401,
+   120.113,
+   120.825,
+   121.537,
+   122.249,
+   122.961,
+   123.673,
+   124.385,
+   125.097,
+   125.809,
+   126.522,
+   127.234,
+   127.946,
+   128.658,
+   129.37,
+   130.082,
+   130.794,
+   131.506,
+   132.218,
+   132.93,
+   133.642
   ],
   "pitch_axis_aft_of_hinge_mm": [
-   2.444,
-   3.156,
-   3.869,
-   4.581,
-   5.293,
-   6.005,
-   6.717,
-   7.429,
-   8.141,
-   8.853,
-   9.565,
-   10.277,
-   10.989,
-   11.701,
-   12.413,
-   13.125,
-   13.837,
-   14.549,
-   15.262,
-   15.974,
-   16.686
+   3.401,
+   4.113,
+   4.825,
+   5.537,
+   6.249,
+   6.961,
+   7.673,
+   8.385,
+   9.097,
+   9.809,
+   10.522,
+   11.234,
+   11.946,
+   12.658,
+   13.37,
+   14.082,
+   14.794,
+   15.506,
+   16.218,
+   16.93,
+   17.642
   ],
   "span_from_hinge_mm": [
-   11.757,
-   15.182,
-   18.607,
-   22.031,
-   25.456,
-   28.881,
-   32.306,
-   35.731,
-   39.156,
-   42.58,
-   46.005,
-   49.43,
-   52.855,
-   56.28,
-   59.705,
-   63.13,
-   66.554,
-   69.979,
-   73.404,
-   76.829,
-   80.254
+   16.357,
+   19.782,
+   23.207,
+   26.632,
+   30.057,
+   33.482,
+   36.906,
+   40.331,
+   43.756,
+   47.181,
+   50.606,
+   54.031,
+   57.456,
+   60.88,
+   64.305,
+   67.73,
+   71.155,
+   74.58,
+   78.005,
+   81.429,
+   84.854
   ],
   "hinge_dependent_note": "pitch_axis_x_mm, pitch_axis_aft_of_hinge_mm and span_from_hinge_mm are provisional (params.py hinge, straight axis); see provisional"
  },
@@ -339,63 +339,63 @@
    96.86
   ],
   "x_aft_of_hinge_mm": [
-   5.14,
-   5.38,
-   5.85,
-   6.53,
-   7.39,
-   8.42,
-   9.56,
-   10.77,
-   12.0,
+   6.39,
+   6.59,
+   6.98,
+   7.55,
+   8.25,
+   9.07,
+   9.95,
+   10.85,
+   11.73,
+   12.52,
    13.2,
-   14.33,
-   15.34,
-   16.19,
-   16.86,
-   17.33,
-   17.61,
-   17.71,
-   17.71,
-   17.7,
-   17.62,
-   17.49,
-   17.34,
-   17.23,
-   17.16
+   13.7,
+   14.02,
+   14.12,
+   14.12,
+   14.06,
+   13.81,
+   13.43,
+   12.95,
+   12.44,
+   11.94,
+   11.51,
+   11.2,
+   11.03
   ],
   "local_cone_deg": [
-   22.71,
-   22.58,
-   22.33,
-   21.93,
-   21.39,
-   20.67,
-   19.77,
-   18.67,
-   17.35,
-   15.81,
-   14.05,
-   12.07,
-   9.91,
-   7.59,
-   5.17,
-   2.71,
-   0.28,
+   19.4,
+   19.22,
+   18.86,
+   18.3,
+   17.53,
+   16.55,
+   15.32,
+   13.85,
+   12.12,
+   10.13,
+   7.89,
+   5.43,
+   2.77,
    -0.0,
-   -0.8,
-   -2.7,
-   -4.27,
-   -5.47,
-   -6.3,
-   -6.71
+   -0.0,
+   -2.34,
+   -5.05,
+   -7.58,
+   -9.9,
+   -11.94,
+   -13.67,
+   -15.03,
+   -15.97,
+   -16.45
   ]
  },
  "shank": {
-  "r_start_mm": 18.5,
+  "r_start_mm": 14.0,
   "r_end_mm": 30.0,
-  "length_perpendicular_mm": 11.5,
-  "length_along_axis_mm": 11.76,
+  "length_perpendicular_mm": 16.0,
+  "length_along_axis_mm": 16.36,
   "lug_section": "stadium (rounded slot)",
   "lug_chord_mm": 22.0,
   "lug_thickness_mm": 8.0,
@@ -416,8 +416,8 @@
     "power_W": 5.139,
     "torque_Nm": 0.1318,
     "thrust_N": 10.306,
-    "flap_moment_hinge_per_blade_Nm": 0.1815,
-    "edge_moment_hinge_per_blade_Nm": 0.0316,
+    "flap_moment_hinge_per_blade_Nm": 0.1977,
+    "edge_moment_hinge_per_blade_Nm": 0.0349,
     "unconverged_elements": 0
    },
    {
@@ -429,8 +429,8 @@
     "power_W": 18.309,
     "torque_Nm": 0.3097,
     "thrust_N": 23.817,
-    "flap_moment_hinge_per_blade_Nm": 0.4181,
-    "edge_moment_hinge_per_blade_Nm": 0.0744,
+    "flap_moment_hinge_per_blade_Nm": 0.4555,
+    "edge_moment_hinge_per_blade_Nm": 0.082,
     "unconverged_elements": 0
    },
    {
@@ -442,8 +442,8 @@
     "power_W": 44.377,
     "torque_Nm": 0.5453,
     "thrust_N": 42.908,
-    "flap_moment_hinge_per_blade_Nm": 0.7541,
-    "edge_moment_hinge_per_blade_Nm": 0.1309,
+    "flap_moment_hinge_per_blade_Nm": 0.8214,
+    "edge_moment_hinge_per_blade_Nm": 0.1443,
     "unconverged_elements": 0
    },
    {
@@ -455,8 +455,8 @@
     "power_W": 87.852,
     "torque_Nm": 0.8421,
     "thrust_N": 67.577,
-    "flap_moment_hinge_per_blade_Nm": 1.189,
-    "edge_moment_hinge_per_blade_Nm": 0.2022,
+    "flap_moment_hinge_per_blade_Nm": 1.2949,
+    "edge_moment_hinge_per_blade_Nm": 0.2228,
     "unconverged_elements": 0
    }
   ],
@@ -470,8 +470,8 @@
     "power_W": 5.124,
     "torque_Nm": 0.1242,
     "thrust_N": 10.474,
-    "flap_moment_hinge_per_blade_Nm": 0.1847,
-    "edge_moment_hinge_per_blade_Nm": 0.0298,
+    "flap_moment_hinge_per_blade_Nm": 0.2011,
+    "edge_moment_hinge_per_blade_Nm": 0.0328,
     "unconverged_elements": 0
    },
    {
@@ -483,8 +483,8 @@
     "power_W": 18.286,
     "torque_Nm": 0.2956,
     "thrust_N": 24.056,
-    "flap_moment_hinge_per_blade_Nm": 0.4233,
-    "edge_moment_hinge_per_blade_Nm": 0.0709,
+    "flap_moment_hinge_per_blade_Nm": 0.461,
+    "edge_moment_hinge_per_blade_Nm": 0.0782,
     "unconverged_elements": 0
    },
    {
@@ -496,8 +496,8 @@
     "power_W": 44.373,
     "torque_Nm": 0.538,
     "thrust_N": 43.024,
-    "flap_moment_hinge_per_blade_Nm": 0.7567,
-    "edge_moment_hinge_per_blade_Nm": 0.1292,
+    "flap_moment_hinge_per_blade_Nm": 0.8242,
+    "edge_moment_hinge_per_blade_Nm": 0.1424,
     "unconverged_elements": 0
    },
    {
@@ -509,8 +509,8 @@
     "power_W": 87.846,
     "torque_Nm": 0.8521,
     "thrust_N": 67.42,
-    "flap_moment_hinge_per_blade_Nm": 1.1855,
-    "edge_moment_hinge_per_blade_Nm": 0.2047,
+    "flap_moment_hinge_per_blade_Nm": 1.2912,
+    "edge_moment_hinge_per_blade_Nm": 0.2255,
     "unconverged_elements": 0
    }
   ],
@@ -524,8 +524,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 10.067,
-    "flap_moment_hinge_per_blade_Nm": 0.1889,
-    "edge_moment_hinge_per_blade_Nm": -0.0007,
+    "flap_moment_hinge_per_blade_Nm": 0.2047,
+    "edge_moment_hinge_per_blade_Nm": -0.0005,
     "unconverged_elements": 0
    },
    {
@@ -537,8 +537,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 22.383,
-    "flap_moment_hinge_per_blade_Nm": 0.4251,
-    "edge_moment_hinge_per_blade_Nm": -0.0014,
+    "flap_moment_hinge_per_blade_Nm": 0.4602,
+    "edge_moment_hinge_per_blade_Nm": -0.001,
     "unconverged_elements": 0
    },
    {
@@ -550,8 +550,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 38.958,
-    "flap_moment_hinge_per_blade_Nm": 0.745,
-    "edge_moment_hinge_per_blade_Nm": -0.0023,
+    "flap_moment_hinge_per_blade_Nm": 0.8061,
+    "edge_moment_hinge_per_blade_Nm": -0.0017,
     "unconverged_elements": 0
    },
    {
@@ -563,8 +563,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 59.878,
-    "flap_moment_hinge_per_blade_Nm": 1.1503,
-    "edge_moment_hinge_per_blade_Nm": -0.0034,
+    "flap_moment_hinge_per_blade_Nm": 1.2442,
+    "edge_moment_hinge_per_blade_Nm": -0.0026,
     "unconverged_elements": 0
    }
   ],
@@ -572,25 +572,25 @@
    {
     "flow_m_s": 1.0,
     "max_thrust_N": 10.9098,
-    "max_flap_moment_hinge_per_blade_Nm": 0.1969,
+    "max_flap_moment_hinge_per_blade_Nm": 0.2138,
     "max_torque_Nm": 0.1576
    },
    {
     "flow_m_s": 1.5,
     "max_thrust_N": 25.0393,
-    "max_flap_moment_hinge_per_blade_Nm": 0.454,
+    "max_flap_moment_hinge_per_blade_Nm": 0.4931,
     "max_torque_Nm": 0.4017
    },
    {
     "flow_m_s": 2.0,
     "max_thrust_N": 44.8635,
-    "max_flap_moment_hinge_per_blade_Nm": 0.811,
+    "max_flap_moment_hinge_per_blade_Nm": 0.8813,
     "max_torque_Nm": 0.7418
    },
    {
     "flow_m_s": 2.5,
     "max_thrust_N": 70.3315,
-    "max_flap_moment_hinge_per_blade_Nm": 1.269,
+    "max_flap_moment_hinge_per_blade_Nm": 1.379,
     "max_torque_Nm": 1.1826
    }
   ],
@@ -604,8 +604,8 @@
     "power_W": 5.139,
     "torque_Nm": 0.1318,
     "thrust_N": 10.306,
-    "flap_moment_hinge_per_blade_Nm": 0.1815,
-    "edge_moment_hinge_per_blade_Nm": 0.0316,
+    "flap_moment_hinge_per_blade_Nm": 0.1977,
+    "edge_moment_hinge_per_blade_Nm": 0.0349,
     "unconverged_elements": 0
    },
    {
@@ -617,8 +617,8 @@
     "power_W": 6.961,
     "torque_Nm": 0.1632,
     "thrust_N": 12.559,
-    "flap_moment_hinge_per_blade_Nm": 0.2208,
-    "edge_moment_hinge_per_blade_Nm": 0.0392,
+    "flap_moment_hinge_per_blade_Nm": 0.2405,
+    "edge_moment_hinge_per_blade_Nm": 0.0432,
     "unconverged_elements": 0
    },
    {
@@ -630,8 +630,8 @@
     "power_W": 9.152,
     "torque_Nm": 0.1964,
     "thrust_N": 15.043,
-    "flap_moment_hinge_per_blade_Nm": 0.2642,
-    "edge_moment_hinge_per_blade_Nm": 0.0472,
+    "flap_moment_hinge_per_blade_Nm": 0.2878,
+    "edge_moment_hinge_per_blade_Nm": 0.052,
     "unconverged_elements": 0
    },
    {
@@ -643,8 +643,8 @@
     "power_W": 11.748,
     "torque_Nm": 0.2317,
     "thrust_N": 17.75,
-    "flap_moment_hinge_per_blade_Nm": 0.3116,
-    "edge_moment_hinge_per_blade_Nm": 0.0556,
+    "flap_moment_hinge_per_blade_Nm": 0.3395,
+    "edge_moment_hinge_per_blade_Nm": 0.0613,
     "unconverged_elements": 0
    },
    {
@@ -656,8 +656,8 @@
     "power_W": 14.789,
     "torque_Nm": 0.2695,
     "thrust_N": 20.674,
-    "flap_moment_hinge_per_blade_Nm": 0.3629,
-    "edge_moment_hinge_per_blade_Nm": 0.0647,
+    "flap_moment_hinge_per_blade_Nm": 0.3953,
+    "edge_moment_hinge_per_blade_Nm": 0.0713,
     "unconverged_elements": 0
    },
    {
@@ -669,8 +669,8 @@
     "power_W": 18.309,
     "torque_Nm": 0.3097,
     "thrust_N": 23.817,
-    "flap_moment_hinge_per_blade_Nm": 0.4181,
-    "edge_moment_hinge_per_blade_Nm": 0.0744,
+    "flap_moment_hinge_per_blade_Nm": 0.4555,
+    "edge_moment_hinge_per_blade_Nm": 0.082,
     "unconverged_elements": 0
    },
    {
@@ -682,8 +682,8 @@
     "power_W": 22.345,
     "torque_Nm": 0.3524,
     "thrust_N": 27.184,
-    "flap_moment_hinge_per_blade_Nm": 0.4773,
-    "edge_moment_hinge_per_blade_Nm": 0.0846,
+    "flap_moment_hinge_per_blade_Nm": 0.5199,
+    "edge_moment_hinge_per_blade_Nm": 0.0932,
     "unconverged_elements": 0
    },
    {
@@ -695,8 +695,8 @@
     "power_W": 26.935,
     "torque_Nm": 0.3972,
     "thrust_N": 30.776,
-    "flap_moment_hinge_per_blade_Nm": 0.5405,
-    "edge_moment_hinge_per_blade_Nm": 0.0954,
+    "flap_moment_hinge_per_blade_Nm": 0.5887,
+    "edge_moment_hinge_per_blade_Nm": 0.1051,
     "unconverged_elements": 0
    },
    {
@@ -708,8 +708,8 @@
     "power_W": 32.112,
     "torque_Nm": 0.4441,
     "thrust_N": 34.599,
-    "flap_moment_hinge_per_blade_Nm": 0.6078,
-    "edge_moment_hinge_per_blade_Nm": 0.1066,
+    "flap_moment_hinge_per_blade_Nm": 0.662,
+    "edge_moment_hinge_per_blade_Nm": 0.1175,
     "unconverged_elements": 0
    },
    {
@@ -721,8 +721,8 @@
     "power_W": 37.915,
     "torque_Nm": 0.4934,
     "thrust_N": 38.643,
-    "flap_moment_hinge_per_blade_Nm": 0.679,
-    "edge_moment_hinge_per_blade_Nm": 0.1185,
+    "flap_moment_hinge_per_blade_Nm": 0.7396,
+    "edge_moment_hinge_per_blade_Nm": 0.1306,
     "unconverged_elements": 0
    },
    {
@@ -734,8 +734,8 @@
     "power_W": 44.377,
     "torque_Nm": 0.5453,
     "thrust_N": 42.908,
-    "flap_moment_hinge_per_blade_Nm": 0.7541,
-    "edge_moment_hinge_per_blade_Nm": 0.1309,
+    "flap_moment_hinge_per_blade_Nm": 0.8214,
+    "edge_moment_hinge_per_blade_Nm": 0.1443,
     "unconverged_elements": 0
    },
    {
@@ -747,8 +747,8 @@
     "power_W": 51.536,
     "torque_Nm": 0.5997,
     "thrust_N": 47.396,
-    "flap_moment_hinge_per_blade_Nm": 0.8332,
-    "edge_moment_hinge_per_blade_Nm": 0.144,
+    "flap_moment_hinge_per_blade_Nm": 0.9075,
+    "edge_moment_hinge_per_blade_Nm": 0.1587,
     "unconverged_elements": 0
    },
    {
@@ -760,8 +760,8 @@
     "power_W": 59.428,
     "torque_Nm": 0.6566,
     "thrust_N": 52.107,
-    "flap_moment_hinge_per_blade_Nm": 0.9162,
-    "edge_moment_hinge_per_blade_Nm": 0.1577,
+    "flap_moment_hinge_per_blade_Nm": 0.9979,
+    "edge_moment_hinge_per_blade_Nm": 0.1737,
     "unconverged_elements": 0
    },
    {
@@ -773,8 +773,8 @@
     "power_W": 68.087,
     "torque_Nm": 0.7159,
     "thrust_N": 57.041,
-    "flap_moment_hinge_per_blade_Nm": 1.0032,
-    "edge_moment_hinge_per_blade_Nm": 0.1719,
+    "flap_moment_hinge_per_blade_Nm": 1.0926,
+    "edge_moment_hinge_per_blade_Nm": 0.1894,
     "unconverged_elements": 0
    },
    {
@@ -786,8 +786,8 @@
     "power_W": 77.55,
     "torque_Nm": 0.7777,
     "thrust_N": 62.198,
-    "flap_moment_hinge_per_blade_Nm": 1.0941,
-    "edge_moment_hinge_per_blade_Nm": 0.1868,
+    "flap_moment_hinge_per_blade_Nm": 1.1916,
+    "edge_moment_hinge_per_blade_Nm": 0.2058,
     "unconverged_elements": 0
    },
    {
@@ -799,8 +799,8 @@
     "power_W": 87.852,
     "torque_Nm": 0.8421,
     "thrust_N": 67.577,
-    "flap_moment_hinge_per_blade_Nm": 1.189,
-    "edge_moment_hinge_per_blade_Nm": 0.2022,
+    "flap_moment_hinge_per_blade_Nm": 1.2949,
+    "edge_moment_hinge_per_blade_Nm": 0.2228,
     "unconverged_elements": 0
    }
   ],
@@ -814,8 +814,8 @@
     "power_W": 5.124,
     "torque_Nm": 0.1242,
     "thrust_N": 10.474,
-    "flap_moment_hinge_per_blade_Nm": 0.1847,
-    "edge_moment_hinge_per_blade_Nm": 0.0298,
+    "flap_moment_hinge_per_blade_Nm": 0.2011,
+    "edge_moment_hinge_per_blade_Nm": 0.0328,
     "unconverged_elements": 0
    },
    {
@@ -827,8 +827,8 @@
     "power_W": 6.938,
     "torque_Nm": 0.153,
     "thrust_N": 12.766,
-    "flap_moment_hinge_per_blade_Nm": 0.2249,
-    "edge_moment_hinge_per_blade_Nm": 0.0367,
+    "flap_moment_hinge_per_blade_Nm": 0.2449,
+    "edge_moment_hinge_per_blade_Nm": 0.0404,
     "unconverged_elements": 0
    },
    {
@@ -840,8 +840,8 @@
     "power_W": 9.126,
     "torque_Nm": 0.1844,
     "thrust_N": 15.268,
-    "flap_moment_hinge_per_blade_Nm": 0.2688,
-    "edge_moment_hinge_per_blade_Nm": 0.0442,
+    "flap_moment_hinge_per_blade_Nm": 0.2928,
+    "edge_moment_hinge_per_blade_Nm": 0.0488,
     "unconverged_elements": 0
    },
    {
@@ -853,8 +853,8 @@
     "power_W": 11.722,
     "torque_Nm": 0.2187,
     "thrust_N": 17.983,
-    "flap_moment_hinge_per_blade_Nm": 0.3165,
-    "edge_moment_hinge_per_blade_Nm": 0.0524,
+    "flap_moment_hinge_per_blade_Nm": 0.3447,
+    "edge_moment_hinge_per_blade_Nm": 0.0578,
     "unconverged_elements": 0
    },
    {
@@ -866,8 +866,8 @@
     "power_W": 14.763,
     "torque_Nm": 0.2557,
     "thrust_N": 20.912,
-    "flap_moment_hinge_per_blade_Nm": 0.368,
-    "edge_moment_hinge_per_blade_Nm": 0.0613,
+    "flap_moment_hinge_per_blade_Nm": 0.4008,
+    "edge_moment_hinge_per_blade_Nm": 0.0676,
     "unconverged_elements": 0
    },
    {
@@ -879,8 +879,8 @@
     "power_W": 18.286,
     "torque_Nm": 0.2956,
     "thrust_N": 24.056,
-    "flap_moment_hinge_per_blade_Nm": 0.4233,
-    "edge_moment_hinge_per_blade_Nm": 0.0709,
+    "flap_moment_hinge_per_blade_Nm": 0.461,
+    "edge_moment_hinge_per_blade_Nm": 0.0782,
     "unconverged_elements": 0
    },
    {
@@ -892,8 +892,8 @@
     "power_W": 22.326,
     "torque_Nm": 0.3384,
     "thrust_N": 27.416,
-    "flap_moment_hinge_per_blade_Nm": 0.4823,
-    "edge_moment_hinge_per_blade_Nm": 0.0812,
+    "flap_moment_hinge_per_blade_Nm": 0.5253,
+    "edge_moment_hinge_per_blade_Nm": 0.0895,
     "unconverged_elements": 0
    },
    {
@@ -905,8 +905,8 @@
     "power_W": 26.919,
     "torque_Nm": 0.384,
     "thrust_N": 30.992,
-    "flap_moment_hinge_per_blade_Nm": 0.5452,
-    "edge_moment_hinge_per_blade_Nm": 0.0922,
+    "flap_moment_hinge_per_blade_Nm": 0.5938,
+    "edge_moment_hinge_per_blade_Nm": 0.1016,
     "unconverged_elements": 0
    },
    {
@@ -918,8 +918,8 @@
     "power_W": 32.101,
     "torque_Nm": 0.4325,
     "thrust_N": 34.786,
-    "flap_moment_hinge_per_blade_Nm": 0.6119,
-    "edge_moment_hinge_per_blade_Nm": 0.1038,
+    "flap_moment_hinge_per_blade_Nm": 0.6664,
+    "edge_moment_hinge_per_blade_Nm": 0.1144,
     "unconverged_elements": 0
    },
    {
@@ -931,8 +931,8 @@
     "power_W": 37.907,
     "torque_Nm": 0.4838,
     "thrust_N": 38.796,
-    "flap_moment_hinge_per_blade_Nm": 0.6824,
-    "edge_moment_hinge_per_blade_Nm": 0.1161,
+    "flap_moment_hinge_per_blade_Nm": 0.7432,
+    "edge_moment_hinge_per_blade_Nm": 0.128,
     "unconverged_elements": 0
    },
    {
@@ -944,8 +944,8 @@
     "power_W": 44.373,
     "torque_Nm": 0.538,
     "thrust_N": 43.024,
-    "flap_moment_hinge_per_blade_Nm": 0.7567,
-    "edge_moment_hinge_per_blade_Nm": 0.1292,
+    "flap_moment_hinge_per_blade_Nm": 0.8242,
+    "edge_moment_hinge_per_blade_Nm": 0.1424,
     "unconverged_elements": 0
    },
    {
@@ -957,8 +957,8 @@
     "power_W": 51.535,
     "torque_Nm": 0.5951,
     "thrust_N": 47.469,
-    "flap_moment_hinge_per_blade_Nm": 0.8348,
-    "edge_moment_hinge_per_blade_Nm": 0.1429,
+    "flap_moment_hinge_per_blade_Nm": 0.9092,
+    "edge_moment_hinge_per_blade_Nm": 0.1575,
     "unconverged_elements": 0
    },
    {
@@ -970,8 +970,8 @@
     "power_W": 59.427,
     "torque_Nm": 0.6551,
     "thrust_N": 52.131,
-    "flap_moment_hinge_per_blade_Nm": 0.9168,
-    "edge_moment_hinge_per_blade_Nm": 0.1573,
+    "flap_moment_hinge_per_blade_Nm": 0.9985,
+    "edge_moment_hinge_per_blade_Nm": 0.1733,
     "unconverged_elements": 0
    },
    {
@@ -983,8 +983,8 @@
     "power_W": 68.086,
     "torque_Nm": 0.7179,
     "thrust_N": 57.01,
-    "flap_moment_hinge_per_blade_Nm": 1.0025,
-    "edge_moment_hinge_per_blade_Nm": 0.1724,
+    "flap_moment_hinge_per_blade_Nm": 1.0919,
+    "edge_moment_hinge_per_blade_Nm": 0.19,
     "unconverged_elements": 0
    },
    {
@@ -996,8 +996,8 @@
     "power_W": 77.548,
     "torque_Nm": 0.7836,
     "thrust_N": 62.106,
-    "flap_moment_hinge_per_blade_Nm": 1.0921,
-    "edge_moment_hinge_per_blade_Nm": 0.1882,
+    "flap_moment_hinge_per_blade_Nm": 1.1895,
+    "edge_moment_hinge_per_blade_Nm": 0.2074,
     "unconverged_elements": 0
    },
    {
@@ -1009,8 +1009,8 @@
     "power_W": 87.846,
     "torque_Nm": 0.8521,
     "thrust_N": 67.42,
-    "flap_moment_hinge_per_blade_Nm": 1.1855,
-    "edge_moment_hinge_per_blade_Nm": 0.2047,
+    "flap_moment_hinge_per_blade_Nm": 1.2912,
+    "edge_moment_hinge_per_blade_Nm": 0.2255,
     "unconverged_elements": 0
    }
   ],
@@ -1024,8 +1024,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 10.067,
-    "flap_moment_hinge_per_blade_Nm": 0.1889,
-    "edge_moment_hinge_per_blade_Nm": -0.0007,
+    "flap_moment_hinge_per_blade_Nm": 0.2047,
+    "edge_moment_hinge_per_blade_Nm": -0.0005,
     "unconverged_elements": 0
    },
    {
@@ -1037,8 +1037,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 12.182,
-    "flap_moment_hinge_per_blade_Nm": 0.2292,
-    "edge_moment_hinge_per_blade_Nm": -0.0008,
+    "flap_moment_hinge_per_blade_Nm": 0.2483,
+    "edge_moment_hinge_per_blade_Nm": -0.0006,
     "unconverged_elements": 1
    },
    {
@@ -1050,8 +1050,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 14.474,
-    "flap_moment_hinge_per_blade_Nm": 0.2731,
-    "edge_moment_hinge_per_blade_Nm": -0.0009,
+    "flap_moment_hinge_per_blade_Nm": 0.2958,
+    "edge_moment_hinge_per_blade_Nm": -0.0007,
     "unconverged_elements": 0
    },
    {
@@ -1063,8 +1063,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 16.941,
-    "flap_moment_hinge_per_blade_Nm": 0.3204,
-    "edge_moment_hinge_per_blade_Nm": -0.0011,
+    "flap_moment_hinge_per_blade_Nm": 0.347,
+    "edge_moment_hinge_per_blade_Nm": -0.0008,
     "unconverged_elements": 0
    },
    {
@@ -1076,8 +1076,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 19.577,
-    "flap_moment_hinge_per_blade_Nm": 0.3711,
-    "edge_moment_hinge_per_blade_Nm": -0.0012,
+    "flap_moment_hinge_per_blade_Nm": 0.4018,
+    "edge_moment_hinge_per_blade_Nm": -0.0009,
     "unconverged_elements": 0
    },
    {
@@ -1089,8 +1089,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 22.383,
-    "flap_moment_hinge_per_blade_Nm": 0.4251,
-    "edge_moment_hinge_per_blade_Nm": -0.0014,
+    "flap_moment_hinge_per_blade_Nm": 0.4602,
+    "edge_moment_hinge_per_blade_Nm": -0.001,
     "unconverged_elements": 0
    },
    {
@@ -1102,8 +1102,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 25.357,
-    "flap_moment_hinge_per_blade_Nm": 0.4824,
-    "edge_moment_hinge_per_blade_Nm": -0.0015,
+    "flap_moment_hinge_per_blade_Nm": 0.5221,
+    "edge_moment_hinge_per_blade_Nm": -0.0012,
     "unconverged_elements": 0
    },
    {
@@ -1115,8 +1115,8 @@
     "power_W": 0.0,
     "torque_Nm": 0.0,
     "thrust_N": 28.5,
-    "flap_moment_hinge_per_blade_Nm": 0.543,
-    "edge_moment_hinge_per_blade_Nm": -0.0017,
+    "flap_moment_hinge_per_blade_Nm": 0.5877,
+    "edge_moment_hinge_per_blade_Nm": -0.0013,
     "unconverged_elements": 0
    },
    {
@@ -1128,8 +1128,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 31.814,
-    "flap_moment_hinge_per_blade_Nm": 0.6069,
-    "edge_moment_hinge_per_blade_Nm": -0.0019,
+    "flap_moment_hinge_per_blade_Nm": 0.6568,
+    "edge_moment_hinge_per_blade_Nm": -0.0014,
     "unconverged_elements": 0
    },
    {
@@ -1141,8 +1141,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 35.3,
-    "flap_moment_hinge_per_blade_Nm": 0.6743,
-    "edge_moment_hinge_per_blade_Nm": -0.0021,
+    "flap_moment_hinge_per_blade_Nm": 0.7296,
+    "edge_moment_hinge_per_blade_Nm": -0.0016,
     "unconverged_elements": 0
    },
    {
@@ -1154,8 +1154,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 38.958,
-    "flap_moment_hinge_per_blade_Nm": 0.745,
-    "edge_moment_hinge_per_blade_Nm": -0.0023,
+    "flap_moment_hinge_per_blade_Nm": 0.8061,
+    "edge_moment_hinge_per_blade_Nm": -0.0017,
     "unconverged_elements": 0
    },
    {
@@ -1167,8 +1167,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 42.791,
-    "flap_moment_hinge_per_blade_Nm": 0.8191,
-    "edge_moment_hinge_per_blade_Nm": -0.0025,
+    "flap_moment_hinge_per_blade_Nm": 0.8862,
+    "edge_moment_hinge_per_blade_Nm": -0.0019,
     "unconverged_elements": 0
    },
    {
@@ -1180,8 +1180,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 46.799,
-    "flap_moment_hinge_per_blade_Nm": 0.8967,
-    "edge_moment_hinge_per_blade_Nm": -0.0027,
+    "flap_moment_hinge_per_blade_Nm": 0.9701,
+    "edge_moment_hinge_per_blade_Nm": -0.0021,
     "unconverged_elements": 0
    },
    {
@@ -1193,8 +1193,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 50.983,
-    "flap_moment_hinge_per_blade_Nm": 0.9778,
-    "edge_moment_hinge_per_blade_Nm": -0.0029,
+    "flap_moment_hinge_per_blade_Nm": 1.0577,
+    "edge_moment_hinge_per_blade_Nm": -0.0022,
     "unconverged_elements": 0
    },
    {
@@ -1206,8 +1206,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 55.343,
-    "flap_moment_hinge_per_blade_Nm": 1.0623,
-    "edge_moment_hinge_per_blade_Nm": -0.0032,
+    "flap_moment_hinge_per_blade_Nm": 1.1491,
+    "edge_moment_hinge_per_blade_Nm": -0.0024,
     "unconverged_elements": 0
    },
    {
@@ -1219,8 +1219,8 @@
     "power_W": -0.0,
     "torque_Nm": -0.0,
     "thrust_N": 59.878,
-    "flap_moment_hinge_per_blade_Nm": 1.1503,
-    "edge_moment_hinge_per_blade_Nm": -0.0034,
+    "flap_moment_hinge_per_blade_Nm": 1.2442,
+    "edge_moment_hinge_per_blade_Nm": -0.0026,
     "unconverged_elements": 0
    }
   ]
@@ -2244,8 +2244,8 @@
    "power_W": 18.309,
    "torque_Nm": 0.3097,
    "thrust_N": 23.817,
-   "flap_moment_hinge_per_blade_Nm": 0.4181,
-   "edge_moment_hinge_per_blade_Nm": 0.0744,
+   "flap_moment_hinge_per_blade_Nm": 0.4555,
+   "edge_moment_hinge_per_blade_Nm": 0.082,
    "unconverged_elements": 0,
    "copper_loss_index": 1.0,
    "label": "Cp peak (MPPT)"
@@ -2259,8 +2259,8 @@
    "power_W": 18.286,
    "torque_Nm": 0.2956,
    "thrust_N": 24.056,
-   "flap_moment_hinge_per_blade_Nm": 0.4233,
-   "edge_moment_hinge_per_blade_Nm": 0.0709,
+   "flap_moment_hinge_per_blade_Nm": 0.461,
+   "edge_moment_hinge_per_blade_Nm": 0.0782,
    "unconverged_elements": 0,
    "copper_loss_index": 0.911,
    "label": "held at TSR 4"
@@ -2274,8 +2274,8 @@
    "power_W": 18.011,
    "torque_Nm": 0.2588,
    "thrust_N": 24.549,
-   "flap_moment_hinge_per_blade_Nm": 0.4347,
-   "edge_moment_hinge_per_blade_Nm": 0.062,
+   "flap_moment_hinge_per_blade_Nm": 0.4732,
+   "edge_moment_hinge_per_blade_Nm": 0.0683,
    "unconverged_elements": 0,
    "copper_loss_index": 0.698,
    "label": "held at TSR 4.5"
@@ -2289,8 +2289,8 @@
    "power_W": 17.434,
    "torque_Nm": 0.2255,
    "thrust_N": 24.901,
-   "flap_moment_hinge_per_blade_Nm": 0.4437,
-   "edge_moment_hinge_per_blade_Nm": 0.0538,
+   "flap_moment_hinge_per_blade_Nm": 0.4827,
+   "edge_moment_hinge_per_blade_Nm": 0.0594,
    "unconverged_elements": 0,
    "copper_loss_index": 0.53,
    "label": "held at TSR 5"
@@ -2304,8 +2304,8 @@
    "power_W": 16.427,
    "torque_Nm": 0.1931,
    "thrust_N": 24.94,
-   "flap_moment_hinge_per_blade_Nm": 0.448,
-   "edge_moment_hinge_per_blade_Nm": 0.0459,
+   "flap_moment_hinge_per_blade_Nm": 0.4871,
+   "edge_moment_hinge_per_blade_Nm": 0.0508,
    "unconverged_elements": 0,
    "copper_loss_index": 0.389,
    "label": "held at TSR 5.5"
@@ -7616,14 +7616,14 @@
   {
    "case": "hull-following curved axis (estimate)",
    "cp_peak": 0.3668,
-   "tsr_peak": 3.822,
-   "delta_cp_pct": -0.0589
+   "tsr_peak": 3.8256,
+   "delta_cp_pct": -0.0792
   },
   {
-   "case": "hub-loss radius 19.8 mm (hub surface)",
-   "cp_peak": 0.3839,
-   "tsr_peak": 3.7725,
-   "delta_cp_pct": 4.5903
+   "case": "hub-loss radius 23.4 mm (hub surface)",
+   "cp_peak": 0.3809,
+   "tsr_peak": 3.7911,
+   "delta_cp_pct": 3.7699
   },
   {
    "case": "no hub loss",
@@ -7705,7 +7705,7 @@
  },
  "structure_estimates": {
   "assumptions": "solid PLA 1240 kg/m^3, straight pitch axis at the nominal cone, hinge moments applied to the 22 x 8 mm stadium lug (upper bound)",
-  "blade_mass_g": 5.841954829221864,
+  "blade_mass_g": 6.547215298203328,
   "blade_mass_aero_g": 4.039622519602564,
   "lug_section": {
    "area_mm2": 162.2654824574367,
@@ -7716,41 +7716,41 @@
    {
     "case": "mppt_1p5_m_s",
     "rpm": 564.4461454117784,
-    "flap_moment_hinge_Nm": 0.418124294447313,
-    "edge_moment_hinge_Nm": 0.07436882953966295,
-    "centrifugal_relief_Nm": 0.0072883680713454425,
-    "centrifugal_relief_pct": 1.74311040236956,
-    "flap_stress_lug_thin_depth_MPa": 2.0948235228289778,
-    "flap_stress_lug_wide_depth_MPa": 0.8085988354260221,
-    "edge_stress_lug_thin_depth_MPa": 0.3725915369038074,
-    "edge_stress_lug_wide_depth_MPa": 0.14381979176133533
+    "flap_moment_hinge_Nm": 0.4554640473595111,
+    "edge_moment_hinge_Nm": 0.08195491437198361,
+    "centrifugal_relief_Nm": 0.008043818350014855,
+    "centrifugal_relief_pct": 1.766070976764854,
+    "flap_stress_lug_thin_depth_MPa": 2.2818975431044266,
+    "flap_stress_lug_wide_depth_MPa": 0.8808091353795526,
+    "edge_stress_lug_thin_depth_MPa": 0.4105981994296653,
+    "edge_stress_lug_wide_depth_MPa": 0.15849030826161595
    },
    {
     "case": "mppt_2p5_m_s",
     "rpm": 996.2439790480219,
-    "flap_moment_hinge_Nm": 1.1889888390922476,
-    "edge_moment_hinge_Nm": 0.20223655140788355,
-    "centrifugal_relief_Nm": 0.02270474836897918,
-    "centrifugal_relief_pct": 1.9095846506274594,
-    "flap_stress_lug_thin_depth_MPa": 5.956893253007113,
-    "flap_stress_lug_wide_depth_MPa": 2.299352138567675,
-    "edge_stress_lug_thin_depth_MPa": 1.0132151867067114,
-    "edge_stress_lug_wide_depth_MPa": 0.3910995895733472
+    "flap_moment_hinge_Nm": 1.2949335660893517,
+    "edge_moment_hinge_Nm": 0.22284680194881368,
+    "centrifugal_relief_Nm": 0.025058129580597634,
+    "centrifugal_relief_pct": 1.9350899719336332,
+    "flap_stress_lug_thin_depth_MPa": 6.48768160752401,
+    "flap_stress_lug_wide_depth_MPa": 2.504235672021818,
+    "edge_stress_lug_thin_depth_MPa": 1.1164735675707285,
+    "edge_stress_lug_wide_depth_MPa": 0.43095717452249105
    },
    {
     "case": "runaway_2p5_m_s",
     "rpm": 2236.130512698328,
-    "flap_moment_hinge_Nm": 1.1503087153469032,
-    "edge_moment_hinge_Nm": -0.0034101448753389215,
-    "centrifugal_relief_Nm": 0.1143877636037913,
-    "centrifugal_relief_pct": 9.94409257946854,
-    "flap_stress_lug_thin_depth_MPa": 5.763103908155033,
-    "flap_stress_lug_wide_depth_MPa": 2.2245497330868784,
-    "edge_stress_lug_thin_depth_MPa": -0.0170849955287992,
-    "edge_stress_lug_wide_depth_MPa": -0.0065947834446642714
+    "flap_moment_hinge_Nm": 1.2441838758544206,
+    "edge_moment_hinge_Nm": -0.002580650176069299,
+    "centrifugal_relief_Nm": 0.1262442268126949,
+    "centrifugal_relief_pct": 10.146749950926585,
+    "flap_stress_lug_thin_depth_MPa": 6.233423133926003,
+    "flap_stress_lug_wide_depth_MPa": 2.4060922707242707,
+    "edge_stress_lug_thin_depth_MPa": -0.012929185806264863,
+    "edge_stress_lug_wide_depth_MPa": -0.004990646931362502
    }
   ],
-  "max_flap_moment_2p5_m_s_Nm": 1.2689722272780095,
+  "max_flap_moment_2p5_m_s_Nm": 1.379003861766845,
   "max_thrust_2p5_m_s_N": 70.33152764119173,
   "status": "provisional: hinge from params.py, see provisional",
   "max_flap_moment_2p5_m_s_layout_axis_Nm": 1.3432
@@ -8295,11 +8295,11 @@
     "cp_peak_nominal_axis": 0.3477,
     "thrust_mppt_N": 10.3081,
     "flap_moment_hinge_mppt_Nm": 0.1937,
-    "flap_moment_hinge_mppt_nominal_axis_Nm": 0.1815,
+    "flap_moment_hinge_mppt_nominal_axis_Nm": 0.1977,
     "edge_moment_hinge_mppt_Nm": 0.0364,
-    "edge_moment_hinge_mppt_nominal_axis_Nm": 0.0316,
+    "edge_moment_hinge_mppt_nominal_axis_Nm": 0.0349,
     "max_flap_moment_hinge_Nm": 0.208,
-    "max_flap_moment_hinge_nominal_axis_Nm": 0.1969,
+    "max_flap_moment_hinge_nominal_axis_Nm": 0.2138,
     "max_thrust_N": 10.9003,
     "runaway_tsr": 8.0531
    },
@@ -8310,11 +8310,11 @@
     "cp_peak_nominal_axis": 0.367,
     "thrust_mppt_N": 23.8105,
     "flap_moment_hinge_mppt_Nm": 0.4461,
-    "flap_moment_hinge_mppt_nominal_axis_Nm": 0.4181,
+    "flap_moment_hinge_mppt_nominal_axis_Nm": 0.4555,
     "edge_moment_hinge_mppt_Nm": 0.0858,
-    "edge_moment_hinge_mppt_nominal_axis_Nm": 0.0744,
+    "edge_moment_hinge_mppt_nominal_axis_Nm": 0.082,
     "max_flap_moment_hinge_Nm": 0.4799,
-    "max_flap_moment_hinge_nominal_axis_Nm": 0.454,
+    "max_flap_moment_hinge_nominal_axis_Nm": 0.4931,
     "max_thrust_N": 25.0109,
     "runaway_tsr": 8.5995
    },
@@ -8325,11 +8325,11 @@
     "cp_peak_nominal_axis": 0.3753,
     "thrust_mppt_N": 42.8929,
     "flap_moment_hinge_mppt_Nm": 0.8043,
-    "flap_moment_hinge_mppt_nominal_axis_Nm": 0.7541,
+    "flap_moment_hinge_mppt_nominal_axis_Nm": 0.8214,
     "edge_moment_hinge_mppt_Nm": 0.151,
-    "edge_moment_hinge_mppt_nominal_axis_Nm": 0.1309,
+    "edge_moment_hinge_mppt_nominal_axis_Nm": 0.1443,
     "max_flap_moment_hinge_Nm": 0.8583,
-    "max_flap_moment_hinge_nominal_axis_Nm": 0.811,
+    "max_flap_moment_hinge_nominal_axis_Nm": 0.8813,
     "max_thrust_N": 44.8233,
     "runaway_tsr": 8.8927
    },
@@ -8340,11 +8340,11 @@
     "cp_peak_nominal_axis": 0.3804,
     "thrust_mppt_N": 67.5576,
     "flap_moment_hinge_mppt_Nm": 1.2677,
-    "flap_moment_hinge_mppt_nominal_axis_Nm": 1.189,
+    "flap_moment_hinge_mppt_nominal_axis_Nm": 1.2949,
     "edge_moment_hinge_mppt_Nm": 0.2332,
-    "edge_moment_hinge_mppt_nominal_axis_Nm": 0.2022,
+    "edge_moment_hinge_mppt_nominal_axis_Nm": 0.2228,
     "max_flap_moment_hinge_Nm": 1.3432,
-    "max_flap_moment_hinge_nominal_axis_Nm": 1.269,
+    "max_flap_moment_hinge_nominal_axis_Nm": 1.379,
     "max_thrust_N": 70.2714,
     "runaway_tsr": 9.0728
    }
@@ -8364,7 +8364,7 @@
    "performance.envelope_up_to_runaway.max_flap_moment_hinge_per_blade_Nm",
    "structure_estimates"
   ],
-  "status": "PROVISIONAL: computed with the params.py hinge (x 124 mm, r 18.5 mm) and a straight 12 deg pitch axis, as the BEM brief specified. The rotor layout study (data/layout_rotor.json) moved the hinge to (x 116, r 14) mm with a curved axis; layout_axis_check gives the loads on that geometry. Do not size the hinge, stop or lug from these fields; re-run this study once the layout hinge and axis are promoted to params.py.",
+  "status": "PROVISIONAL: computed with the params.py hinge (x 116 mm, r 14 mm) and a straight 12 deg pitch axis, as the BEM brief specified. The rotor layout study (data/layout_rotor.json) moved the hinge to (x 116, r 14) mm with a curved axis; layout_axis_check gives the loads on that geometry. Do not size the hinge, stop or lug from these fields; re-run this study once the layout hinge and axis are promoted to params.py.",
   "not_affected": "chord, twist, sections, Cp, power, torque, thrust and rpm do not depend on the hinge position (layout_axis_check compares the Cp peak on both axes)"
  }
 }
