@@ -153,19 +153,27 @@ EYE_W = 5.0                       # mm, ring width in its plane
 EYE_T = 6.0                       # mm, ring thickness
 EYE_STANDOFF = 1.0                # mm, ring outer edge ahead of the nose tip... see nose()
 
-# Cable gland (M12x1.5, threaded boss). Hummel HSK-K M12 / Lapp Skintop ST M12 (data/
+# Cable gland (M12x1.5, tapped seat). Hummel HSK-K M12 / Lapp Skintop ST M12 (data/
 # hardware.json): thread length 8, hex SW 15 (across corners 17.3), height 21, cable 3-6.5 mm.
-# The boss sits on the nose beside the tow eye; its place and axis come from gland_place().
+# The seat sits on the nose beside the tow eye; its place, axis and lift come from gland_place().
+# No boss stands inside the nose cavity: the front shell prints nose-up (down = +X), so a boss
+# hanging aft of the plug bridge would be an unsupported overhang (the round-3 boss at x 6 was
+# 70.7 deg). The M12 thread is tapped through a raised D18 seat block outside the hull, the shell
+# wall and the infilled nose plug, and must keep GLAND_ENGAGE_MIN of the gland thread in solid
+# material on every generatrix.
 GLAND_THETA = 180.0               # deg, bottom of the nose
 GLAND_SEAT_D = 18.0               # mm, flat seat (spot face) for the hex and washer: 17.3 across corners + 0.7
 GLAND_SEAT_T = P.HULL_WALL        # mm, depth of the seat region (the shell wall under the spot face)
-GLAND_BOSS_D = 12.0 + 2 * T_MIN   # mm, thread boss inside the shell: M12 + 2 x T_MIN wall
+GLAND_BOSS_D = 12.0 + 2 * T_MIN   # mm, the round-3 thread boss (record only: no boss in the cavity now)
+GLAND_THREAD_R = 6.0              # mm, M12 major radius of the tapped bore
 GLAND_ENGAGE = 8.0                # mm, thread length of the gland (fallback; hardware.json wins)
+GLAND_ENGAGE_MIN = 0.75           # min fraction of the gland thread in solid material on every generatrix
 GLAND_HOLE = 12.5                 # mm, clearance hole when not threaded (hardware.json)
-GLAND_CLEAR = 1.0                 # mm, boss to the carrier plate and to the carrier ring
+GLAND_CLEAR = 1.0                 # mm, seat block and bore (cable exit) to the carrier plate and its ring
 GLAND_TOW_CLEAR = 2.0             # mm, gland body outside the hull to the tow eye and the shackle envelope
 GLAND_X_SEARCH = (3.0, 12.0, 0.25)       # mm, seat centre x on the surface (from, to, step)
 GLAND_TILT_SEARCH = (-10.0, 30.0, 2.5)   # deg, outward axis turned from the surface normal toward -X
+GLAND_LIFT_SEARCH = (0.0, 6.0, 0.5)      # mm, spot face lifted along the axis on the raised seat block
 CARRIER_RING_OVER = 1.2           # mm, the shell's carrier ring runs this far ahead of / behind the plate
 CABLE_CLEAR = 1.0                 # mm, cable notch in the carrier: cable OD + this, both ways
 # Tow eye orientation and shackle envelope. The eye ring lies in the XZ plane (hole axis Y), so a
@@ -1116,40 +1124,144 @@ def _cyl_samples(S, A, u, v, R, t0, t1, nt=25, nphi=73, nr=9):
     return P_.reshape(-1, 3)
 
 
-def gland_geom(x_s: float, tilt_deg: float, hw: dict, theta_deg: float = GLAND_THETA) -> dict:
-    """Gland on the nose: seat centre on the hull at x_s (azimuth theta), outward axis turned by
-    tilt from the surface normal toward -X. Returns the axis, the boss samples (seat D18 over the
-    shell wall, thread boss D16 to the thread length), the seat rim height above / below the hull
-    and the external gland body samples (hex across corners as a cylinder, height - thread)."""
+def _gland_axes(x_s: float, tilt_deg: float, lift: float = 0.0, theta_deg: float = GLAND_THETA) -> dict:
+    """Seat frame: hull point S0 at x_s (azimuth theta), outward axis A = surface normal turned by
+    tilt toward -X (meridian plane), spot face centre S = S0 + lift A; u, v span the spot face.
+    Also the seat rim height above the hull (cheap: used to order the placement search)."""
     r_s = float(r_out(x_s))
     sl = float(slope(x_s))
     a = math.atan2(1.0, -sl) + math.radians(tilt_deg)        # outward axis angle from +X, meridian plane
     t = math.radians(theta_deg)
     er = np.array([0.0, math.sin(t), math.cos(t)])
     A = math.cos(a) * np.array([1.0, 0.0, 0.0]) + math.sin(a) * er
-    S = np.array([x_s, 0.0, 0.0]) + r_s * er
+    S0 = np.array([x_s, 0.0, 0.0]) + r_s * er
+    S = S0 + lift * A
     u = np.array([0.0, math.cos(t), -math.sin(t)])
     v = np.cross(A, u)
     v /= np.linalg.norm(v)
-    L = hw["gland"]["thread_L"]
-    boss = np.vstack([_cyl_samples(S, A, u, v, GLAND_SEAT_D / 2, -GLAND_SEAT_T, 0.0, nt=7),
-                      _cyl_samples(S, A, u, v, GLAND_BOSS_D / 2, -L, -GLAND_SEAT_T)])
     ph = np.linspace(0.0, 2 * math.pi, 181)
     rim = S + (GLAND_SEAT_D / 2) * (np.cos(ph)[:, None] * u + np.sin(ph)[:, None] * v)
     rr = np.hypot(rim[:, 1], rim[:, 2])
     hr = np.where(rim[:, 0] < 0, 0.0, r_out(np.clip(rim[:, 0], 0.0, P.HULL_L)))
+    return dict(x_s=x_s, r_s=r_s, tilt_deg=tilt_deg, lift=lift, a=a, axis_angle_from_x_deg=math.degrees(a),
+                S0=S0, S=S, A=A, u=u, v=v, seat_raise_mm=float((rr - hr).max()),
+                seat_recess_mm=float((hr - rr).max()), rim_x_min_mm=float(rim[:, 0].min()))
+
+
+def _in_nose_cavity(p, x45: float) -> np.ndarray:
+    """True where a point lies in the open nose cavity: inside the hull's inner wall and aft of the
+    nose plug's bridge face (forward of x45 the cavity is filled)."""
+    x = p[..., 0]
+    r = np.hypot(p[..., 1], p[..., 2])
+    return (x > x45) & (x <= P.HULL_L) & (r < np.asarray(r_in(np.clip(x, 0.0, P.HULL_L))))
+
+
+def _outside_hull(p) -> np.ndarray:
+    x = p[..., 0]
+    r = np.hypot(p[..., 1], p[..., 2])
+    return (x < 0.0) | (r > np.asarray(r_out(np.clip(x, 0.0, P.HULL_L))))
+
+
+def gland_geom(x_s: float, tilt_deg: float, hw: dict, theta_deg: float = GLAND_THETA, lift: float = 0.0,
+               x45: float | None = None) -> dict:
+    """Gland on the nose (theta GLAND_THETA): spot face D18 centred on S = hull point + lift A, the
+    M12 bore tapped from S inward along -A for the gland's thread length. Solid around the bore =
+    the raised seat block (D18 cylinder from the spot face down to the hull), the shell wall and the
+    infilled nose plug (x <= x45); no boss stands in the open cavity. Returns the frame, the bore
+    and seat-block samples (for the carrier check), the gland body samples (hex across corners as a
+    cylinder, height - thread, outside), the thread engagement in solid material per generatrix and
+    the overhang of the printed surfaces (the front shell prints nose-up, so down = +X)."""
+    g = _gland_axes(x_s, tilt_deg, lift, theta_deg)
+    S, A, u, v = g["S"], g["A"], g["u"], g["v"]
+    x45 = nose_plug()["x_45_mm"] if x45 is None else x45
+    L = hw["gland"]["thread_L"]
+    bore = _cyl_samples(S, A, u, v, GLAND_THREAD_R, -L, 0.0)
+    blk = _cyl_samples(S, A, u, v, GLAND_SEAT_D / 2, -(lift + GLAND_SEAT_T), 0.0, nt=max(7, int(4 * lift) + 7))
+    blk = blk[_outside_hull(blk)]
     r_body = hw["gland"]["SW"] / math.sqrt(3.0)              # hex across corners / 2
     body = _cyl_samples(S, A, u, v, r_body, 0.0, hw["gland"]["height"] - L, nr=2)
-    return dict(x_s=x_s, r_s=r_s, tilt_deg=tilt_deg, axis_angle_from_x_deg=math.degrees(a), S=S, A=A,
-                inner_end=S - L * A, boss=boss, body=body, r_body=r_body,
-                seat_raise_mm=float((rr - hr).max()), seat_recess_mm=float((hr - rr).max()))
+    eng = _gland_engagement(g, L, x45)
+    # overhang (deg from vertical, down = +X) of the printed surfaces: the seat block's exposed side
+    # (normal = radial from the gland axis) and the bore ceiling inside the solid (= the bore axis
+    # angle from the build direction)
+    ph = np.linspace(0.0, 2 * math.pi, 145)
+    nn = np.cos(ph)[:, None] * u + np.sin(ph)[:, None] * v
+    tb = np.linspace(-(lift + GLAND_SEAT_T), 0.0, 25)
+    side = (S[None, None, :] + tb[:, None, None] * A[None, None, :] + (GLAND_SEAT_D / 2) * nn[None, :, :])
+    exp_ = _outside_hull(side)
+    nx = np.broadcast_to(nn[None, :, 0], exp_.shape)
+    oh_block = float(np.degrees(np.arcsin(np.clip(nx[exp_].max(), -1.0, 1.0)))) if exp_.any() else 0.0
+    oh_bore = 180.0 - g["axis_angle_from_x_deg"]
+    g.update(inner_end=S - L * A, bore=bore, block=blk, occupied=np.vstack([bore, blk]) if blk.size else bore,
+             body=body, r_body=r_body, engage_min_mm=float(eng.min()), engage_mean_mm=float(eng.mean()),
+             engage_frac_min=float(eng.min() / L), overhang_block_deg=oh_block, overhang_bore_deg=oh_bore,
+             overhang_max_deg=max(oh_block, oh_bore),
+             bore_exits_into_cavity=bool(_in_nose_cavity(bore, x45).any()))
+    return g
+
+
+def _cavity_boss_overhang(g: dict, hw: dict, x45: float) -> float:
+    """Record only: overhang (deg from vertical, down = +X) of a D16 thread boss that would stand
+    in the nose cavity behind the seat g (the round-3 design): exposed side and inner end face."""
+    S, A, u, v = g["S"], g["A"], g["u"], g["v"]
+    L = hw["gland"]["thread_L"]
+    R = GLAND_BOSS_D / 2
+    ph = np.linspace(0.0, 2 * math.pi, 145)
+    nn = np.cos(ph)[:, None] * u + np.sin(ph)[:, None] * v
+    pts, nrm = [], []
+    for t_ in np.linspace(-L, -GLAND_SEAT_T, 41):
+        pts.append(S + t_ * A + R * nn)
+        nrm.append(nn)
+    for rr in np.linspace(0.0, R, 17):
+        pts.append(S - L * A + rr * nn)
+        nrm.append(np.repeat(-A[None, :], len(ph), 0))
+    p_, n_ = np.vstack(pts), np.vstack(nrm)
+    ex = _in_nose_cavity(p_, x45)
+    return float(np.degrees(np.arcsin(np.clip(n_[ex, 0].max(), -1.0, 1.0)))) if ex.any() else 0.0
+
+
+def _gland_engagement(g: dict, L: float, x45: float) -> np.ndarray:
+    """Thread engagement per bore generatrix (72 around the M12 major diameter): the length from the
+    spot face inward that stays in solid material (seat block, shell wall, nose plug), i.e. before
+    the generatrix first enters the open nose cavity."""
+    S, A, u, v = g["S"], g["A"], g["u"], g["v"]
+    tt = np.linspace(0.0, L, 161)
+    ph = np.linspace(0.0, 2 * math.pi, 73)[:-1]
+    n = np.cos(ph)[:, None] * u + np.sin(ph)[:, None] * v                       # (72, 3)
+    pts = S[None, None, :] - tt[None, :, None] * A[None, None, :] + GLAND_THREAD_R * n[:, None, :]
+    cav = _in_nose_cavity(pts, x45)                                              # (72, 161)
+    k = np.where(cav.any(axis=1), np.argmax(cav, axis=1), len(tt))
+    return np.where(k > 0, tt[np.maximum(k - 1, 0)], 0.0)
+
+
+def _seat_block_volume(g: dict, step: float = 0.25) -> dict:
+    """Volume of the raised seat block outside the hull (D18 cylinder on the gland axis from the
+    spot face down to the hull), with and without the M12 bore, and its centroid (grid count)."""
+    S, A, u, v = g["S"], g["A"], g["u"], g["v"]
+    R = GLAND_SEAT_D / 2
+    q = np.arange(-R + step / 2, R, step)
+    qa, qb = np.meshgrid(q, q, indexing="ij")
+    rr = np.hypot(qa, qb)
+    m = rr <= R
+    qa, qb, rr = qa[m], qb[m], rr[m]
+    tt = np.arange(-(g["lift"] + 25.0) + step / 2, 0.0, step)
+    pts = (S[None, None, :] + tt[:, None, None] * A[None, None, :]
+           + qa[None, :, None] * u[None, None, :] + qb[None, :, None] * v[None, None, :])
+    out = _outside_hull(pts)
+    dv = step ** 3
+    keep = out & (rr[None, :] >= GLAND_THREAD_R)
+    V_full, V_net = float(out.sum() * dv), float(keep.sum() * dv)
+    pc = pts[keep]
+    return dict(V_disp_mm3=V_full, V_print_mm3=V_net,
+                x_c=float(pc[:, 0].mean()) if pc.size else float(S[0]),
+                r_c=float(np.hypot(pc[:, 1], pc[:, 2]).mean()) if pc.size else float(g["r_s"]))
 
 
 def _gland_clearances(g: dict, car_front: float, r_carrier: float, eye_c: float) -> dict:
-    """Clearances of a gland placement: boss to the carrier plate front face and to the carrier
-    ring (inward ring on the shell, from car_front - CARRIER_RING_OVER), external body to the eye
-    ring (XZ plane) and to the shackle envelope."""
-    B = g["boss"]
+    """Clearances of a gland placement: seat block and bore (the cable exit) to the carrier plate
+    front face and to the carrier ring (inward ring on the shell, from car_front -
+    CARRIER_RING_OVER), external body to the eye ring (XZ plane) and to the shackle envelope."""
+    B = g["occupied"]
     xb, rb = B[:, 0], np.hypot(B[:, 1], B[:, 2])
     near_plate = rb <= r_carrier + GLAND_CLEAR
     c_plate = float((car_front - xb[near_plate]).min()) if near_plate.any() else math.inf
@@ -1175,34 +1287,66 @@ def _gland_clearances(g: dict, car_front: float, r_carrier: float, eye_c: float)
 
 
 def gland_place(hw: dict, bay: dict, eye_c: float) -> dict:
-    """Gland position and axis on the nose (theta GLAND_THETA): among seat positions x and axis
-    tilts (GLAND_X_SEARCH, GLAND_TILT_SEARCH) whose whole boss volume stays GLAND_CLEAR ahead of
-    the motor carrier and its ring, and whose external body stays GLAND_TOW_CLEAR from the eye and
-    the shackle envelope, take the one with the lowest seat rim above the hull (smallest raised
-    spot face), ties to the larger carrier clearance."""
+    """Gland seat position x, axis tilt and seat lift on the nose (theta GLAND_THETA). Feasible:
+    thread engagement in solid material >= GLAND_ENGAGE_MIN of the gland thread on every bore
+    generatrix (no boss in the cavity), printed surfaces <= MAX_OVERHANG (seat block side, bore
+    ceiling), seat block and bore >= GLAND_CLEAR ahead of the carrier plate and its ring, gland body
+    >= GLAND_TOW_CLEAR from the eye ring and the shackle envelope. Objective: the lowest seat rim
+    above the hull (the smallest chin), then the larger engagement. Candidates are evaluated in
+    order of rim height, so the search stops at the first feasible height."""
     car_front = bay["pick"]["x_fwd_mm"] - CARRIER_T
     r_car = bay["pick"]["r_carrier_mm"]
-    best, n_ok, n_all = None, 0, 0
+    x45 = nose_plug()["x_45_mm"]
+    L = hw["gland"]["thread_L"]
+    cand = []
     for tilt in np.arange(GLAND_TILT_SEARCH[0], GLAND_TILT_SEARCH[1] + 1e-9, GLAND_TILT_SEARCH[2]):
         for xs in np.arange(GLAND_X_SEARCH[0], GLAND_X_SEARCH[1] + 1e-9, GLAND_X_SEARCH[2]):
-            g = gland_geom(float(xs), float(tilt), hw)
-            c = _gland_clearances(g, car_front, r_car, eye_c)
-            n_all += 1
-            if not c["ok"]:
-                continue
-            n_ok += 1
-            key = (round(g["seat_raise_mm"], 3), -min(c["boss_to_carrier_plate_mm"], c["boss_to_carrier_ring_mm"]))
-            if best is None or key < best[0]:
-                best = (key, g, c)
+            for lift in np.arange(GLAND_LIFT_SEARCH[0], GLAND_LIFT_SEARCH[1] + 1e-9, GLAND_LIFT_SEARCH[2]):
+                a = _gland_axes(float(xs), float(tilt), float(lift))
+                cand.append((round(a["seat_raise_mm"], 2), float(lift), float(xs), float(tilt), a))
+    cand.sort(key=lambda c_: c_[:4])
+    best, n_eval, reasons = None, 0, dict(bore_overhang=0, engagement=0, overhang=0, carrier=0, tow=0)
+    for raise_, lift, xs, tilt, a in cand:
+        if best is not None and raise_ > best[0]:
+            break
+        n_eval += 1
+        if 180.0 - a["axis_angle_from_x_deg"] > P.MAX_OVERHANG + 1e-6:      # bore ceiling (cheap)
+            reasons["bore_overhang"] += 1
+            continue
+        if _gland_engagement(a, L, x45).min() < GLAND_ENGAGE_MIN * L - 1e-9:  # cheap, before the samples
+            reasons["engagement"] += 1
+            continue
+        g = gland_geom(xs, tilt, hw, lift=lift, x45=x45)
+        if g["overhang_max_deg"] > P.MAX_OVERHANG + 1e-6:
+            reasons["overhang"] += 1
+            continue
+        c = _gland_clearances(g, car_front, r_car, eye_c)
+        if min(c["boss_to_carrier_plate_mm"], c["boss_to_carrier_ring_mm"]) < GLAND_CLEAR:
+            reasons["carrier"] += 1
+            continue
+        if min(c["body_to_eye_ring_mm"], c["body_to_shackle_envelope_mm"]) < GLAND_TOW_CLEAR:
+            reasons["tow"] += 1
+            continue
+        key = (raise_, -round(g["engage_min_mm"], 2), lift)
+        if best is None or key < best[1]:
+            best = (raise_, key, g, c)
     if best is None:
-        raise ValueError("no gland placement clears the carrier and the tow eye")
-    _, g, c = best
-    # the original placement (x 12 on the surface normal) for the record
-    g12 = gland_geom(12.0, 0.0, hw)
+        raise ValueError("no gland placement meets the engagement, overhang, carrier and tow-eye rules")
+    _, _, g, c = best
+    # the earlier placements, for the record: the merge's x 12 on the surface normal (its boss ran
+    # through the carrier) and round 3's x 6, tilt 17.5 (cleared the carrier, but its D16 boss hung
+    # in the nose cavity)
+    g12 = gland_geom(12.0, 0.0, hw, x45=x45)
+    g12["occupied"] = _cyl_samples(g12["S"], g12["A"], g12["u"], g12["v"], GLAND_BOSS_D / 2, -L, 0.0)
     c12 = _gland_clearances(g12, car_front, r_car, eye_c)
-    return dict(g=g, c=c, n_feasible=n_ok, n_searched=n_all, car_front=car_front, r_carrier=r_car,
+    g6 = gland_geom(6.0, 17.5, hw, x45=x45)
+    return dict(g=g, c=c, n_candidates=len(cand), n_evaluated=n_eval, rejected=reasons, car_front=car_front,
+                r_carrier=r_car, x45=x45,
                 previous_x12=dict(boss_x_max_mm=c12["boss_x_max_mm"],
-                                  boss_to_carrier_plate_mm=c12["boss_to_carrier_plate_mm"]))
+                                  boss_to_carrier_plate_mm=c12["boss_to_carrier_plate_mm"]),
+                previous_round3=dict(seat_x_mm=6.0, tilt_deg=17.5, seat_raise_mm=g6["seat_raise_mm"],
+                                     cavity_boss_overhang_deg=_cavity_boss_overhang(g6, hw, x45),
+                                     engage_min_without_boss_mm=g6["engage_min_mm"]))
 
 
 def cable_notch(hw: dict, bay: dict) -> dict:
@@ -1284,38 +1428,60 @@ def nose(ri: dict, fins: dict, bay: dict, hw: dict) -> dict:
                       "the Prusament interlayer adhesion; use a stainless shackle or a thimble, not "
                       "a bare rope, to keep the bearing stress low. v2 pull test >= design load"),
         nose_plug=cone,
-        gland=dict(part=hw["gland"]["name"], thread="M12x1.5", thread_engagement_mm=hw["gland"]["thread_L"],
+        gland=dict(part=hw["gland"]["name"], thread="M12x1.5", thread_length_mm=hw["gland"]["thread_L"],
                    hex_SW_mm=hw["gland"]["SW"], height_mm=hw["gland"]["height"], cable_mm=hw["gland"]["clamp_mm"],
                    theta_deg=GLAND_THETA, seat_x_mm=g["x_s"], seat_surface_r_mm=g["r_s"],
-                   seat_d_mm=GLAND_SEAT_D, boss_d_mm=GLAND_BOSS_D,
-                   boss_model="seat D%g over the %.1f mm shell wall + thread boss D%g (M12 + 2 x %.1f) to the "
-                              "%.0f mm thread length, all along the gland axis" % (GLAND_SEAT_D, GLAND_SEAT_T,
-                                                                                 GLAND_BOSS_D, T_MIN,
-                                                                                 hw["gland"]["thread_L"]),
+                   seat_lift_mm=g["lift"], seat_d_mm=GLAND_SEAT_D,
+                   spot_face_centre_x_mm=float(g["S"][0]), spot_face_centre_r_mm=float(np.hypot(g["S"][1], g["S"][2])),
+                   seat_model="raised D%g seat block outside the hull: a cylinder on the gland axis from the hull up "
+                              "to the spot face, whose centre stands %.1f mm off the hull along the axis; the M12x1.5 "
+                              "bore is tapped through the block, the %.1f mm shell wall and the infilled nose plug; "
+                              "no boss stands in the open nose cavity" % (GLAND_SEAT_D, g["lift"], P.HULL_WALL),
                    axis_tilt_from_normal_deg=g["tilt_deg"], axis_angle_from_x_deg=g["axis_angle_from_x_deg"],
-                   axis="outer surface normal turned %g deg toward -X (points forward-down)" % g["tilt_deg"],
+                   axis="outer surface normal turned %g deg toward -X (points forward-down, %.1f deg from the "
+                        "hull axis)" % (g["tilt_deg"], 180.0 - g["axis_angle_from_x_deg"]),
                    inner_end_x_mm=float(g["inner_end"][0]),
                    inner_end_r_mm=float(np.hypot(g["inner_end"][1], g["inner_end"][2])),
-                   seat_raise_mm=g["seat_raise_mm"],
-                   seat_note="the D%g spot face is flat on a curved nose: its rim stands up to %.1f mm proud of "
-                             "the hull (a raised boss, prints nose-up without support: its flank leans %.0f deg "
-                             "from vertical)" % (GLAND_SEAT_D, g["seat_raise_mm"], 180.0 - g["axis_angle_from_x_deg"]),
-                   carrier_front_x_mm=gp["car_front"], boss_x_max_mm=c["boss_x_max_mm"],
-                   boss_to_carrier_plate_mm=c["boss_to_carrier_plate_mm"],
-                   boss_to_carrier_ring_mm=c["boss_to_carrier_ring_mm"],
+                   thread_engagement_min_mm=g["engage_min_mm"], thread_engagement_mean_mm=g["engage_mean_mm"],
+                   thread_engagement_rule="every generatrix of the M12 major diameter keeps >= %.0f %% of the %.0f mm "
+                                          "gland thread in solid material (seat block, wall, plug) before it opens "
+                                          "into the cavity" % (100 * GLAND_ENGAGE_MIN, hw["gland"]["thread_L"]),
+                   seat_raise_mm=g["seat_raise_mm"], seat_rim_x_min_mm=g["rim_x_min_mm"],
+                   seat_block_cc=_seat_block_volume(g)["V_disp_mm3"] / 1000,
+                   overhang_seat_block_deg=g["overhang_block_deg"], overhang_bore_ceiling_deg=g["overhang_bore_deg"],
+                   seat_note="the D%g spot face is flat and lifted on a curved nose: its rim stands up to %.1f mm "
+                             "proud of the hull (a raised seat block); printed nose-up, the block's side and the bore "
+                             "lean %.0f deg from vertical (limit %g)" % (GLAND_SEAT_D, g["seat_raise_mm"],
+                                                                        g["overhang_max_deg"], P.MAX_OVERHANG),
+                   carrier_front_x_mm=gp["car_front"], solid_x_max_mm=c["boss_x_max_mm"],
+                   bore_to_carrier_plate_mm=c["boss_to_carrier_plate_mm"],
+                   bore_to_carrier_ring_mm=c["boss_to_carrier_ring_mm"],
                    body_to_eye_ring_mm=c["body_to_eye_ring_mm"],
                    body_to_shackle_envelope_mm=c["body_to_shackle_envelope_mm"], clear_ok=bool(c["ok"]),
-                   placement_rule="search x %g-%g mm (step %g) and tilt %g to %g deg (step %g): whole boss "
-                                  ">= %.1f mm ahead of the carrier plate and its ring, gland body >= %.1f mm from "
-                                  "the eye ring and the shackle envelope; pick the lowest seat rim (%d of %d "
-                                  "placements feasible)" % (*GLAND_X_SEARCH, *GLAND_TILT_SEARCH, GLAND_CLEAR,
-                                                            GLAND_TOW_CLEAR, gp["n_feasible"], gp["n_searched"]),
-                   previous_x12=dict(gp["previous_x12"], note="the earlier boss at x 12 on the surface normal "
-                                                              "ran through the carrier plate into the bay"),
+                   placement_rule="search seat x %g-%g mm (step %g), tilt %g to %g deg (step %g) and seat lift %g-%g "
+                                  "mm (step %g), in order of the seat rim height above the hull; keep the first "
+                                  "height where: thread engagement >= %.0f %% on every generatrix, seat block and "
+                                  "bore ceiling <= %g deg overhang, block and bore (cable exit) >= %.1f mm ahead of "
+                                  "the carrier plate and its ring, gland body >= %.1f mm from the eye ring and the "
+                                  "shackle envelope; then the larger engagement (%d candidates, %d evaluated; "
+                                  "rejected: %s)"
+                                  % (*GLAND_X_SEARCH, *GLAND_TILT_SEARCH, *GLAND_LIFT_SEARCH,
+                                     100 * GLAND_ENGAGE_MIN, P.MAX_OVERHANG, GLAND_CLEAR, GLAND_TOW_CLEAR,
+                                     gp["n_candidates"], gp["n_evaluated"],
+                                     ", ".join("%s %d" % kv for kv in gp["rejected"].items())),
+                   previous_x12=dict(gp["previous_x12"], note="the merge's boss at x 12 on the surface normal ran "
+                                                              "through the carrier plate into the bay"),
+                   previous_round3=dict(gp["previous_round3"],
+                                        note="round 3 moved the seat to x 6 (tilt 17.5) and cleared the carrier, but "
+                                             "its D16 thread boss hung in the nose cavity aft of the plug bridge: a "
+                                             "%.0f deg overhang printing nose-up; without that boss its thread kept "
+                                             "only %.2f mm" % (gp["previous_round3"]["cavity_boss_overhang_deg"],
+                                                               gp["previous_round3"]["engage_min_without_boss_mm"])),
                    seal="flat NBR washer under the gland head (IP68 with the extra O-ring, hardware.json)",
                    clearance_hole_if_unthreaded_mm=GLAND_HOLE,
-                   thread_form="tapped M12x1.5 in the solid boss (or printed thread), no inner locknut; the "
-                               "bore runs on through the nose plug into the cavity",
+                   thread_form="tapped M12x1.5 through the seat block, the wall and the nose plug (or a printed "
+                               "thread), no inner locknut; the bore opens into the cavity through the plug's bridge "
+                               "face and the wall",
                    cable_route="gland -> nose cavity (slack loop) -> notch in the carrier rim at theta 180 "
                                "-> motor leads behind the carrier", cable_notch=notch),
     )
@@ -1543,7 +1709,10 @@ def pad_footprint(fg: dict, du: float = 0.25, nw: int = 11):
 def fin_pocket_clearance(fg: dict, pk: Pockets, thetas) -> np.ndarray:
     """Arc clearance (mm, at the hull radius) between the yawed rail pads of the fin pair
     (theta, theta + 180) and the nearest stowed-blade pocket edge, for each theta; negative =
-    overlap; inf where no pad point has a pocket at its x."""
+    overlap; inf where no pad point has a pocket at its x. The pad's side walls are planes
+    parallel to the radial line at the fin angle, so a footprint point at lateral offset lat
+    meets the hull of radius R at theta + asin(lat / R) (lat / R would understate the pad's
+    angular extent by up to ~0.3 mm of arc at the far end of a yawed pad)."""
     thetas = np.atleast_1d(np.asarray(thetas, float))
     x, lat = pad_footprint(fg)
     has = pk.depth(x) > 0
@@ -1551,7 +1720,7 @@ def fin_pocket_clearance(fg: dict, pk: Pockets, thetas) -> np.ndarray:
         return np.full(thetas.shape, np.inf)
     x, lat = x[has], lat[has]
     R = np.asarray(r_out(x), float)
-    d = np.degrees(lat / R)
+    d = np.degrees(np.arcsin(np.clip(lat / R, -1.0, 1.0)))
     lo, hi = pk.theta_span(x)
     out = np.full(thetas.shape, np.inf)
     for off in (0.0, 180.0):
@@ -1870,8 +2039,9 @@ def fin_design(ri: dict, x_rotor: float, pk: Pockets, rule: str = FIN_FOLD_RULE,
         clearance=dict(blade_sweep_len_mm=blade_sweep_len(ri), torus_te_limit_x_mm=x_cl,
                        tip_clear_mm=FIN_TIP_CLEAR,
                        stowed_pockets=dict(min_clear_mm=pocket_cl, ok=bool(b["ok_pocket"]), limit_mm=FIN_POCKET_CLEAR,
-                                           model="yawed pad footprint (pad_footprint, 0.25 mm x 11 samples) vs "
-                                                 "each pocket's theta span at the sample x, arc at the hull radius"),
+                                           model="yawed pad footprint (pad_footprint, 0.25 mm x 11 samples; planar "
+                                                 "pad walls meet the hull at theta + asin(lat / R)) vs each pocket's "
+                                                 "theta span at the sample x, arc at the hull radius"),
                        fold_at_index=(dict(rule="blades fold at the stowing index (blade i at psi 120 i), fold 0 to "
                                                 "%.0f deg in %.0f deg steps, rotor surface from hydroegg.layout"
                                                 % (_fold_cloud_near()["fold_deg"], _fold_cloud_near()["fold_step_deg"]),
@@ -2047,10 +2217,9 @@ def mass_buoyancy(J, bay, DT, fins, ri, hw, pk: Pockets, nose_d) -> dict:
     add("nose plug (infill, bridged)", "F", _solid_part(Vp, math.pi * npl["r_inner_at_45_mm"] ** 2),
         0.6 * npl["x_45_mm"])
     gl = nose_d["gland"]
-    add("gland boss (seat + thread boss)", "F", math.pi / 4 * ((GLAND_SEAT_D ** 2 - 12 ** 2) * GLAND_SEAT_T
-                                                              + (GLAND_BOSS_D ** 2 - 12 ** 2)
-                                                              * (gl["thread_engagement_mm"] - GLAND_SEAT_T)),
-        gl["seat_x_mm"], -gl["seat_surface_r_mm"] + 4)
+    sb = _seat_block_volume(gland_geom(gl["seat_x_mm"], gl["axis_tilt_from_normal_deg"], hw, lift=gl["seat_lift_mm"]))
+    add("gland seat block (raised D18 outside the hull, minus the M12 bore)", "F", sb["V_print_mm3"], sb["x_c"],
+        -sb["r_c"], V_disp_mm3=sb["V_disp_mm3"])
     xcar = bay["pick"]["x_fwd_mm"] - CARRIER_T / 2
     add("carrier ring", "F", 2 * math.pi * float(r_in(xcar)) * CARRIER_RING * 7.0, xcar)
     rail = fins["rail"]
@@ -2343,13 +2512,14 @@ def assembly(J, bay, DT, nose_d, fins, hw, ri_rot: dict | None = None) -> list:
                    "helps). OK" % (o["stretch_nom_pct"], *o["stretch_range_pct"], o["spigot_seal_od_mm"],
                                    100 * (o["spigot_seal_od_mm"] / o["id_free_mm"] - 1), o["id_free_mm"]),
              flag=False),
-        dict(step=9, sub="front shell", action="Screw the M12 gland into the nose boss (seat x %.1f, bottom) "
-             "with its washer; pass the cable in and out through the open equator end, leaving ~120 mm "
-             "(ESTIMATE) inside for the slack loop." % nose_d["gland"]["seat_x_mm"],
-             check="the whole boss ends %.2f mm ahead of the carrier plate and %.2f mm ahead of its ring, so "
-                   "the carrier never meets the gland; wrench SW %g on the outside. OK"
-                   % (nose_d["gland"]["boss_to_carrier_plate_mm"], nose_d["gland"]["boss_to_carrier_ring_mm"],
-                      hw["gland"]["SW"]),
+        dict(step=9, sub="front shell", action="Tap the M12x1.5 seat (raised block at x %.1f, bottom) square to "
+             "its spot face, then screw the gland in with its washer; pass the cable in and out through the open "
+             "equator end, leaving ~120 mm (ESTIMATE) inside for the slack loop." % nose_d["gland"]["seat_x_mm"],
+             check="nothing of the gland or its seat stands in the cavity: the bore (cable exit) ends %.2f mm "
+                   "ahead of the carrier plate and %.2f mm ahead of its ring, so the carrier never meets it; "
+                   "thread engagement >= %.2f mm; wrench SW %g on the outside. OK"
+                   % (nose_d["gland"]["bore_to_carrier_plate_mm"], nose_d["gland"]["bore_to_carrier_ring_mm"],
+                      nose_d["gland"]["thread_engagement_min_mm"], hw["gland"]["SW"]),
              flag=not nose_d["gland"]["clear_ok"]),
         dict(step=10, sub="front shell", action="Bench: bolt the motor base to the carrier (%d x %s on "
              "PCD %.2f, heads in counterbores on the carrier front face), fit claw A, lay the cable in the "
@@ -2396,7 +2566,8 @@ def part_split(J, bay, fins, nose_d, ri) -> list:
                       "plug whose aft face bridges %.1f mm; socket ring, lip underside and carrier-slot "
                       "ceilings chamfered 45 deg; eye hole teardrop; rail grooves run near-vertical; the fin "
                       "pads run down to the equator face, so their aft ends stand on the bed (no ledge); the "
-                      "gland seat boss leans %.0f deg from vertical; pocket floors rise <= %.0f deg"
+                      "raised gland seat block and its bore lean %.0f deg from vertical and nothing of the gland "
+                      "stands in the nose cavity; pocket floors rise <= %.0f deg"
                       % (nose_d["nose_plug"]["x_45_mm"], nose_d["nose_plug"]["bridge_d_mm"],
                          180.0 - nose_d["gland"]["axis_angle_from_x_deg"],
                          ri.get("floor_overhang_max_deg") or float("nan"))),
@@ -2568,13 +2739,15 @@ def figures(res: dict) -> list:
         Ro = EYE_HOLE_D / 2 + EYE_W
         ax.add_patch(Wedge((xc, 0.0), Ro, 0, 360, width=EYE_W, fc=COL_WALL, ec=COL_HULL, lw=0.7, zorder=6,
                            label="tow eye (ring in the XZ plane, hole axis Y)"))
-        # gland at theta 180 (bottom): seat D18 + thread boss D16 inside, gland body outside
+        # gland at theta 180 (bottom): raised D18 seat block outside the hull, M12 bore tapped through
+        # block, wall and nose plug (no boss in the cavity), gland body outside
         if -1 in sides:
             gl = nose_d["gland"]
             a_ = math.radians(gl["axis_angle_from_x_deg"])
             n = np.array([math.cos(a_), math.sin(a_)])          # outward axis in (x, r)
             tdir = np.array([math.sin(a_), -math.cos(a_)])
             base = np.array([gl["seat_x_mm"], gl["seat_surface_r_mm"]])
+            lift = gl["seat_lift_mm"]
             Lt = hw["gland"]["thread_L"]
             hgt = hw["gland"]["height"] - Lt
             rb = hw["gland"]["SW"] / math.sqrt(3.0)
@@ -2582,12 +2755,25 @@ def figures(res: dict) -> list:
             def quad(w0, w1, d0, d1):
                 return [(p_[0], -p_[1]) for p_ in (base + tdir * w0 + n * d0, base - tdir * w0 + n * d0,
                                                     base - tdir * w1 + n * d1, base + tdir * w1 + n * d1)]
-            ax.add_patch(Polygon(quad(GLAND_BOSS_D / 2, GLAND_BOSS_D / 2, -GLAND_SEAT_T, -Lt), closed=True,
-                                 fc=COL_WALL, lw=0, zorder=4.6))
-            ax.add_patch(Polygon(quad(GLAND_SEAT_D / 2, GLAND_SEAT_D / 2, 0.0, -GLAND_SEAT_T), closed=True,
-                                 fc=COL_WALL, lw=0, zorder=4.6))
-            ax.add_patch(Polygon(quad(6.0, 6.0, 0.0, -Lt), closed=True, fc="#9A9A9A", lw=0, zorder=5))
-            ax.add_patch(Polygon(quad(rb, rb * 0.8, 0.0, hgt), closed=True, fc="#444", ec="#222", lw=0.5,
+
+            def hull_hit(w):
+                """Distance along the axis (from the hull point) where the block side at w meets the hull."""
+                dd = np.linspace(lift, -15.0, 1201)
+                pts = base[None, :] + tdir[None, :] * w + n[None, :] * dd[:, None]
+                hr_ = np.where(pts[:, 0] < 0, 0.0, r_out(np.clip(pts[:, 0], 0.0, P.HULL_L)))
+                k = int(np.argmax(pts[:, 1] <= hr_))
+                return pts[k]
+            hp, hm = hull_hit(GLAND_SEAT_D / 2), hull_hit(-GLAND_SEAT_D / 2)
+            xh = np.linspace(min(hp[0], hm[0]), max(hp[0], hm[0]), 40)
+            hull_seg = [(x_, -float(r_out(x_))) for x_ in (xh if hp[0] > hm[0] else xh[::-1])]
+            top_p, top_m = base + tdir * GLAND_SEAT_D / 2 + n * lift, base - tdir * GLAND_SEAT_D / 2 + n * lift
+            blk = [(top_m[0], -top_m[1]), (hm[0], -hm[1])] + hull_seg[::-1] + [(hp[0], -hp[1]), (top_p[0], -top_p[1])]
+            ax.add_patch(Polygon(blk, closed=True, fc=COL_WALL, ec=COL_HULL, lw=0.6, zorder=4.6,
+                                 label="raised gland seat block (D%g, spot face lifted %.1f mm)"
+                                       % (GLAND_SEAT_D, lift)))
+            ax.add_patch(Polygon(quad(GLAND_THREAD_R, GLAND_THREAD_R, lift, lift - Lt), closed=True, fc="#9A9A9A",
+                                 lw=0, zorder=5, label="M12 tapped bore (no boss in the cavity)"))
+            ax.add_patch(Polygon(quad(rb, rb * 0.8, lift, lift + hgt), closed=True, fc="#444", ec="#222", lw=0.5,
                                  zorder=6, label="M12 cable gland (theta 180, x %.1f)" % gl["seat_x_mm"]))
         # carrier ring on the shell + carrier plate + adapter spacer
         xcar0 = g["x_fwd_mm"] - CARRIER_T
@@ -3161,9 +3347,13 @@ def summarize(res: dict) -> dict:
                  retention="M3 grub in a heat-set insert", trim_variant_deg=FIN_TRIM_DEG),
         GLAND=dict(thread="M12x1.5", x=gl_["seat_x_mm"], theta_deg=GLAND_THETA,
                    tilt_from_normal_deg=gl_["axis_tilt_from_normal_deg"],
-                   axis_angle_from_x_deg=gl_["axis_angle_from_x_deg"],
-                   seat_d=GLAND_SEAT_D, boss_d=GLAND_BOSS_D, seat_raise=gl_["seat_raise_mm"],
-                   inner_end_x=gl_["inner_end_x_mm"], inner_end_r=gl_["inner_end_r_mm"]),
+                   axis_angle_from_x_deg=gl_["axis_angle_from_x_deg"], seat_lift=gl_["seat_lift_mm"],
+                   spot_face_centre_x=gl_["spot_face_centre_x_mm"], spot_face_centre_r=gl_["spot_face_centre_r_mm"],
+                   seat_d=GLAND_SEAT_D, seat_raise=gl_["seat_raise_mm"], thread_length=gl_["thread_length_mm"],
+                   inner_end_x=gl_["inner_end_x_mm"], inner_end_r=gl_["inner_end_r_mm"],
+                   thread_engagement_min=gl_["thread_engagement_min_mm"],
+                   boss_in_cavity=False, note="seat block = D18 cylinder on the gland axis from the spot face down to "
+                                              "the hull; bore tapped M12x1.5 through block, wall and nose plug"),
         TOW_EYE=dict(hole_d=EYE_HOLE_D, ring_w=EYE_W, ring_t=EYE_T, plane=EYE_PLANE,
                      hole_centre_x=nose_d["eye"]["hole_centre_x_mm"]),
         NOSE_PLUG=dict(x_45=nose_d["nose_plug"]["x_45_mm"], bridge_d=nose_d["nose_plug"]["bridge_d_mm"]),
@@ -3267,18 +3457,27 @@ def summarize(res: dict) -> dict:
              why="seal on the wet side of the lugs, everything prints without supports, lugs in the lands "
                  "between the (asymmetric) pockets so the channel never cuts a pocket floor"),
         dict(topic="nose", decision="printed tow eye (8 mm hole, 5 x 6 ring, ring plane %s) on the axis; M12 "
-             "gland beside it on the bottom, seat at x %.2f, axis tilted %g deg from the surface normal toward the "
-             "nose; tip plug forward of x %.1f; cable to the motor through a %.1f mm notch in the carrier rim"
-             % (EYE_PLANE, nose_d["gland"]["seat_x_mm"], nose_d["gland"]["axis_tilt_from_normal_deg"],
+             "gland beside it on the bottom, tapped in a raised D%g seat block at x %.2f (spot face lifted %.1f mm "
+             "along the axis, axis %.1f deg from the hull axis, tilted %g deg from the surface normal toward the "
+             "nose), no boss inside the cavity; tip plug forward of x %.1f; cable to the motor through a %.1f mm "
+             "notch in the carrier rim"
+             % (EYE_PLANE, GLAND_SEAT_D, nose_d["gland"]["seat_x_mm"], nose_d["gland"]["seat_lift_mm"],
+                180.0 - nose_d["gland"]["axis_angle_from_x_deg"], nose_d["gland"]["axis_tilt_from_normal_deg"],
                 nose_d["nose_plug"]["x_45_mm"], nose_d["gland"]["cable_notch"]["width_mm"]),
-             why="eye legs at %.2f of the PETG interlayer adhesion under 3 x the tow load; the whole gland boss "
-                 "stays %.2f mm ahead of the carrier plate and %.2f mm ahead of its ring, the gland body %.1f mm "
-                 "from the eye and %.1f mm from the shackle envelope (the earlier boss at x 12 reached x %.1f, "
-                 "through the carrier into the bay)"
-                 % (nose_d["eye"]["materials"]["PETG"]["eye_leg_util"], nose_d["gland"]["boss_to_carrier_plate_mm"],
-                    nose_d["gland"]["boss_to_carrier_ring_mm"], nose_d["gland"]["body_to_eye_ring_mm"],
-                    nose_d["gland"]["body_to_shackle_envelope_mm"],
-                    nose_d["gland"]["previous_x12"]["boss_x_max_mm"])),
+             why="eye legs at %.2f of the PETG interlayer adhesion under 3 x the tow load; the thread keeps >= "
+                 "%.2f of %.0f mm in solid material, the seat block and bore lean %.0f deg from vertical "
+                 "(printable nose-up), the bore ends %.2f mm ahead of the carrier plate and %.2f mm ahead of "
+                 "its ring, the gland body %.1f mm from the eye and %.1f mm from the shackle envelope. The "
+                 "merge's boss at x 12 reached x %.1f, through the carrier; round 3's boss at x 6 hung in the "
+                 "cavity (%.0f deg overhang). Cost: the seat rim stands %.1f mm proud of the hull"
+                 % (nose_d["eye"]["materials"]["PETG"]["eye_leg_util"],
+                    nose_d["gland"]["thread_engagement_min_mm"], nose_d["gland"]["thread_length_mm"],
+                    max(nose_d["gland"]["overhang_seat_block_deg"], nose_d["gland"]["overhang_bore_ceiling_deg"]),
+                    nose_d["gland"]["bore_to_carrier_plate_mm"], nose_d["gland"]["bore_to_carrier_ring_mm"],
+                    nose_d["gland"]["body_to_eye_ring_mm"], nose_d["gland"]["body_to_shackle_envelope_mm"],
+                    nose_d["gland"]["previous_x12"]["boss_x_max_mm"],
+                    nose_d["gland"]["previous_round3"]["cavity_boss_overhang_deg"],
+                    nose_d["gland"]["seat_raise_mm"])),
         dict(topic="roll", decision="two identical slide-in Clark Y fins %.0f x %.0f mm at theta %g / %g, incidence "
              "%.2f deg, on raised dovetail pads yawed with the fins (pivot %.2f c), fin x %.1f-%.1f, pads to x %.1f"
              % (fins["chord_mm"], fins["span_mm"], *fins["theta_deg"], fins["incidence_deg"],
@@ -3332,6 +3531,12 @@ def summarize(res: dict) -> dict:
         "O-ring worst-case squeeze %.0f %% is below the 14 %% table minimum (print error + full "
         "eccentricity); fine at < 0.1 bar, verify with a printed test ring." % o["squeeze_worst_pct"][0],
         "Assembly flags: shaft flat passing the lip seal (sleeve), blind claw engagement on closing.",
+        "Gland seat: no boss may hang in the nose cavity (the front shell prints nose-up), so the M12 seat is a "
+        "raised D%g block whose rim stands %.1f mm proud of the nose; the tapped thread keeps %.2f of %.0f mm in "
+        "printed material (block, wall, infilled plug with perimeters around the bore). Tap after printing and "
+        "check the gland's tightening on a test print." % (GLAND_SEAT_D, nose_d["gland"]["seat_raise_mm"],
+                                                           nose_d["gland"]["thread_engagement_min_mm"],
+                                                           nose_d["gland"]["thread_length_mm"]),
         "Lug and lip shear use the interlayer tensile adhesion as a proxy (shear strength across layers "
         "not sourced); utilisation %.2f." % max(JS["util_lug"], JS["util_lip"]),
         "Hull drag C_D 0.10, radial rotor load 10 % of thrust, one blade 20 % off its share, thrust centroid "
@@ -3500,9 +3705,11 @@ def merged(res: dict, summ: dict) -> dict:
     stations = [
         _interval("tow eye (ring, hole centre at x %.1f)" % eye_c, eye_c - ring_R, eye_c + ring_R, "internal"),
         _interval("nose plug (infill, bridged)", 0.0, nose_d["nose_plug"]["x_45_mm"], "internal"),
-        _interval("M12 gland boss (theta 180, seat x %.2f)" % nose_d["gland"]["seat_x_mm"],
+        _interval("M12 gland seat block + tapped bore (theta 180, seat x %.2f)" % nose_d["gland"]["seat_x_mm"],
                   float(np.min(gland_geom(nose_d["gland"]["seat_x_mm"], nose_d["gland"]["axis_tilt_from_normal_deg"],
-                                          hw)["boss"][:, 0])), nose_d["gland"]["boss_x_max_mm"], "internal"),
+                                          hw, lift=nose_d["gland"]["seat_lift_mm"])["occupied"][:, 0])),
+                  nose_d["gland"]["solid_x_max_mm"], "internal",
+                  note="outside the hull and in the wall / nose plug; the bore opens into the cavity up to this x"),
         _interval("fins (theta %g / %g)" % tuple(fins["theta_deg"]), fins["x_le_mm"], fins["x_te_mm"], "internal"),
         _interval("fin rail pads (yawed, to the equator face)", *fins["rail"]["pad_x_mm"], "internal"),
         _interval("motor carrier", g["x_fwd_mm"] - CARRIER_T, g["x_fwd_mm"], "internal", r=g["r_carrier_mm"]),
@@ -3605,12 +3812,22 @@ def merged(res: dict, summ: dict) -> dict:
              limit_mm=P.MIN_WALL, passed=hub["heel"]["hub_wall_over_shaft_bore_mm"] >= P.MIN_WALL - 1e-9),
         dict(check="rotor interference (folding, neighbours, heel, deployed span)", value_mm=None, limit_mm=None,
              passed=bool(rj["interference"]["pass"]), note=rj["interference"]["criteria"]),
-        dict(check="gland boss volume (seat + thread boss) ahead of the carrier plate", value_mm=nose_d["gland"]["boss_to_carrier_plate_mm"],
-             limit_mm=GLAND_CLEAR, passed=nose_d["gland"]["boss_to_carrier_plate_mm"] >= GLAND_CLEAR,
+        dict(check="gland seat block and bore (cable exit) ahead of the carrier plate", value_mm=nose_d["gland"]["bore_to_carrier_plate_mm"],
+             limit_mm=GLAND_CLEAR, passed=nose_d["gland"]["bore_to_carrier_plate_mm"] >= GLAND_CLEAR,
              note="the carrier only moves at x >= %.1f (push in from aft, 30 deg twist in place), so this also "
                   "clears its twist path; the bay starts behind it" % nose_d["gland"]["carrier_front_x_mm"]),
-        dict(check="gland boss volume ahead of the carrier ring on the shell", value_mm=nose_d["gland"]["boss_to_carrier_ring_mm"],
-             limit_mm=GLAND_CLEAR, passed=nose_d["gland"]["boss_to_carrier_ring_mm"] >= GLAND_CLEAR),
+        dict(check="gland seat block and bore ahead of the carrier ring on the shell", value_mm=nose_d["gland"]["bore_to_carrier_ring_mm"],
+             limit_mm=GLAND_CLEAR, passed=nose_d["gland"]["bore_to_carrier_ring_mm"] >= GLAND_CLEAR),
+        dict(check="gland thread engagement in solid material (min over the M12 generatrices)",
+             value_mm=nose_d["gland"]["thread_engagement_min_mm"],
+             limit_mm=GLAND_ENGAGE_MIN * nose_d["gland"]["thread_length_mm"],
+             passed=nose_d["gland"]["thread_engagement_min_mm"] >= GLAND_ENGAGE_MIN * nose_d["gland"]["thread_length_mm"] - 1e-9,
+             note="no boss in the nose cavity; seat block + wall + nose plug"),
+        dict(check="gland seat block and bore printable nose-up (overhang from vertical)", value_mm=None,
+             limit_mm=None, passed=max(nose_d["gland"]["overhang_seat_block_deg"],
+                                       nose_d["gland"]["overhang_bore_ceiling_deg"]) <= P.MAX_OVERHANG + 1e-6,
+             note="max %.1f deg vs MAX_OVERHANG %g" % (max(nose_d["gland"]["overhang_seat_block_deg"],
+                                                          nose_d["gland"]["overhang_bore_ceiling_deg"]), P.MAX_OVERHANG)),
         dict(check="gland body to the tow eye and the shackle envelope", value_mm=min(nose_d["gland"]["body_to_eye_ring_mm"],
                                                                                nose_d["gland"]["body_to_shackle_envelope_mm"]),
              limit_mm=GLAND_TOW_CLEAR, passed=min(nose_d["gland"]["body_to_eye_ring_mm"],
@@ -3698,12 +3915,20 @@ def merged(res: dict, summ: dict) -> dict:
     reasons["SHAFT_reason"] = ("8 x %.1f from claw B (x %.1f) to the hub aft face (x %.1f): hub D-flat under the "
                                "M3 grub at x %.1f, M3 x 8 tapped aft end for the spinner screw"
                                % (st["shaft"][1] - st["shaft"][0], st["shaft"][0], st["shaft"][1], hub["grub"]["x_mm"]))
-    reasons["GLAND_reason"] = ("M12x1.5 beside the eye, bottom, seat x %.2f, axis %.0f deg from the surface normal "
-                               "toward the nose: the whole boss (D%g seat + D%g thread boss) ends %.2f mm ahead of "
-                               "the carrier (the boss at x 12 ran into it)"
-                               % (nose_d["gland"]["seat_x_mm"], nose_d["gland"]["axis_tilt_from_normal_deg"],
-                                  GLAND_SEAT_D, GLAND_BOSS_D, min(nose_d["gland"]["boss_to_carrier_plate_mm"],
-                                                                  nose_d["gland"]["boss_to_carrier_ring_mm"])))
+    reasons["GLAND_reason"] = ("M12x1.5 beside the eye, bottom: hull point x %.2f, spot face lifted %.1f mm along an "
+                               "axis %.1f deg from the hull axis (%g deg from the surface normal toward the nose) on a "
+                               "raised D%g block, tapped through block, wall and nose plug (thread >= %.2f mm in solid); "
+                               "nothing stands in the nose cavity, so it prints nose-up without support (%.0f deg), and "
+                               "the bore ends %.2f mm ahead of the carrier. The x 12 boss ran into the carrier; the "
+                               "x 6 boss hung in the cavity"
+                               % (nose_d["gland"]["seat_x_mm"], nose_d["gland"]["seat_lift_mm"],
+                                  180.0 - nose_d["gland"]["axis_angle_from_x_deg"],
+                                  nose_d["gland"]["axis_tilt_from_normal_deg"], GLAND_SEAT_D,
+                                  nose_d["gland"]["thread_engagement_min_mm"],
+                                  max(nose_d["gland"]["overhang_seat_block_deg"],
+                                      nose_d["gland"]["overhang_bore_ceiling_deg"]),
+                                  min(nose_d["gland"]["bore_to_carrier_plate_mm"],
+                                      nose_d["gland"]["bore_to_carrier_ring_mm"])))
     reasons["TOW_EYE_reason"] = ("legs at %.2f of PETG interlayer adhesion under 3 x the tow load; ring in the XZ "
                                  "plane so the shackle (pin along Y) stays clear of the gland" % (
                                      nose_d["eye"]["materials"]["PETG"]["eye_leg_util"]))
@@ -3747,9 +3972,10 @@ def merged(res: dict, summ: dict) -> dict:
                                                                                  ch["hub_front_x_mm"], st["shaft"][1]),
         "Fins: with the new hinge (116, 14) the any-azimuth fold torus limits the fin TE to x %.0f; fins now follow the stowing-"
         "index rule and sit at theta %g / %g." % (fins["clearance"]["torus_te_limit_x_mm"], *fins["theta_deg"]),
-        "Review fix round: the fin rail pads are modelled yawed with the fins (pivot %.2f c) in the selection, "
-        "the pocket-clearance and the fold-clearance checks, and run to the equator face; the gland moved to "
-        "seat x %.2f with the full boss volume checked; buoyancy counts the hub/spinner slots, the spinner "
+        "Review fix round: the fin rail pads are modelled yawed with the fins (pivot %.2f c, planar pad walls) in "
+        "the selection, the pocket-clearance and the fold-clearance checks, and run to the equator face; the "
+        "gland seat moved to x %.2f on a raised block with no boss in the nose cavity (block, bore and cable "
+        "exit checked against the carrier and its ring, printable nose-up); buoyancy counts the hub/spinner slots, the spinner "
         "access bore and the pads; claw B steps to OD %g at the tube mouth; the bay is the largest envelope "
         "(D%g x L%g, carrier ring included) and candidate fits are tested against it; the pocket floors are "
         "printable (<= 45 deg); the end-view figures say 'seen from aft, looking upstream'."

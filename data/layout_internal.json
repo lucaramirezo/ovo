@@ -52,13 +52,13 @@
   },
   {
    "topic": "nose",
-   "decision": "printed tow eye (8 mm hole, 5 x 6 ring, ring plane XZ) on the axis; M12 gland beside it on the bottom, seat at x 6.00, axis tilted 17.5 deg from the surface normal toward the nose; tip plug forward of x 11.0; cable to the motor through a 7.5 mm notch in the carrier rim",
-   "why": "eye legs at 0.22 of the PETG interlayer adhesion under 3 x the tow load; the whole gland boss stays 2.31 mm ahead of the carrier plate and 1.11 mm ahead of its ring, the gland body 2.0 mm from the eye and 5.0 mm from the shackle envelope (the earlier boss at x 12 reached x 23.3, through the carrier into the bay)"
+   "decision": "printed tow eye (8 mm hole, 5 x 6 ring, ring plane XZ) on the axis; M12 gland beside it on the bottom, tapped in a raised D18 seat block at x 8.75 (spot face lifted 3.0 mm along the axis, axis 33.3 deg from the hull axis, tilted 10 deg from the surface normal toward the nose), no boss inside the cavity; tip plug forward of x 11.0; cable to the motor through a 7.5 mm notch in the carrier rim",
+   "why": "eye legs at 0.21 of the PETG interlayer adhesion under 3 x the tow load; the thread keeps >= 6.05 of 8 mm in solid material, the seat block and bore lean 33 deg from vertical (printable nose-up), the bore ends 2.27 mm ahead of the carrier plate and 1.07 mm ahead of its ring, the gland body 7.1 mm from the eye and 10.0 mm from the shackle envelope. The merge's boss at x 12 reached x 23.3, through the carrier; round 3's boss at x 6 hung in the cavity (71 deg overhang). Cost: the seat rim stands 6.8 mm proud of the hull"
   },
   {
    "topic": "roll",
-   "decision": "two identical slide-in Clark Y fins 40 x 75 mm at theta 96 / 276, incidence 13.50 deg, on raised dovetail pads yawed with the fins (pivot 0.00 c), fin x 16.6-55.5, pads to x 57.5",
-   "why": "balance the generator torque at both speeds (ratio 1.002 at 1.0, 1.048 at 1.5 m/s); blades fold at the stowing index, so the fins only need to clear that sweep"
+   "decision": "two identical slide-in Clark Y fins 40 x 65 mm at theta 93 / 273, incidence 12.00 deg, on raised dovetail pads yawed with the fins (pivot 0.15 c), fin x 16.4-55.5, pads to x 57.5",
+   "why": "sized on the CubeMars GL40 KV70 load line: at 1.5 m/s the couple is 1.110 x its 0.1764 N m (10 % margin, see fins.torque_basis); off design the ratio is 0.894 at 1.0 m/s and 1.180 at 2.5 m/s because the load line's TSR moves with the flow; +-1 deg trim fins change it by +-8 %. Blades fold at the stowing index, so the fins only need to clear that sweep"
   },
   {
    "topic": "part split",
@@ -68,54 +68,58 @@
  ],
  "joint": {
   "x_eq_mm": 57.5,
-  "seal_bore_d_mm": 64.66,
-  "groove_bottom_d_mm": 60.45,
-  "spigot_seal_od_mm": 64.46,
-  "lug_od_mm": 64.16,
-  "spigot_lug_zone_od_mm": 61.16,
-  "lip_d_mm": 61.66,
-  "channel_d_mm": 64.66,
-  "spigot_bore_d_mm": 56.45,
+  "seal_bore_d_mm": 64.09,
+  "groove_bottom_d_mm": 59.88,
+  "spigot_seal_od_mm": 63.89,
+  "lug_od_mm": 63.59,
+  "spigot_lug_zone_od_mm": 60.59,
+  "lip_d_mm": 61.09,
+  "channel_d_mm": 64.09,
+  "spigot_bore_d_mm": 55.88,
   "stations_x_mm": {
-   "spigot_tip": 43.495,
+   "spigot_tip": 43.595,
    "lip": [
-    46.495,
-    49.495
+    46.595,
+    49.595
    ],
    "seal_zone": [
-    49.495,
+    49.595,
     57.5
    ],
    "channel": [
-    43.095,
-    46.495
+    43.195,
+    46.595
    ],
-   "ring_ceiling_start": 41.595,
+   "ring_ceiling_start": 41.695,
    "groove": {
     "x_aft": 56.0,
     "x_fwd_bottom": 53.1,
-    "x_fwd_top": 50.995
+    "x_fwd_top": 51.095
    },
    "root_ring": [
     57.5,
-    64.375
+    64.66
    ]
   },
-  "spigot_length_mm": 14.005,
+  "spigot_length_mm": 13.905,
   "bore_limit_d_mm": 64.9663,
   "oring": {
    "designation": "ISO 3601 / AS568 -141",
    "material": "EPDM 70 (water) or NBR 70",
+   "source": "data/hardware.json oring_equator (recommended, gland_design, performance)",
    "cs_mm": 2.62,
    "id_free_mm": 58.42,
    "id_tol_mm": 0.51,
-   "groove_bottom_d_mm": 60.45,
-   "bore_d_mm": 64.66,
-   "spigot_seal_od_mm": 64.46,
+   "groove_bottom_d_mm": 59.88,
+   "bore_d_mm": 64.09,
+   "spigot_seal_od_mm": 63.89,
    "gland_depth_mm": 2.105,
+   "groove_depth_in_spigot_mm": 2.005,
    "groove_bottom_w_mm": 2.9,
-   "groove_top_w_mm": 5.005,
+   "groove_top_w_mm": 4.905,
    "groove_forward_flank_deg": 45.0,
+   "groove_aft_flank_deg": 90.0,
+   "groove_form": "aft flank radial; tip-side (forward) flank 45 deg from the groove bottom up to the spigot OD, so the spigot prints tip-up without support",
    "radial_clearance_mm": 0.1,
    "table_diametral_clearance_max_mm": 0.13,
    "table_groove_w_rect_mm": 3.56,
@@ -123,31 +127,44 @@
     14,
     25
    ],
-   "stretch_nom_pct": 3.4748,
+   "bore_limit_d_mm": 64.9663,
+   "bore_fits": true,
+   "stretch_nom_pct": 2.4991,
    "stretch_range_pct": [
-    2.4096,
-    4.5588
+    1.4424,
+    3.5745
    ],
-   "squeeze_nom_pct": 18.3584,
+   "squeeze_nom_pct": 18.7209,
    "squeeze_worst_pct": [
-    8.0874,
-    28.0678
+    7.742,
+    28.9698
    ],
-   "fill_nom_pct": 62.7548,
-   "fill_worst_pct": 72.8264,
-   "guidance": "Apple Rubber static radial table for cs 2.62: depth 2.03-2.18, width 3.56, squeeze 14-25 %, diametral clearance <= 0.13; globaloring: fill 60-85 %, stretch <= 5 %. Worst cases include +-0.10 mm print error on each diameter and full eccentricity. 0.20 mm diametral clearance exceeds the 0.13 table limit, which guards extrusion under pressure: acceptable at < 0.1 bar"
+   "fill_nom_pct": 63.3539,
+   "fill_worst_no_ecc_pct": 74.7373,
+   "fill_worst_pct": 79.6644,
+   "guidance": "Apple Rubber static radial table for cs 2.62: depth 2.03-2.18, width 3.56, squeeze 14-25 %, diametral clearance <= 0.13; globaloring: fill 60-85 %, stretch <= 5 %. Worst cases include +-0.10 mm print error on each diameter and full eccentricity. 0.20 mm diametral clearance exceeds the 0.13 table limit, which guards extrusion under pressure: acceptable at < 0.1 bar",
+   "hardware_study_performance": {
+    "squeeze_nom_pct": 18.7,
+    "squeeze_worst_pct": [
+     7.7,
+     29.0
+    ],
+    "fill_nom_pct": 63.4,
+    "fill_worst_pct": 79.7,
+    "note": "data/hardware.json oring_equator.performance; the values above are recomputed here with the same model and must agree"
+   }
   },
   "bayonet": {
    "n_lugs": 3,
    "lug_h_mm": 1.5,
    "lug_t_mm": 3.0,
    "lug_w_deg": 16.0,
-   "lug_w_mm": 8.5395,
+   "lug_w_mm": 8.46,
    "gap_w_deg": 20.0,
    "engage_deg": 35.0,
    "engage_window_deg": [
     20.0,
-    65.9111
+    65.8481
    ],
    "engage_ok": true,
    "lip_t_mm": 3.0,
@@ -168,26 +185,26 @@
     10.0
    ],
    "channel_to_pocket_edge_deg": 19.0,
-   "channel_to_pocket_edge_mm": 10.721,
+   "channel_to_pocket_edge_mm": 10.6265,
    "load_face": "aft face of each lug and forward face of the lip: 45 deg cone on both (the lug underside is an overhang when the aft shell prints tip-up)",
    "lip_underside": "45 deg chamfer from the seal bore in to the lip (overhang when the front shell prints equator-down)",
    "detent": "2 magnet pairs (N52 4x2) in the equator faces, in two of the lands between pockets; they attract at lock. Hard stop = the channel end wall, reached when the pockets of both shells align"
   },
   "walls_mm": {
-   "socket_at_pocket_mm": 2.1532,
-   "socket_plain_mm": 4.991,
+   "socket_at_pocket_mm": 2.4382,
+   "socket_plain_mm": 5.2793,
    "spigot_under_groove_mm": 2.0,
    "spigot_lug_zone_mm": 2.355,
-   "channel_backing_between_pockets_mm": 4.3404
+   "channel_backing_between_pockets_mm": 4.6399
   },
   "strength": {
-   "design_load_N": 233.8672,
-   "lug_root_shear_MPa": 3.0429,
-   "lip_root_shear_MPa": 2.8782,
-   "contact_pressure_MPa": 4.3034,
+   "design_load_N": 231.0503,
+   "lug_root_shear_MPa": 3.0346,
+   "lip_root_shear_MPa": 2.8688,
+   "contact_pressure_MPa": 4.2915,
    "interlayer_adhesion_PETG_MPa": 18,
-   "util_lug": 0.1691,
-   "util_lip": 0.1599,
+   "util_lug": 0.1686,
+   "util_lip": 0.1594,
    "ok": true,
    "basis": "tow design load passes eye -> front shell -> lugs -> aft shell; interlayer adhesion used as a shear proxy, util < 0.5 required"
   }
@@ -207,7 +224,7 @@
     46.5
    ],
    "adapter_spacer_L_mm": 2.5,
-   "clear_to_spigot_bore_mm": 2.975,
+   "clear_to_spigot_bore_mm": 2.69,
    "rule": "largest envelope that fits: D50.5 x L24 (max D^2 L with the rotor face at or ahead of x 46.50 for the bearing span and the carrier ahead of the bay), placed forward-most"
   },
   "largest_envelope": {
@@ -220,13 +237,13 @@
   "frontier": [
    {
     "L_mm": 18.0,
-    "D_max_mm": 55.45,
+    "D_max_mm": 54.88,
     "x_fwd_mm": 28.5,
     "x_aft_mm": 46.5
    },
    {
     "L_mm": 19.0,
-    "D_max_mm": 55.45,
+    "D_max_mm": 54.88,
     "x_fwd_mm": 27.5,
     "x_aft_mm": 46.5
    },
@@ -261,7 +278,7 @@
     "x_aft_mm": 46.5
    }
   ],
-  "frontier_note": "the bay runs from the carrier (needs r >= 23.37 mm for the PCD 38.14 adapter, so x_fwd >= 22.50) to the rotor face, which may not pass x 46.50 (bearing span >= 32 mm): hence L <= 24. D_max is set by the nose wall and the carrier ring (it overhangs the bay by 1.2 mm) at the bay's forward end (socket lip D 61.66 is not binding); the spigot bore (D 56.45) only matters aft of the spigot tip (x 43.50)",
+  "frontier_note": "the bay runs from the carrier (needs r >= 23.37 mm for the PCD 38.14 adapter, so x_fwd >= 22.50) to the rotor face, which may not pass x 46.50 (bearing span >= 32 mm): hence L <= 24. D_max is set by the nose wall and the carrier ring (it overhangs the bay by 1.2 mm) at the bay's forward end (socket lip D 61.09 is not binding); the spigot bore (D 55.88) only matters aft of the spigot tip (x 43.59)",
   "length_trade": [
    {
     "L_mm": 21.5,
@@ -794,10 +811,10 @@
    "thrust_bem_2p5_m_s_N": 70.3315,
    "hull_drag_est_N": 1.3806,
    "hull_cd_est": 0.1,
-   "fin_drag_N": 2.677,
-   "working_load_N": 77.9557,
+   "fin_drag_N": 1.7381,
+   "working_load_N": 77.0168,
    "safety_factor": 3.0,
-   "design_load_N": 233.8672,
+   "design_load_N": 231.0503,
    "basis": "T = 0.5 rho pi R^2 v^2 C_T with C_T 0.8 at 2.5 m/s (task rule); BEM cross-check from data/blade_design.json; hull drag C_D 0.10 on the frontal area (ESTIMATE)"
   },
   "eye": {
@@ -815,20 +832,20 @@
     "PETG": {
      "interlayer_adhesion_MPa": 18,
      "xy_tensile_yield_MPa": 47,
-     "eye_leg_stress_MPa": 3.8978,
-     "eye_leg_util": 0.2165,
-     "eye_crown_stress_MPa": 19.355,
-     "eye_crown_util": 0.4118,
-     "bearing_on_8mm_pin_MPa": 4.8722
+     "eye_leg_stress_MPa": 3.8508,
+     "eye_leg_util": 0.2139,
+     "eye_crown_stress_MPa": 19.1219,
+     "eye_crown_util": 0.4068,
+     "bearing_on_8mm_pin_MPa": 4.8135
     },
     "PLA": {
      "interlayer_adhesion_MPa": 17,
      "xy_tensile_yield_MPa": 51,
-     "eye_leg_stress_MPa": 3.8978,
-     "eye_leg_util": 0.2293,
-     "eye_crown_stress_MPa": 19.355,
-     "eye_crown_util": 0.3795,
-     "bearing_on_8mm_pin_MPa": 4.8722
+     "eye_leg_stress_MPa": 3.8508,
+     "eye_leg_util": 0.2265,
+     "eye_crown_stress_MPa": 19.1219,
+     "eye_crown_util": 0.3749,
+     "bearing_on_8mm_pin_MPa": 4.8135
     }
    },
    "note": "legs load the layers in tension (weakest direction) and still sit far below the Prusament interlayer adhesion; use a stainless shackle or a thimble, not a bare rope, to keep the bearing stress low. v2 pull test >= design load"
@@ -844,7 +861,7 @@
   "gland": {
    "part": "Hummel HSK-K M12x1.5 (1.209.1200.50)",
    "thread": "M12x1.5",
-   "thread_engagement_mm": 8.0,
+   "thread_length_mm": 8.0,
    "hex_SW_mm": 15.0,
    "height_mm": 21.0,
    "cable_mm": [
@@ -852,34 +869,51 @@
     6.5
    ],
    "theta_deg": 180.0,
-   "seat_x_mm": 6.0,
-   "seat_surface_r_mm": 17.0318,
+   "seat_x_mm": 8.75,
+   "seat_surface_r_mm": 20.2941,
+   "seat_lift_mm": 3.0,
    "seat_d_mm": 18.0,
-   "boss_d_mm": 16.0,
-   "boss_model": "seat D18 over the 2.4 mm shell wall + thread boss D16 (M12 + 2 x 2.0) to the 8 mm thread length, all along the gland axis",
-   "axis_tilt_from_normal_deg": 17.5,
-   "axis_angle_from_x_deg": 160.7145,
-   "axis": "outer surface normal turned 17.5 deg toward -X (points forward-down)",
-   "inner_end_x_mm": 13.5511,
-   "inner_end_r_mm": 14.3896,
-   "seat_raise_mm": 4.9989,
-   "seat_note": "the D18 spot face is flat on a curved nose: its rim stands up to 5.0 mm proud of the hull (a raised boss, prints nose-up without support: its flank leans 19 deg from vertical)",
+   "spot_face_centre_x_mm": 6.2439,
+   "spot_face_centre_r_mm": 21.9432,
+   "seat_model": "raised D18 seat block outside the hull: a cylinder on the gland axis from the hull up to the spot face, whose centre stands 3.0 mm off the hull along the axis; the M12x1.5 bore is tapped through the block, the 2.4 mm shell wall and the infilled nose plug; no boss stands in the open nose cavity",
+   "axis_tilt_from_normal_deg": 10.0,
+   "axis_angle_from_x_deg": 146.6534,
+   "axis": "outer surface normal turned 10 deg toward -X (points forward-down, 33.3 deg from the hull axis)",
+   "inner_end_x_mm": 12.9268,
+   "inner_end_r_mm": 17.5456,
+   "thread_engagement_min_mm": 6.05,
+   "thread_engagement_mean_mm": 7.1222,
+   "thread_engagement_rule": "every generatrix of the M12 major diameter keeps >= 75 % of the 8 mm gland thread in solid material (seat block, wall, plug) before it opens into the cavity",
+   "seat_raise_mm": 6.7887,
+   "seat_rim_x_min_mm": 1.2966,
+   "seat_block_cc": 0.9184,
+   "overhang_seat_block_deg": 33.3466,
+   "overhang_bore_ceiling_deg": 33.3466,
+   "seat_note": "the D18 spot face is flat and lifted on a curved nose: its rim stands up to 6.8 mm proud of the hull (a raised seat block); printed nose-up, the block's side and the bore lean 33 deg from vertical (limit 45)",
    "carrier_front_x_mm": 18.5,
-   "boss_x_max_mm": 16.1933,
-   "boss_to_carrier_plate_mm": 2.3067,
-   "boss_to_carrier_ring_mm": 1.1067,
-   "body_to_eye_ring_mm": 2.0495,
-   "body_to_shackle_envelope_mm": 5.0089,
+   "solid_x_max_mm": 16.225,
+   "bore_to_carrier_plate_mm": 2.275,
+   "bore_to_carrier_ring_mm": 1.075,
+   "body_to_eye_ring_mm": 7.0743,
+   "body_to_shackle_envelope_mm": 10.0214,
    "clear_ok": true,
-   "placement_rule": "search x 3-12 mm (step 0.25) and tilt -10 to 30 deg (step 2.5): whole boss >= 1.0 mm ahead of the carrier plate and its ring, gland body >= 2.0 mm from the eye ring and the shackle envelope; pick the lowest seat rim (13 of 629 placements feasible)",
+   "placement_rule": "search seat x 3-12 mm (step 0.25), tilt -10 to 30 deg (step 2.5) and seat lift 0-6 mm (step 0.5), in order of the seat rim height above the hull; keep the first height where: thread engagement >= 75 % on every generatrix, seat block and bore ceiling <= 45 deg overhang, block and bore (cable exit) >= 1.0 mm ahead of the carrier plate and its ring, gland body >= 2.0 mm from the eye ring and the shackle envelope; then the larger engagement (8177 candidates, 1771 evaluated; rejected: bore_overhang 294, engagement 1428, overhang 0, carrier 2, tow 46)",
    "previous_x12": {
     "boss_x_max_mm": 23.2793,
     "boss_to_carrier_plate_mm": -4.7793,
-    "note": "the earlier boss at x 12 on the surface normal ran through the carrier plate into the bay"
+    "note": "the merge's boss at x 12 on the surface normal ran through the carrier plate into the bay"
+   },
+   "previous_round3": {
+    "seat_x_mm": 6.0,
+    "tilt_deg": 17.5,
+    "seat_raise_mm": 4.9989,
+    "cavity_boss_overhang_deg": 70.7145,
+    "engage_min_without_boss_mm": 4.25,
+    "note": "round 3 moved the seat to x 6 (tilt 17.5) and cleared the carrier, but its D16 thread boss hung in the nose cavity aft of the plug bridge: a 71 deg overhang printing nose-up; without that boss its thread kept only 4.25 mm"
    },
    "seal": "flat NBR washer under the gland head (IP68 with the extra O-ring, hardware.json)",
    "clearance_hole_if_unthreaded_mm": 12.5,
-   "thread_form": "tapped M12x1.5 in the solid boss (or printed thread), no inner locknut; the bore runs on through the nose plug into the cavity",
+   "thread_form": "tapped M12x1.5 through the seat block, the wall and the nose plug (or a printed thread), no inner locknut; the bore opens into the cavity through the plug's bridge face and the wall",
    "cable_route": "gland -> nose cavity (slack loop) -> notch in the carrier rim at theta 180 -> motor leads behind the carrier",
    "cable_notch": {
     "theta_deg": 180.0,
@@ -901,98 +935,122 @@
   "polars": "NeuralFoil large, n_crit 5, cached in out/work/layout_internal/polars_fin.json",
   "n": 2,
   "theta_deg": [
-   96.0,
-   276.0
+   93.0,
+   273.0
   ],
   "fold_rule": "index",
-  "layout": "identical parts at theta 96 and 276 (diametrically opposite, 6 deg off +-Y so the yawed rail pads clear the asymmetric pockets); each fin and its rail pad are yawed by the incidence about the radial line through the pivot at 0.00 c, TE toward -theta; the second fin is the first turned 180 deg about X, so the lifts are opposite and form a pure couple",
+  "layout": "identical parts at theta 93 and 273 (diametrically opposite, 3 deg off +-Y so the yawed rail pads clear the asymmetric pockets); each fin and its rail pad are yawed by the incidence about the radial line through the pivot at 0.15 c, TE toward -theta; the second fin is the first turned 180 deg about X, so the lifts are opposite and form a pure couple",
   "torque_sense": "rotor omega +X: the generator reaction turns the hull the same way (+X), so the +Y fin lifts toward -Z and the -Y fin toward +Z (fin couple -X)",
   "chord_mm": 40.0,
-  "span_mm": 75.0,
-  "AR": 1.875,
-  "area_each_cm2": 30.0,
+  "span_mm": 65.0,
+  "AR": 1.625,
+  "area_each_cm2": 26.0,
   "root": {
-   "x_le": 16.6052,
+   "x_le": 16.3741,
    "x_te": 55.5,
-   "y_le": 33.8979,
-   "y_te": 44.5474,
-   "y_mean": 39.2227,
-   "incl_deg": 15.3125,
+   "y_le": 33.7926,
+   "y_te": 44.5966,
+   "y_mean": 39.1946,
+   "incl_deg": 15.4367,
    "pad_min_mm": 4.0,
-   "pad_max_mm": 7.0474
+   "pad_max_mm": 7.0966
   },
-  "r_root_mean_mm": 39.2227,
-  "r_tip_max_mm": 119.5474,
-  "r_cp_mm": 72.2227,
-  "tip_to_tip_mm": 239.0948,
-  "x_le_mm": 16.6052,
+  "r_root_mean_mm": 39.1946,
+  "r_tip_max_mm": 109.5966,
+  "r_cp_mm": 67.7946,
+  "tip_to_tip_mm": 219.1932,
+  "x_le_mm": 16.3741,
   "x_te_mm": 55.5,
-  "incidence_deg": 13.5,
-  "yaw": {
-   "pivot_chord_frac": 0.0,
-   "pivot_x_mm": 16.6052,
-   "te_side": "-theta",
-   "offset_per_mm_x": -0.2401,
-   "pad_half_width_at_constant_x_mm": 5.1421,
-   "offset_at_le_mm": -0.0,
-   "offset_at_te_mm": -9.3378,
-   "offset_at_pad_end_mm": -9.818,
-   "offset_sign": "+ = toward +theta, at the hull, from the fin angle line",
-   "x_extent_note": "the yawed root chord spans x 16.61-55.50 (c cos i)"
+  "incidence_deg": 12.0,
+  "torque_basis": {
+   "generator": "CubeMars GL40 KV70",
+   "basis": "CubeMars GL40 KV70 load line (BEM, capped point)",
+   "design_flow_m_s": 1.5,
+   "Q_design_Nm": 0.1764,
+   "tsr": 5.75,
+   "rpm": 849.1,
+   "margin_pct": 10.0,
+   "target_ratio": 1.1,
+   "target_ratio_max": 1.155,
+   "fin_torque_Nm": 0.1958,
+   "ratio": 1.11,
+   "Q_cp_rule_Nm": 0.2822,
+   "source": "data/blade_design.json generator_coupling_estimate.load_line_by_flow (recommended generator, final blade, 'capped' point = best net power with the cavitation cap)",
+   "margin_reason": "+10 % over the load-line torque: NeuralFoil polars are smooth-surface, and a printed Clark Y at Re ~55 k tends to give less lift; the GL40 drag torque (0.0248 N m in the BEM model) is an estimate. Lift shortfall is the likelier error, so the bias is deliberate; if the prototype over-balances, a trim fin with less incidence corrects it",
+   "old_rule_note": "the merge sized the fins for Q = Cp 0.35 at TSR 4 (0.282 N m at 1.5 m/s), 1.60 x the load-line torque"
   },
-  "drag_tow_N": 2.677,
-  "lift_tow_each_N": 5.8465,
-  "root_moment_tow_Nm": 0.1929,
-  "root_stress_tow_MPa": 2.2022,
-  "root_util_xy": 0.0469,
+  "trim": {
+   "variant_deg": 1.0,
+   "ratio_change_per_deg_at_design_flow": 0.075,
+   "torque_change_per_deg_Nm": 0.0132,
+   "fin_box_shift_max_mm": 0.5934,
+   "how": "print fin variants whose root tongue is turned +-1 deg about the yaw pivot relative to the chord: the shell's yawed pad and groove stay, the incidence changes by +-1 deg (8 % of the torque per degree); the fin box moves by at most 0.59 mm at its far end, inside the fold clearance"
+  },
+  "yaw": {
+   "pivot_chord_frac": 0.15,
+   "pivot_x_mm": 22.243,
+   "te_side": "-theta",
+   "offset_per_mm_x": -0.2126,
+   "pad_half_width_at_constant_x_mm": 5.1117,
+   "offset_at_le_mm": 1.2475,
+   "offset_at_te_mm": -7.069,
+   "offset_at_pad_end_mm": -7.4941,
+   "offset_sign": "+ = toward +theta, at the hull, from the fin angle line",
+   "x_extent_note": "the yawed root chord spans x 16.37-55.50 (c cos i)"
+  },
+  "drag_tow_N": 1.7381,
+  "lift_tow_each_N": 4.1497,
+  "root_moment_tow_Nm": 0.1187,
+  "root_stress_tow_MPa": 1.3547,
+  "root_util_xy": 0.0288,
   "root_note": "lift bends the fin about its chord; printed flat, the span-wise bending stress lies in the layer plane (XY strength)",
   "rail": {
    "type": "half dovetail (flat on the fin's flat side, 45 deg flank on the other): male tongue on the fin root, female groove (mean width 6, depth 4) in a 10 mm raised pad on the front shell; the pad is yawed with the fin, so the rail runs along the fin chord",
    "x_mm": [
-    16.6052,
+    16.3741,
     55.5
    ],
    "pad_x_mm": [
-    15.438,
+    15.3345,
     57.5
    ],
    "pad_w_mm": 10.0,
    "pad_h_mm": [
     4.0,
-    7.595
+    7.6489
    ],
-   "pad_aft_end": "runs down to the equator face (x 57.5): the front shell prints on that face, so the pad's aft end stands on the bed (a 45 deg chamfer from the rail stop would need 7.0 mm, past the equator)",
-   "inclination_deg": 15.3125,
-   "pad_outer_volume_each_cc": 2.1506,
+   "pad_aft_end": "runs down to the equator face (x 57.5): the front shell prints on that face, so the pad's aft end stands on the bed (a 45 deg chamfer from the rail stop would need 7.1 mm, past the equator)",
+   "inclination_deg": 15.4367,
+   "pad_outer_volume_each_cc": 2.1572,
    "groove_volume_each_cc": 0.96,
    "retention": "the fin slides aft onto the end stop at x 55.5 (drag pushes it home); one M3 grub screw in a heat-set insert for handling"
   },
   "clearance": {
    "blade_sweep_len_mm": 85.2597,
-   "torus_te_limit_x_mm": 31.0667,
+   "torus_te_limit_x_mm": 31.0844,
    "tip_clear_mm": 5.0,
    "stowed_pockets": {
-    "min_clear_mm": 2.0586,
+    "min_clear_mm": 2.221,
     "ok": true,
     "limit_mm": 2.0,
-    "model": "yawed pad footprint (pad_footprint, 0.25 mm x 11 samples) vs each pocket's theta span at the sample x, arc at the hull radius"
+    "model": "yawed pad footprint (pad_footprint, 0.25 mm x 11 samples; planar pad walls meet the hull at theta + asin(lat / R)) vs each pocket's theta span at the sample x, arc at the hull radius"
    },
    "fold_at_index": {
     "rule": "blades fold at the stowing index (blade i at psi 120 i), fold 0 to 90 deg in 1 deg steps, rotor surface from hydroegg.layout",
     "sampling": "aero and shank surfaces densified to 1 mm, fold in 1 deg steps (clearances +- ~0.5 mm)",
     "n_points_near_fins": 327102,
-    "pad_clear_min_mm": 2.4555,
-    "fin_clear_min_mm": 8.1145,
+    "pad_clear_min_mm": 3.0948,
+    "fin_clear_min_mm": 8.4434,
     "per_fin": [
      {
-      "theta_deg": 96.0,
-      "pad_clear_mm": 3.6559,
-      "fin_clear_mm": 8.1145
+      "theta_deg": 93.0,
+      "pad_clear_mm": 3.7707,
+      "fin_clear_mm": 8.4434
      },
      {
-      "theta_deg": 276.0,
-      "pad_clear_mm": 2.4555,
-      "fin_clear_mm": 11.7352
+      "theta_deg": 273.0,
+      "pad_clear_mm": 3.0948,
+      "fin_clear_mm": 11.4163
      }
     ],
     "fin_half_thickness_mm": 2.34,
@@ -1015,95 +1073,111 @@
   "alternative_rule": {
    "rule": "torus",
    "chord_mm": 25.0,
-   "span_mm": 110.0,
-   "x_le_mm": 4.93,
+   "span_mm": 85.0,
+   "x_le_mm": 4.9613,
    "x_te_mm": 29.6867,
    "theta_deg": [
-    91.5,
-    271.5
+    91.0,
+    271.0
    ],
-   "incidence_deg": 8.0,
-   "pivot_chord_frac": 0.25,
-   "tip_to_tip_mm": 300.5648,
-   "area_each_cm2": 27.5,
-   "drag_tow_N": 1.2507
+   "incidence_deg": 8.5,
+   "pivot_chord_frac": 0.4,
+   "tip_to_tip_mm": 250.5362,
+   "area_each_cm2": 21.25,
+   "drag_tow_N": 1.0543
   },
-  "selection": "smallest fin-tip diameter (handling, stowage) among fins that balance the torque AND whose yawed pads / fins clear the pockets and the folding blades; candidates evaluated in that order; the least-area feasible fin is listed for comparison",
+  "selection": "smallest fin-tip diameter (handling, stowage) among fins whose couple at 1.5 m/s is 1.10-1.155 x the GL40 load-line torque (CL <= 0.75 CLmax_3D at 1/1.5/2.5 m/s) AND whose yawed pads / fins clear the pockets and the blades folding at the stowing index; candidates evaluated in that order; the least-area feasible fin is listed for comparison",
   "least_area_alternative": {
-   "chord_mm": 30.0,
-   "span_mm": 90.0,
-   "AR": 3.0,
-   "area_cm2": 27.0,
-   "r_cp_mm": 79.82,
-   "x_le_mm": 25.9788,
+   "chord_mm": 25.0,
+   "span_mm": 80.0,
+   "AR": 3.2,
+   "area_cm2": 20.0,
+   "r_cp_mm": 75.8218,
+   "x_le_mm": 30.8251,
    "x_te_mm": 55.5,
-   "alpha_set_deg": 10.25,
+   "alpha_set_deg": 9.25,
    "torque_ok": true,
-   "tip_to_tip_mm": 266.0853,
-   "theta_deg": 90.5,
-   "pivot_chord_frac": 0.0,
-   "clear_min_mm": 2.6694,
+   "tip_to_tip_mm": 245.0602,
+   "theta_deg": 88.5,
+   "pivot_chord_frac": 0.05,
+   "clear_min_mm": 2.8188,
    "feasible": true
   },
   "margins": {
    "1.0_m_s": {
     "v_fin_m_s": 0.9228,
     "Re": 36910.0,
-    "CL": 0.6811,
+    "CL": 0.5496,
     "CLmax_3D": 1.0823,
-    "fin_torque_Nm": 0.1257,
-    "generator_torque_Nm": 0.1254,
-    "torque_ratio": 1.0018,
-    "authority_ratio_at_CL_reserve": 1.1938,
-    "stall_reserve": 1.589,
-    "roll_damping_Nm_s": 0.0367,
+    "fin_torque_Nm": 0.0825,
+    "generator_torque_Nm": 0.0923,
+    "torque_ratio": 0.8937,
+    "torque_ratio_per_deg_incidence": 0.0645,
+    "authority_ratio_at_CL_reserve": 1.32,
+    "stall_reserve": 1.9692,
+    "roll_damping_Nm_s": 0.0251,
     "neuralfoil_confidence_min": 0.9598
    },
    "1.5_m_s": {
     "v_fin_m_s": 1.3842,
     "Re": 55370.0,
-    "CL": 0.7122,
+    "CL": 0.5798,
     "CLmax_3D": 1.1742,
-    "fin_torque_Nm": 0.2957,
-    "generator_torque_Nm": 0.2822,
-    "torque_ratio": 1.0475,
-    "authority_ratio_at_CL_reserve": 1.2952,
-    "stall_reserve": 1.6486,
-    "roll_damping_Nm_s": 0.0542,
+    "fin_torque_Nm": 0.1958,
+    "generator_torque_Nm": 0.1764,
+    "torque_ratio": 1.11,
+    "torque_ratio_per_deg_incidence": 0.075,
+    "authority_ratio_at_CL_reserve": 1.686,
+    "stall_reserve": 2.0251,
+    "roll_damping_Nm_s": 0.0371,
+    "neuralfoil_confidence_min": 0.9737
+   },
+   "2.5_m_s": {
+    "v_fin_m_s": 2.307,
+    "Re": 92280.0,
+    "CL": 0.5998,
+    "CLmax_3D": 1.2031,
+    "fin_torque_Nm": 0.5627,
+    "generator_torque_Nm": 0.4767,
+    "torque_ratio": 1.1803,
+    "torque_ratio_per_deg_incidence": 0.0764,
+    "authority_ratio_at_CL_reserve": 1.7757,
+    "stall_reserve": 2.0059,
+    "roll_damping_Nm_s": 0.0613,
     "neuralfoil_confidence_min": 0.9737
    }
   },
   "sweep_feasible": [
    {
-    "chord_mm": 30.0,
-    "span_mm": 90.0,
-    "AR": 3.0,
-    "area_cm2": 27.0,
-    "r_cp_mm": 79.82,
-    "x_le_mm": 25.9788,
+    "chord_mm": 25.0,
+    "span_mm": 80.0,
+    "AR": 3.2,
+    "area_cm2": 20.0,
+    "r_cp_mm": 75.8218,
+    "x_le_mm": 30.8251,
     "x_te_mm": 55.5,
-    "alpha_set_deg": 10.25,
+    "alpha_set_deg": 9.25,
     "torque_ok": true,
-    "tip_to_tip_mm": 266.0853,
-    "theta_deg": 90.5,
-    "pivot_chord_frac": 0.0,
-    "clear_min_mm": 2.6694,
+    "tip_to_tip_mm": 245.0602,
+    "theta_deg": 88.5,
+    "pivot_chord_frac": 0.05,
+    "clear_min_mm": 2.8188,
     "feasible": true
    },
    {
     "chord_mm": 40.0,
-    "span_mm": 75.0,
-    "AR": 1.875,
-    "area_cm2": 30.0,
-    "r_cp_mm": 72.2227,
-    "x_le_mm": 16.6052,
+    "span_mm": 65.0,
+    "AR": 1.625,
+    "area_cm2": 26.0,
+    "r_cp_mm": 67.7946,
+    "x_le_mm": 16.3741,
     "x_te_mm": 55.5,
-    "alpha_set_deg": 13.5,
+    "alpha_set_deg": 12.0,
     "torque_ok": true,
-    "tip_to_tip_mm": 239.0948,
-    "theta_deg": 96.0,
-    "pivot_chord_frac": 0.0,
-    "clear_min_mm": 2.0586,
+    "tip_to_tip_mm": 219.1932,
+    "theta_deg": 93.0,
+    "pivot_chord_frac": 0.15,
+    "clear_min_mm": 2.221,
     "feasible": true
    }
   ]
@@ -1112,47 +1186,67 @@
   "torque": {
    "1_m_s": {
     "v_m_s": 1.0,
-    "P_W": 5.1729,
-    "omega_rad_s": 41.2371,
-    "rpm": 393.7854,
-    "Q_Nm": 0.1254
+    "Q_Nm": 0.0923,
+    "tsr": 5.0,
+    "rpm": 492.23,
+    "shaft_power_W": 4.756,
+    "net_power_W": 2.572,
+    "cap_binding": false,
+    "basis": "CubeMars GL40 KV70 load line (BEM, capped point)",
+    "Q_cp_rule_Nm": 0.1254
    },
    "1.5_m_s": {
     "v_m_s": 1.5,
-    "P_W": 17.4584,
-    "omega_rad_s": 61.8557,
-    "rpm": 590.6781,
-    "Q_Nm": 0.2822
+    "Q_Nm": 0.1764,
+    "tsr": 5.75,
+    "rpm": 849.1,
+    "shaft_power_W": 15.682,
+    "net_power_W": 8.906,
+    "cap_binding": false,
+    "basis": "CubeMars GL40 KV70 load line (BEM, capped point)",
+    "Q_cp_rule_Nm": 0.2822
    },
    "2.5_m_s": {
     "v_m_s": 2.5,
-    "P_W": 80.8261,
-    "omega_rad_s": 103.0928,
-    "rpm": 984.4636,
-    "Q_Nm": 0.784
+    "Q_Nm": 0.4767,
+    "tsr": 6.03,
+    "rpm": 1484.83,
+    "shaft_power_W": 74.119,
+    "net_power_W": 29.632,
+    "cap_binding": true,
+    "basis": "CubeMars GL40 KV70 load line (BEM, capped point)",
+    "Q_cp_rule_Nm": 0.784
    }
   },
-  "Q_scaling": "Q = Cp 0.5 rho pi R^3 v^2 / TSR grows with v^2 like the fin lift, so a fin set matched at one speed stays matched at constant TSR and Cp (apart from Re effects)",
+  "Q_scaling": "on the GL40 load line the operating TSR rises with flow (TSR 5.00 at 1 m/s, TSR 5.75 at 1.5 m/s, TSR 6.03 at 2.5 m/s), so Q does not grow with v^2 like the fin lift: Q(1.0) / Q(1.5) = 0.523 against (1.0 / 1.5)^2 = 0.444, Q(2.5) / Q(1.5) = 2.702 against 2.778 (the 2.5 m/s point is held by the cavitation cap). A fixed fin set matched at 1.5 m/s therefore under-balances at 1.0 m/s and over-balances at 2.5 m/s (balance below)",
   "balance": {
    "1_m_s": {
-    "excess_torque_Nm": 0.0002,
-    "excess_pct": 0.1768,
-    "free_roll_rate_rpm": 0.0577,
+    "excess_torque_Nm": -0.0098,
+    "excess_pct": -10.6267,
+    "free_roll_rate_rpm": -3.7376,
     "pendulum_heel_deg": 90.0,
     "bridle_stiffness_Nm_rad": 0.0591,
-    "bridle_heel_deg": 0.215
+    "bridle_heel_deg": 9.5061
    },
    "1.5_m_s": {
-    "excess_torque_Nm": 0.0134,
-    "excess_pct": 4.7515,
-    "free_roll_rate_rpm": 2.3613,
+    "excess_torque_Nm": 0.0194,
+    "excess_pct": 11.0031,
+    "free_roll_rate_rpm": 4.9912,
     "pendulum_heel_deg": 90.0,
     "bridle_stiffness_Nm_rad": 0.133,
-    "bridle_heel_deg": 5.7766
+    "bridle_heel_deg": 8.3604
+   },
+   "2.5_m_s": {
+    "excess_torque_Nm": 0.086,
+    "excess_pct": 18.0321,
+    "free_roll_rate_rpm": 13.3929,
+    "pendulum_heel_deg": 90.0,
+    "bridle_stiffness_Nm_rad": 0.3695,
+    "bridle_heel_deg": 13.3294
    }
   },
-  "pendulum_righting_max_Nm": 0.0001,
-  "pendulum_vs_Qdesign": 0.0005,
+  "pendulum_righting_max_Nm": 0.0002,
+  "pendulum_vs_Qdesign": 0.0009,
   "bridle": {
    "eyes": "two eyes at +-Y on the nose",
    "a_mm": 20.0,
@@ -1160,7 +1254,8 @@
    "model": "k = T a^2 / L (legs carry T/2 each)"
   },
   "conclusion": "fins carry the mean torque; nothing on an axial tow line restores roll, and the pendulum (near-neutral hull) is negligible, so any mismatch turns into a slow hull roll that twists the cable. v2 should add a roll reference: a two-leg bridle on two nose eyes (numbers above) or a cable swivel/slip ring",
-  "freewheel_note": "with no electrical load Q ~ 0 and the fins roll the hull the other way at p ~ tau_fin / damping; v2 must keep a load (MPPT near TSR 4, dump load when the battery is full)"
+  "freewheel_roll_rate_1p5_m_s_rpm": 50.3527,
+  "freewheel_note": "with no electrical load Q ~ 0 and the fins roll the hull the other way at p ~ tau_fin / damping (50 rpm at 1.5 m/s); v2 must keep a load on the generator (the load line above, a dump load when the battery is full)"
  },
  "mass_buoyancy": {
   "model": {
@@ -1170,16 +1265,16 @@
    "sealed": "displacement counts the sealed static hull (minus the wet pockets), the fin rail pads outside the hull (minus their wet grooves), and the outer volume of the rotor parts and fins (closed perimeters trap the infill air)"
   },
   "display_PLA": {
-   "mass_g": 271.9066,
-   "x_cg_mm": 70.2212,
-   "z_cg_mm": -0.0494,
-   "displacement_cc": 381.3225,
-   "displacement_g": 381.3225,
-   "x_cb_mm": 65.2934,
+   "mass_g": 272.2077,
+   "x_cg_mm": 70.3316,
+   "z_cg_mm": -0.0565,
+   "displacement_cc": 382.254,
+   "displacement_g": 382.254,
+   "x_cb_mm": 65.1561,
    "z_cb_mm": 0.0,
-   "net_buoyancy_N": 1.0734,
-   "displacement_N": 3.7408,
-   "BG_mm": 0.0494,
+   "net_buoyancy_N": 1.0796,
+   "displacement_N": 3.7499,
+   "BG_mm": 0.0565,
    "breakdown": [
     {
      "name": "front shell wall",
@@ -1188,8 +1283,8 @@
     },
     {
      "name": "socket ring (6-wall skin + infill)",
-     "g": 12.9171,
-     "x_mm": 48.5318
+     "g": 13.2659,
+     "x_mm": 48.5485
     },
     {
      "name": "tow eye",
@@ -1202,9 +1297,9 @@
      "x_mm": 6.6209
     },
     {
-     "name": "gland boss (seat + thread boss)",
-     "g": 1.0315,
-     "x_mm": 6.0
+     "name": "gland seat block (raised D18 outside the hull, minus the M12 bore)",
+     "g": 0.6811,
+     "x_mm": 8.6789
     },
     {
      "name": "carrier ring",
@@ -1213,8 +1308,8 @@
     },
     {
      "name": "fin rail pads x2 (outside the hull, minus the wet groove)",
-     "g": 2.9528,
-     "x_mm": 36.469
+     "g": 2.969,
+     "x_mm": 36.4173
     },
     {
      "name": "pocket walls (F part)",
@@ -1238,13 +1333,13 @@
     },
     {
      "name": "spigot + lugs",
-     "g": 10.8945,
-     "x_mm": 50.4975
+     "g": 10.6975,
+     "x_mm": 50.5475
     },
     {
      "name": "spigot root ring (6-wall skin + infill)",
-     "g": 5.9979,
-     "x_mm": 59.8073
+     "g": 6.4814,
+     "x_mm": 59.9021
     },
     {
      "name": "bearing tube",
@@ -1334,7 +1429,7 @@
     {
      "name": "M12 cable gland",
      "g": 5.0,
-     "x_mm": 6.0
+     "x_mm": 8.75
     },
     {
      "name": "generator (replica)",
@@ -1344,16 +1439,16 @@
    ]
   },
   "v2_PETG": {
-   "mass_g": 398.0733,
-   "x_cg_mm": 59.7146,
-   "z_cg_mm": -0.0346,
-   "displacement_cc": 402.6674,
-   "displacement_g": 402.6674,
-   "x_cb_mm": 63.7434,
+   "mass_g": 395.8156,
+   "x_cg_mm": 59.9481,
+   "z_cg_mm": -0.0398,
+   "displacement_cc": 401.0089,
+   "displacement_g": 401.0089,
+   "x_cb_mm": 63.7895,
    "z_cb_mm": 0.0,
-   "net_buoyancy_N": 0.0451,
-   "displacement_N": 3.9502,
-   "BG_mm": 0.0346,
+   "net_buoyancy_N": 0.0509,
+   "displacement_N": 3.9339,
+   "BG_mm": 0.0398,
    "breakdown": [
     {
      "name": "front shell wall",
@@ -1362,8 +1457,8 @@
     },
     {
      "name": "socket ring (6-wall skin + infill)",
-     "g": 13.2296,
-     "x_mm": 48.5318
+     "g": 13.5869,
+     "x_mm": 48.5485
     },
     {
      "name": "tow eye",
@@ -1376,9 +1471,9 @@
      "x_mm": 6.6209
     },
     {
-     "name": "gland boss (seat + thread boss)",
-     "g": 1.0565,
-     "x_mm": 6.0
+     "name": "gland seat block (raised D18 outside the hull, minus the M12 bore)",
+     "g": 0.6975,
+     "x_mm": 8.6789
     },
     {
      "name": "carrier ring",
@@ -1387,8 +1482,8 @@
     },
     {
      "name": "fin rail pads x2 (outside the hull, minus the wet groove)",
-     "g": 3.0242,
-     "x_mm": 36.469
+     "g": 3.0409,
+     "x_mm": 36.4173
     },
     {
      "name": "pocket walls (F part)",
@@ -1412,13 +1507,13 @@
     },
     {
      "name": "spigot + lugs",
-     "g": 11.158,
-     "x_mm": 50.4975
+     "g": 10.9563,
+     "x_mm": 50.5475
     },
     {
      "name": "spigot root ring (6-wall skin + infill)",
-     "g": 6.1431,
-     "x_mm": 59.8073
+     "g": 6.6382,
+     "x_mm": 59.9021
     },
     {
      "name": "bearing tube",
@@ -1452,8 +1547,8 @@
     },
     {
      "name": "fins x2",
-     "g": 19.611,
-     "x_mm": 36.0526
+     "g": 17.045,
+     "x_mm": 35.937
     },
     {
      "name": "hub + spinner (envelope minus 3 blade slots, screw access bore, shell gap)",
@@ -1513,7 +1608,7 @@
     {
      "name": "M12 cable gland",
      "g": 5.0,
-     "x_mm": 6.0
+     "x_mm": 8.75
     },
     {
      "name": "generator (real)",
@@ -1524,26 +1619,26 @@
   },
   "v2_needs": {
    "target_net_buoyancy_N": 0.3,
-   "net_buoyancy_no_ballast_N": 0.0451,
-   "mass_to_shed_or_float_g": 25.9869,
+   "net_buoyancy_no_ballast_N": 0.0509,
+   "mass_to_shed_or_float_g": 25.3877,
    "option_4_perimeter_shells_saves_g": 22.4515,
-   "option_external_foam_cc": 26.7906,
+   "option_external_foam_cc": 26.1729,
    "foam_density_g_cc": 0.03,
    "option_combined": {
-    "after_4_perimeter_g": 3.5353,
-    "foam_after_4_perimeter_cc": 3.6447
+    "after_4_perimeter_g": 2.9362,
+    "foam_after_4_perimeter_cc": 3.027
    },
    "option_note": "4-perimeter (1.6 mm) shells first, then a small foam float on the tether for the rest (option_combined); ballast only after that, because the hull is already near neutral",
    "trim": {
-    "x_cg_minus_x_cb_mm": -4.0288,
-    "pitch_moment_Nm": -0.0159,
+    "x_cg_minus_x_cb_mm": -3.8415,
+    "pitch_moment_Nm": -0.0151,
     "tether_pitch_stiffness_1p5_m_s_Nm_rad": 3.6266,
-    "trim_angle_1p5_m_s_deg": -0.2514,
-    "slack_water": "near-neutral, CG 4.0 mm ahead of CB: in still water it settles nose-down; in current the rotor thrust aligns it with the flow (angle above)"
+    "trim_angle_1p5_m_s_deg": -0.2387,
+    "slack_water": "near-neutral, CG 3.8 mm ahead of CB: in still water it settles nose-down; in current the rotor thrust aligns it with the flow (angle above)"
    },
    "roll_pendulum": {
-    "BG_no_ballast_mm": 0.0346,
-    "BG_with_20g_lead_mm": 1.385,
+    "BG_no_ballast_mm": 0.0398,
+    "BG_with_20g_lead_mm": 1.3973,
     "righting_max_with_20g_lead_Nm": 0.0055,
     "note": "compare with the generator torque in roll.torque: the pendulum is two orders of magnitude too weak, the fins must carry the torque"
    }
@@ -1569,10 +1664,10 @@
    {
     "name": "socket ring (6-wall skin + infill)",
     "group": "F",
-    "V_print_cc": 10.417,
-    "m_PLA_g": 12.9171,
-    "m_PETG_g": 13.2296,
-    "x_mm": 48.5318
+    "V_print_cc": 10.6983,
+    "m_PLA_g": 13.2659,
+    "m_PETG_g": 13.5869,
+    "x_mm": 48.5485
    },
    {
     "name": "tow eye",
@@ -1591,12 +1686,12 @@
     "x_mm": 6.6209
    },
    {
-    "name": "gland boss (seat + thread boss)",
+    "name": "gland seat block (raised D18 outside the hull, minus the M12 bore)",
     "group": "F",
-    "V_print_cc": 0.8319,
-    "m_PLA_g": 1.0315,
-    "m_PETG_g": 1.0565,
-    "x_mm": 6.0
+    "V_print_cc": 0.5493,
+    "m_PLA_g": 0.6811,
+    "m_PETG_g": 0.6975,
+    "x_mm": 8.6789
    },
    {
     "name": "carrier ring",
@@ -1609,10 +1704,10 @@
    {
     "name": "fin rail pads x2 (outside the hull, minus the wet groove)",
     "group": "F",
-    "V_print_cc": 2.3813,
-    "m_PLA_g": 2.9528,
-    "m_PETG_g": 3.0242,
-    "x_mm": 36.469
+    "V_print_cc": 2.3944,
+    "m_PLA_g": 2.969,
+    "m_PETG_g": 3.0409,
+    "x_mm": 36.4173
    },
    {
     "name": "pocket walls (F part)",
@@ -1649,18 +1744,18 @@
    {
     "name": "spigot + lugs",
     "group": "A",
-    "V_print_cc": 8.7859,
-    "m_PLA_g": 10.8945,
-    "m_PETG_g": 11.158,
-    "x_mm": 50.4975
+    "V_print_cc": 8.627,
+    "m_PLA_g": 10.6975,
+    "m_PETG_g": 10.9563,
+    "x_mm": 50.5475
    },
    {
     "name": "spigot root ring (6-wall skin + infill)",
     "group": "A",
-    "V_print_cc": 4.8371,
-    "m_PLA_g": 5.9979,
-    "m_PETG_g": 6.1431,
-    "x_mm": 59.8073
+    "V_print_cc": 5.227,
+    "m_PLA_g": 6.4814,
+    "m_PETG_g": 6.6382,
+    "x_mm": 59.9021
    },
    {
     "name": "bearing tube",
@@ -1713,10 +1808,10 @@
    {
     "name": "fins x2",
     "group": "fin",
-    "V_print_cc": 15.4417,
-    "m_PLA_g": 19.1478,
-    "m_PETG_g": 19.611,
-    "x_mm": 36.0526
+    "V_print_cc": 13.4212,
+    "m_PLA_g": 16.6423,
+    "m_PETG_g": 17.045,
+    "x_mm": 35.937
    },
    {
     "name": "hub + spinner (envelope minus 3 blade slots, screw access bore, shell gap)",
@@ -1801,7 +1896,7 @@
    {
     "name": "M12 cable gland",
     "mass_g": 5.0,
-    "x_mm": 6.0,
+    "x_mm": 8.75,
     "basis": "ESTIMATE"
    }
   ]
@@ -1839,7 +1934,7 @@
    "step": 5,
    "sub": "aft shell",
    "action": "Fit claw B on the forward shaft end against the 608 inner race; retaining ring in its groove; tighten the 2 grub screws on the flat (1.5 mm hex key).",
-   "check": "claw B sits x 52.5-63.0: its front 5.0 mm stand ahead of the equator face, inside the spigot (tip x 43.5); the spigot bore D56.5 gives radial access for a short 1.5 mm key. OK",
+   "check": "claw B sits x 52.5-63.0: its front 5.0 mm stand ahead of the equator face, inside the spigot (tip x 43.6); the spigot bore D55.9 gives radial access for a short 1.5 mm key. OK",
    "flag": false
   },
   {
@@ -1860,14 +1955,14 @@
    "step": 8,
    "sub": "aft shell",
    "action": "Grease the ISO 3601 / AS568 -141 and roll it into the spigot groove; glue the 2 joint magnets.",
-   "check": "stretch 3.5 % nominal (2.4-4.6 % worst) in the groove; on the way the ring rolls over the lugs and the forward land (D64.46), a momentary 10 % stretch from its 58.42 ID (elastomer elongation limit not sourced; a smooth 45 deg lead-in on the lugs helps). OK",
+   "check": "stretch 2.5 % nominal (1.4-3.6 % worst) in the groove; on the way the ring rolls over the lugs and the forward land (D63.89), a momentary 9 % stretch from its 58.42 ID (elastomer elongation limit not sourced; a smooth 45 deg lead-in on the lugs helps). OK",
    "flag": false
   },
   {
    "step": 9,
    "sub": "front shell",
-   "action": "Screw the M12 gland into the nose boss (seat x 6.0, bottom) with its washer; pass the cable in and out through the open equator end, leaving ~120 mm (ESTIMATE) inside for the slack loop.",
-   "check": "the whole boss ends 2.31 mm ahead of the carrier plate and 1.11 mm ahead of its ring, so the carrier never meets the gland; wrench SW 15 on the outside. OK",
+   "action": "Tap the M12x1.5 seat (raised block at x 8.8, bottom) square to its spot face, then screw the gland in with its washer; pass the cable in and out through the open equator end, leaving ~120 mm (ESTIMATE) inside for the slack loop.",
+   "check": "nothing of the gland or its seat stands in the cavity: the bore (cable exit) ends 2.27 mm ahead of the carrier plate and 1.07 mm ahead of its ring, so the carrier never meets it; thread engagement >= 6.05 mm; wrench SW 15 on the outside. OK",
    "flag": false
   },
   {
@@ -1881,14 +1976,14 @@
    "step": 11,
    "sub": "front shell",
    "action": "Push carrier + motor into the front shell through the socket (the cable slack folds into the nose cavity), tabs through the ring notches, twist 30 deg until it clicks.",
-   "check": "motor D46.5 passes the socket lip D61.7; the cable lies in the notch inside the carrier ring and turns with the carrier; the generator reaction torque drives the tabs into their hard stop. OK",
+   "check": "motor D46.5 passes the socket lip D61.1; the cable lies in the notch inside the carrier ring and turns with the carrier; the generator reaction torque drives the tabs into their hard stop. OK",
    "flag": false
   },
   {
    "step": 12,
    "sub": "close",
    "action": "Align the entry marks, push the shells together (the claws find each other on the V lead-in; turn the rotor by hand if the dogs sit tip to tip), twist 35 deg to the stop; the magnets click.",
-   "check": "the spigot (bore D56.5) slides over the aft 3.0 mm of the bay envelope (D50): 3.0 mm radial clearance. Claw engagement is blind: self-finding with the V lead-in and a free rotor. FLAG for the prototype",
+   "check": "the spigot (bore D55.9) slides over the aft 2.9 mm of the bay envelope (D50): 2.7 mm radial clearance. Claw engagement is blind: self-finding with the V lead-in and a free rotor. FLAG for the prototype",
    "flag": true
   },
   {
@@ -1911,12 +2006,12 @@
    "part": "front shell",
    "material": "PETG (v2) / PLA (display)",
    "bbox_mm": [
-    93.0948,
+    93.1932,
     75.0,
     71.5
    ],
    "orientation": "equator face on the bed, nose up",
-   "supports": "none: outer dome self-supporting; forward of x 11.0 the tip is an infilled plug whose aft face bridges 38.6 mm; socket ring, lip underside and carrier-slot ceilings chamfered 45 deg; eye hole teardrop; rail grooves run near-vertical; the fin pads run down to the equator face, so their aft ends stand on the bed (no ledge); the gland seat boss leans 19 deg from vertical; pocket floors rise <= 45 deg",
+   "supports": "none: outer dome self-supporting; forward of x 11.0 the tip is an infilled plug whose aft face bridges 38.6 mm; socket ring, lip underside and carrier-slot ceilings chamfered 45 deg; eye hole teardrop; rail grooves run near-vertical; the fin pads run down to the equator face, so their aft ends stand on the bed (no ledge); the raised gland seat block and its bore lean 33 deg from vertical and nothing of the gland stands in the nose cavity; pocket floors rise <= 45 deg",
    "fits_bed": true
   },
   {
@@ -1925,7 +2020,7 @@
    "bbox_mm": [
     75.0,
     75.0,
-    64.505
+    64.405
    ],
    "orientation": "tail end face on the bed, spigot up",
    "supports": "none: outer flank leans <= 22 deg from vertical; bearing shoulders print as floors; lug undersides and the O-ring groove forward flank at 45 deg; seal shoulder is a 1.75 mm ring overhang; pocket floors (incl. the root-notch ramp) rise <= 45 deg from vertical going up (rotor half printable_floor: the floor is cut deeper where the blade would allow a steeper ramp); the stowed-detent boss on the notch floor is a 4 mm wide, 2.2 mm high bump (bridges)",
@@ -1971,7 +2066,7 @@
    "part": "fin x2",
    "material": "PETG",
    "bbox_mm": [
-    81.0,
+    71.0,
     43.5,
     8.0
    ],
@@ -1997,9 +2092,9 @@
    {
     "x_eq_mm": 52.5,
     "oring": "ISO 3601 / AS568 -141",
-    "seal_bore_d_mm": 64.21,
-    "spigot_bore_d_mm": 56.0,
-    "lip_d_mm": 61.21,
+    "seal_bore_d_mm": 64.09,
+    "spigot_bore_d_mm": 55.88,
+    "lip_d_mm": 61.09,
     "bayonet_engage_deg": 35.0,
     "largest_envelope": {
      "D_mm": 50.5,
@@ -2013,9 +2108,9 @@
    {
     "x_eq_mm": 55.0,
     "oring": "ISO 3601 / AS568 -141",
-    "seal_bore_d_mm": 64.66,
-    "spigot_bore_d_mm": 56.45,
-    "lip_d_mm": 61.66,
+    "seal_bore_d_mm": 64.09,
+    "spigot_bore_d_mm": 55.88,
+    "lip_d_mm": 61.09,
     "bayonet_engage_deg": 35.0,
     "largest_envelope": {
      "D_mm": 50.5,
@@ -2029,9 +2124,9 @@
    {
     "x_eq_mm": 57.5,
     "oring": "ISO 3601 / AS568 -141",
-    "seal_bore_d_mm": 64.66,
-    "spigot_bore_d_mm": 56.45,
-    "lip_d_mm": 61.66,
+    "seal_bore_d_mm": 64.09,
+    "spigot_bore_d_mm": 55.88,
+    "lip_d_mm": 61.09,
     "bayonet_engage_deg": 35.0,
     "largest_envelope": {
      "D_mm": 50.5,
@@ -2045,9 +2140,9 @@
    {
     "x_eq_mm": 60.0,
     "oring": "ISO 3601 / AS568 -141",
-    "seal_bore_d_mm": 64.66,
-    "spigot_bore_d_mm": 56.45,
-    "lip_d_mm": 61.66,
+    "seal_bore_d_mm": 64.09,
+    "spigot_bore_d_mm": 55.88,
+    "lip_d_mm": 61.09,
     "bayonet_engage_deg": 35.0,
     "largest_envelope": {
      "D_mm": 50.5,
@@ -2062,9 +2157,9 @@
   "pocket_depth_sensitivity": [
    {
     "pocket_depth_mm": 2.0,
-    "oring": "ISO 3601 / AS568 -142",
-    "seal_bore_d_mm": 66.26,
-    "spigot_bore_d_mm": 58.05,
+    "oring": "ISO 3601 / AS568 -141",
+    "seal_bore_d_mm": 64.09,
+    "spigot_bore_d_mm": 55.88,
     "D_max_at_bay_L_mm": 50.9401,
     "bayonet_engage_deg": 35.0,
     "bayonet_ok": true
@@ -2106,7 +2201,7 @@
     "bayonet_ok": true
    }
   ],
-  "max_pocket_depth_at_equator_for_bay_mm": 5.4656,
+  "max_pocket_depth_at_equator_for_bay_mm": 5.4692,
   "bay_length": [
    {
     "L_mm": 21.5,
@@ -2188,18 +2283,18 @@
   "fin_fold_rule_alternative": {
    "rule": "torus",
    "chord_mm": 25.0,
-   "span_mm": 110.0,
-   "x_le_mm": 4.93,
+   "span_mm": 85.0,
+   "x_le_mm": 4.9613,
    "x_te_mm": 29.6867,
    "theta_deg": [
-    91.5,
-    271.5
+    91.0,
+    271.0
    ],
-   "incidence_deg": 8.0,
-   "pivot_chord_frac": 0.25,
-   "tip_to_tip_mm": 300.5648,
-   "area_each_cm2": 27.5,
-   "drag_tow_N": 1.2507
+   "incidence_deg": 8.5,
+   "pivot_chord_frac": 0.4,
+   "tip_to_tip_mm": 250.5362,
+   "area_each_cm2": 21.25,
+   "drag_tow_N": 1.0543
   }
  },
  "proposed_param_updates": {
@@ -2209,21 +2304,78 @@
    "d": 8.0,
    "D": 22.0,
    "B": 7.0,
-   "x0_mm": 63.0
+   "x0": 63.0,
+   "role": "front, locating"
   },
   "BEARING_REAR": {
    "name": "688-2RS",
    "d": 8.0,
    "D": 16.0,
    "B": 5.0,
-   "x0_mm": 96.0
+   "x0": 96.0,
+   "role": "rear, floating"
   },
   "LIP_SEAL": {
    "name": "TC 8x16x5",
    "d": 8.0,
    "D": 16.0,
    "B": 5.0,
-   "x0_mm": 102.5
+   "x0": 102.5,
+   "recess": 0.5
+  },
+  "BEARING_TUBE": {
+   "x0": 62.0,
+   "x1": 108.0,
+   "r_out_front": 13.4,
+   "r_out_rear": 10.4,
+   "profile_x": [
+    62.0,
+    72.0,
+    94.0,
+    96.0,
+    108.0
+   ],
+   "profile_r": [
+    13.4,
+    13.4,
+    11.4,
+    10.4,
+    10.4
+   ],
+   "seat_front_d": 22.0,
+   "shoulder_front_id": 18.0,
+   "shoulder_front_x": [
+    70.0,
+    96.0
+   ],
+   "seat_rear_d": 16.0,
+   "seal_shoulder_x": [
+    101.0,
+    102.5
+   ],
+   "seal_shoulder_id": 12.5,
+   "seal_bore_d": 16.0,
+   "mouth_lead_in": 0.5,
+   "seat_note": "printed seats = nominal D + 2 x PRESS_FIT; the 18 mm bore between the seats lets the 688 pass through the 608 seat",
+   "ribs": {
+    "n": 3,
+    "t": 2.0,
+    "theta_deg": [
+     0.0,
+     120.0,
+     240.0
+    ],
+    "x": [
+     62.0,
+     108.0
+    ],
+    "rule": "radial ribs under the pocket floors, tube to shell"
+   }
+  },
+  "TAIL_END_BLOCK": {
+   "x0": 101.0,
+   "x1": 108.0,
+   "note": "solid ring: seal shoulder, seal bore, the 3 notch floors and the stowed-detent magnet seats (layout_rotor.json detents.stowed)"
   },
   "GENERATOR": {
    "name": "CubeMars GL40 KV70",
@@ -2237,15 +2389,110 @@
    "bay_L": 24.0,
    "x_bay_fwd": 22.5,
    "x_rotor_face": 46.5,
+   "motor_body_x": [
+    25.0,
+    46.5
+   ],
+   "adapter_spacer_L": 2.5,
    "alternative": "iPower GM4108H-120T",
    "alt_mount_pcd": 38.14
+  },
+  "CARRIER": {
+   "x0": 18.5,
+   "t": 4.0,
+   "r": 23.3972,
+   "twist_deg": 30.0,
+   "centre_bore_d": 16.0,
+   "screw_pattern_clock_deg": 45.0,
+   "ring": {
+    "x": [
+     17.3,
+     23.7
+    ],
+    "t_radial": 1.6,
+    "r_in_at_plate": 24.8669
+   },
+   "cable_notch": {
+    "theta_deg": 180.0,
+    "width": 7.5,
+    "depth": 7.5,
+    "bottom_r": 15.8972
+   }
+  },
+  "COUPLER": {
+   "od": 22.0,
+   "claw_a_L": 5.0,
+   "float": 1.0,
+   "claw_b_L": 10.5,
+   "claw_a_x": [
+    46.5,
+    51.5
+   ],
+   "claw_b_x": [
+    52.5,
+    63.0
+   ],
+   "claw_b_step_od": 20.0,
+   "claw_b_step_L": 2.0,
+   "shim_od": 12.0,
+   "shim_t": 0.5,
+   "thrust_collar": "Ruland MSC-8-SS 8x16x8"
+  },
+  "SHAFT": {
+   "d": 8.0,
+   "x0": 52.5,
+   "x1": 128.0,
+   "L": 75.5,
+   "hub_flat_x": 111.6,
+   "hub_flat_depth": 0.5,
+   "aft_tap": "M3 x 8"
+  },
+  "JOINT": {
+   "x_eq": 57.5,
+   "x_spigot_tip": 43.595,
+   "x_lip": [
+    46.595,
+    49.595
+   ],
+   "x_seal_zone": [
+    49.595,
+    57.5
+   ],
+   "x_channel": [
+    43.195,
+    46.595
+   ],
+   "x_ring_ceiling_start": 41.695,
+   "groove_x": {
+    "x_aft": 56.0,
+    "x_fwd_bottom": 53.1,
+    "x_fwd_top": 51.095
+   },
+   "seal_bore_d": 64.09,
+   "spigot_seal_od": 63.89,
+   "groove_bottom_d": 59.88,
+   "lug_od": 63.59,
+   "spigot_lug_zone_od": 60.59,
+   "lip_d": 61.09,
+   "channel_d": 64.09,
+   "spigot_bore_d": 55.88,
+   "root_ring_L": 7.16,
+   "land_root": 1.5,
+   "land_tip": 1.5
   },
   "ORING_EQUATOR": {
    "cs": 2.62,
    "name": "ISO 3601 / AS568 -141",
    "id": 58.42,
-   "groove_d": 60.45,
-   "bore_d": 64.66
+   "groove_d": 59.88,
+   "bore_d": 64.09,
+   "spigot_od": 63.89,
+   "groove_bottom_w": 2.9,
+   "groove_top_w": 4.905,
+   "groove_depth": 2.005,
+   "gland_depth": 2.105,
+   "flank": "aft flank radial, tip-side flank 45 deg",
+   "radial_clearance": 0.1
   },
   "BAYONET": {
    "n_lugs": 3,
@@ -2257,54 +2504,62 @@
     72.0,
     192.0,
     312.0
-   ]
-  },
-  "SHAFT": {
-   "d": 8.0,
-   "x0": 52.5,
-   "x1": 128.0,
-   "L": 75.5
-  },
-  "COUPLER": {
-   "od": 22.0,
-   "claw_a_L": 5.0,
-   "float": 1.0,
-   "claw_b_L": 10.5,
-   "thrust_collar": "Ruland MSC-8-SS 8x16x8"
-  },
-  "CARRIER": {
-   "x0": 18.5,
-   "t": 4.0,
-   "r": 23.3972
+   ],
+   "entry_theta_deg": [
+    37.0,
+    157.0,
+    277.0
+   ],
+   "gap_w_deg": 20.0,
+   "lip_t": 3.0,
+   "channel_extra": 0.4
   },
   "FIN": {
    "section": "clarky",
    "chord": 40.0,
-   "span": 75.0,
-   "incidence_deg": 13.5,
-   "x_le": 16.6052,
+   "span": 65.0,
+   "incidence_deg": 12.0,
+   "x_le": 16.3741,
    "x_te": 55.5,
    "theta_deg": [
-    96.0,
-    276.0
+    93.0,
+    273.0
    ],
-   "yaw_pivot_chord_frac": 0.0,
+   "yaw_pivot_chord_frac": 0.15,
+   "yaw_pivot_x": 22.243,
    "te_side": "-theta",
+   "root_r_le": 33.7926,
+   "root_r_te": 44.5966,
    "rail_w": 10.0,
    "rail_h_min": 4.0,
+   "groove_w_mean": 6.0,
+   "groove_depth": 4.0,
+   "groove_form": "half dovetail, 45 deg flank",
    "pad_x": [
-    15.438,
+    15.3345,
     57.5
-   ]
+   ],
+   "end_stop_x": 55.5,
+   "retention": "M3 grub in a heat-set insert",
+   "trim_variant_deg": 1.0
   },
   "GLAND": {
    "thread": "M12x1.5",
-   "x": 6.0,
+   "x": 8.75,
    "theta_deg": 180.0,
-   "tilt_from_normal_deg": 17.5,
-   "axis_angle_from_x_deg": 160.7145,
+   "tilt_from_normal_deg": 10.0,
+   "axis_angle_from_x_deg": 146.6534,
+   "seat_lift": 3.0,
+   "spot_face_centre_x": 6.2439,
+   "spot_face_centre_r": 21.9432,
    "seat_d": 18.0,
-   "boss_d": 16.0
+   "seat_raise": 6.7887,
+   "thread_length": 8.0,
+   "inner_end_x": 12.9268,
+   "inner_end_r": 17.5456,
+   "thread_engagement_min": 6.05,
+   "boss_in_cavity": false,
+   "note": "seat block = D18 cylinder on the gland axis from the spot face down to the hull; bore tapped M12x1.5 through block, wall and nose plug"
   },
   "TOW_EYE": {
    "hole_d": 8.0,
@@ -2313,21 +2568,48 @@
    "plane": "XZ",
    "hole_centre_x": -5.0
   },
+  "NOSE_PLUG": {
+   "x_45": 11.0348,
+   "bridge_d": 38.5825
+  },
+  "SPINNER_ACCESS": {
+   "d": 6.0,
+   "x": [
+    134.0,
+    165.0
+   ],
+   "aft_wall": 3.0
+  },
+  "BALLAST_V2": {
+   "lead_g": 0.0,
+   "x": 83.0,
+   "theta_deg": 180.0
+  },
+  "POCKET_FLOOR_WALL": 2.0,
   "EQUATOR_X_reason": "kept: the bay is limited by the bearing span and the nose (carrier), not by x_eq; 57.5 keeps the seal in the parallel band",
   "BEARING_reason": "608 front at x 63.0 (takes the thrust, wide hull), 688 rear at x 96.0 under the tail notch (passes through the 608 seat so both press in from the front); span 32.0 mm",
   "GENERATOR_reason": "bay = the largest envelope that fits, D50.5 x L24 at x 22.50-46.50 (the nose wall and the carrier ring set D, the bearing span sets L); it takes iPower GM4108H-120T, CubeMars GL40 KV70, T-motor GB4106 KV53, T-motor MN4006 KV380. GL40 (hardware-study pick) stays the recommended motor. The hardware study's L33 reserve would cut the span to 23.0 mm (< 32)",
-  "ORING_EQUATOR_reason": "cs 2.62 per the hardware study; the real pockets are 3.0 mm deep at the joint (fallback 6), so the bore grows to D64.66 and -141 fits",
-  "BAYONET_reason": "3 x 16 deg lugs locked at theta 72.0/192.0/312.0, 35 deg twist; the twist channel stays 10.7 mm clear of the asymmetric pockets; lug shear util 0.17 at the tow design load",
-  "FIN_reason": "smallest tip-to-tip fin pair that balances the generator torque at 1.0 and 1.5 m/s with CL <= 0.75 CLmax_3D and whose YAWED rail pads (pad yawed with the fin about the LE-side pivot 0.00 c, TE toward -theta) clear the pockets; fins on the front shell (TE x 55.5) at theta 96/276, pad-to-pocket 2.06 mm; blades folding at the stowing index clear pads and fins by 2.46 mm. The any-azimuth fold-torus rule would force 25 x 110 fins at x 4.9-29.7, 301 mm tip to tip"
+  "ORING_EQUATOR_reason": "the hardware study's final pick, adopted as is: ISO 3601 / AS568 -141, groove bottom D59.88 (stretch 2.5 %), bore D64.09, spigot OD 63.89, bottom width 2.90 with a 45 deg tip-side flank (top 4.905); the bore fits the wall limit D64.97 (2.44 mm of shell under the 3.0 mm deep pockets at the joint); recomputed here: squeeze 18.7 % nominal, 7.7-29.0 % worst, fill 63.4 % nominal, 79.7 % worst",
+  "BAYONET_reason": "3 x 16 deg lugs locked at theta 72.0/192.0/312.0, 35 deg twist; the twist channel stays 10.6 mm clear of the asymmetric pockets; lug shear util 0.17 at the tow design load",
+  "FIN_reason": "smallest tip-to-tip fin pair whose couple at 1.5 m/s is 1.110 x the CubeMars GL40 KV70 load-line torque (0.1764 N m at TSR 5.75; 10 % margin) with CL <= 0.75 CLmax_3D, and whose YAWED rail pads (pad yawed with the fin about the pivot at 0.15 c, TE toward -theta) clear the pockets; fins on the front shell (TE x 55.5) at theta 93/273, pad-to-pocket 2.22 mm; blades folding at the stowing index clear pads and fins by 3.09 mm. The any-azimuth fold-torus rule would force 25 x 85 fins at x 5.0-29.7, 251 mm tip to tip",
+  "BEARING_TUBE_reason": "aft-shell tube: 608 seat at the mouth, 18 mm bore, 688 seat, seal shoulder and seal bore, one stepped bore pressed from the front; 3 ribs under the pocket floors",
+  "TAIL_END_BLOCK_reason": "solid end of the aft shell behind the 688 (seal boss, notch floors, magnet seats)",
+  "JOINT_reason": "radial stack and stations of the bayonet + O-ring joint from joint(); spigot on the aft shell, socket in the front shell",
+  "NOSE_PLUG_reason": "forward of x 11.0 the nose inner wall leans past 45 deg (printed nose-up): infilled plug closed by a 38.6 mm bridge",
+  "SPINNER_ACCESS_reason": "the spinner aft of the hub face is printed solid (closed perimeters + infill) around a D6 screw-access bore that floods; the buoyancy counts it wet",
+  "BALLAST_V2_reason": "v2 only, to reach +0.3 N net buoyancy if needed (0 g means the hull is already below the target and needs float, see mass_buoyancy.v2_needs)",
+  "CARRIER_reason": "twist-lock bulkhead at the forward limit set by the PCD 38.14 adapter; screw pattern clocked 45 deg so the cable notch at theta 180 misses the counterbores",
+  "COUPLER_reason": "blind self-finding claw across the joint; claw B is the thrust collar and steps to OD 20 over its last 2 mm (0.95 mm radial clearance in the static tube mouth)"
  },
  "open_issues": [
   "Bearing span 32.0 mm against a 37.8 mm overhang to the rotor thrust centroid (x 136.3 on the solved blade axis at 0.7 R): span/overhang 0.85, below the 1.25 rule of thumb. Explicit checks pass (tip runout 0.30 mm, shaft deflection 0.015 mm, s0 >= 22), but measure rotor wobble on the prototype. Only the rotor side could restore the ratio (a longer static tail), and its hinge sweep rejects STATIC_TAIL_X 110 (root clearance 0.77 < 0.8 mm).",
   "Bay length: the bay is D50.5 x L24 (largest that fits). The hardware study's L33 reserve (GM4108H encoder variant, GL40 II, GBM4114HS) does not fit with a 32 mm span; it would leave 23.0 mm.",
-  "Roll: fins balance the mean torque but nothing restores roll angle (pendulum 0.0001 N m vs Q 0.282 N m at 1.5 m/s); a 4.8 % mismatch rolls the hull at 2.4 rpm. v2 needs a bridle on two nose eyes (heel 5.8 deg) or a cable swivel.",
-  "Fins: 239 mm tip to tip (rotor 194 mm), removable for transport. They clear the blades only when the blades fold at the stowing index; folding at another rotor azimuth with the fins on can touch a fin (assembly guide: index the rotor, or remove the fins, before folding). Margins are thin: yawed pad to pocket 2.06 mm, folding blades to pad 2.46 mm (limits 2.0); the pad footprint and the pocket raster are sampled, so confirm both on the CAD.",
-  "v2 buoyancy: net +0.05 N without ballast (blade slots, spinner access bore and gap counted wet); reaching +0.3 N needs 26 g less mass (4-perimeter shells save 22 g) or ~27 cc of external float.",
+  "Roll: the fins carry the mean torque but nothing restores roll angle (pendulum 0.0002 N m vs Q 0.176 N m at 1.5 m/s). If the models are exact, the fin couple is +11 % of Q at 1.5 m/s (hull rolls 5.0 rpm against the rotor), -11 % at 1.0 m/s (3.7 rpm with the rotor) and +18 % at 2.5 m/s (13.4 rpm against the rotor). v2 needs a bridle on two nose eyes (heel 8.4 deg at 1.5 m/s) or a cable swivel; trim fins (+-1 deg) set the balance after the first wet test.",
+  "Fins: 219 mm tip to tip (rotor 194 mm), removable for transport. They clear the blades only when the blades fold at the stowing index; folding at another rotor azimuth with the fins on can touch a fin (assembly guide: index the rotor, or remove the fins, before folding). Margins: yawed pad to pocket 2.22 mm, folding blades to pad 3.09 mm and to fin 8.44 mm (limits 2.0); the pad footprint, the pocket raster and the fold sweep (1 deg steps) are sampled, so confirm them on the CAD.",
+  "v2 buoyancy: net +0.05 N without ballast (blade slots, spinner access bore and gap counted wet); reaching +0.3 N needs 25 g less mass (4-perimeter shells save 22 g) or ~26 cc of external float.",
   "O-ring worst-case squeeze 8 % is below the 14 % table minimum (print error + full eccentricity); fine at < 0.1 bar, verify with a printed test ring.",
   "Assembly flags: shaft flat passing the lip seal (sleeve), blind claw engagement on closing.",
+  "Gland seat: no boss may hang in the nose cavity (the front shell prints nose-up), so the M12 seat is a raised D18 block whose rim stands 6.8 mm proud of the nose; the tapped thread keeps 6.05 of 8 mm in printed material (block, wall, infilled plug with perimeters around the bore). Tap after printing and check the gland's tightening on a test print.",
   "Lug and lip shear use the interlayer tensile adhesion as a proxy (shear strength across layers not sourced); utilisation 0.17.",
   "Hull drag C_D 0.10, radial rotor load 10 % of thrust, one blade 20 % off its share, thrust centroid at 0.7 R: ESTIMATES."
  ]
