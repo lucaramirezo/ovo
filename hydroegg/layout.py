@@ -1466,23 +1466,52 @@ def detents(lay: Layout, ax: BladeAxis, surf: BladeSurface, pm: PocketMap, tb: d
 # Hub concept and loads
 # ==========================================================================
 
-def bem_loads(path: Path = BLADE_JSON) -> dict:
-    """Flap moment and thrust per blade from data/blade_design.json (BEM study)."""
+def bem_loads(path: Path = BLADE_JSON, lay: "Layout | None" = None) -> dict:
+    """Flap moment and thrust per blade from data/blade_design.json (BEM study).
+
+    Prefers the BEM's layout_axis_check (final blade flown on this study's hinge and solved
+    curved pitch axis) when its hinge matches `lay`; otherwise falls back to the nominal-axis
+    envelope (performance.envelope_up_to_runaway), which assumes the params.py hinge."""
     out = {"source": None}
     try:
         d = json.loads(path.read_text())
     except Exception:  # noqa: BLE001
         return out
+    nb = d["rotor"]["n_blades"]
     env = d.get("performance", {}).get("envelope_up_to_runaway", [])
     se = d.get("structure_estimates", {})
+    torque = {f"{e['flow_m_s']:g}": e["max_torque_Nm"] for e in env}
+    lac = d.get("layout_axis_check") or {}
+    match = (lay is not None and lac.get("rows")
+             and abs(lac.get("hinge_x_mm", -1e9) - lay.hinge_x) < 1e-6
+             and abs(lac.get("hinge_r_mm", -1e9) - lay.hinge_r) < 1e-6)
     rows = {}
-    for e in env:
-        rows[f"{e['flow_m_s']:g}"] = {"flap_moment_per_blade_Nm": e["max_flap_moment_hinge_per_blade_Nm"],
-                                       "thrust_per_blade_N": e["max_thrust_N"] / d["rotor"]["n_blades"],
-                                       "rotor_torque_Nm": e["max_torque_Nm"]}
-    out.update(source=f"{path.name}: performance.envelope_up_to_runaway, structure_estimates",
-               by_flow_m_s=rows, max_flap_moment_Nm=se.get("max_flap_moment_2p5_m_s_Nm"),
-               max_thrust_N=se.get("max_thrust_2p5_m_s_N"), bem_hinge_r_mm=d["rotor"].get("hinge_r_mm"))
+    if match:
+        for e in lac["rows"]:
+            tag = f"{e['flow_m_s']:g}"
+            rows[tag] = {"flap_moment_per_blade_Nm": e["max_flap_moment_hinge_Nm"],
+                         "thrust_per_blade_N": e["max_thrust_N"] / nb,
+                         "rotor_torque_Nm": torque.get(tag),
+                         "flap_moment_nominal_axis_Nm": e["max_flap_moment_hinge_nominal_axis_Nm"],
+                         "cp_peak": e["cp_peak"], "cp_peak_nominal_axis": e["cp_peak_nominal_axis"]}
+        top = max(lac["rows"], key=lambda e: e["flow_m_s"])
+        out.update(source=f"{path.name}: layout_axis_check (hinge {lac['hinge_x_mm']:g}, {lac['hinge_r_mm']:g}, "
+                          "solved curved axis); torque from performance.envelope_up_to_runaway",
+                   axis="curved (layout_axis_check)", max_flap_moment_Nm=top["max_flap_moment_hinge_Nm"],
+                   max_flap_moment_nominal_axis_Nm=top["max_flap_moment_hinge_nominal_axis_Nm"],
+                   max_thrust_N=top["max_thrust_N"], max_flow_m_s=top["flow_m_s"],
+                   cp_peak=top["cp_peak"], cp_peak_nominal_axis=top["cp_peak_nominal_axis"])
+    else:
+        for e in env:
+            rows[f"{e['flow_m_s']:g}"] = {"flap_moment_per_blade_Nm": e["max_flap_moment_hinge_per_blade_Nm"],
+                                           "thrust_per_blade_N": e["max_thrust_N"] / nb,
+                                           "rotor_torque_Nm": e["max_torque_Nm"]}
+        out.update(source=f"{path.name}: performance.envelope_up_to_runaway, structure_estimates",
+                   axis="nominal (params.py hinge, straight axis)",
+                   max_flap_moment_Nm=se.get("max_flap_moment_2p5_m_s_Nm"),
+                   max_thrust_N=se.get("max_thrust_2p5_m_s_N"))
+    out.update(by_flow_m_s=rows, bem_hinge_r_mm=d["rotor"].get("hinge_r_mm"),
+               bem_hinge_x_mm=d["rotor"].get("hinge_x_mm"), curved_axis_check_used=bool(match))
     return out
 
 
@@ -1523,6 +1552,8 @@ def hub_concept(lay: Layout, surf: BladeSurface, ev: dict, slot: dict, loads: di
         S = M / (lever * 1e-3)
         R = S + T
         cases[tag] = {"flap_moment_Nm": M, "thrust_per_blade_N": T, "stop_force_N": S,
+                      **({"flap_moment_nominal_axis_Nm": row["flap_moment_nominal_axis_Nm"]}
+                         if "flap_moment_nominal_axis_Nm" in row else {}),
                       "stop_contact_pressure_MPa": S / ((lay.heel_reach - hg["flat_face_from_pin_mm"][0]) * lay.heel_w),
                       "pin_reaction_N": R,
                       "pin_double_shear_MPa": R / (2 * math.pi * lay.pin_d**2 / 4),
@@ -1575,6 +1606,7 @@ def hub_concept(lay: Layout, surf: BladeSurface, ev: dict, slot: dict, loads: di
                     "retention": "axial M3 screw into a tapped hole in the shaft end (M3 tap, 8 deep)",
                     "slot": "per blade: hub_slot table (x, slot floor r_e, half-width tau) + run clearance"},
         "loads_source": loads.get("source"),
+        "loads_axis": loads.get("axis"),
         "load_cases": cases,
         "load_note": "ESTIMATES, first-order statics: stop force = flap moment / stop lever; pin reaction = "
                      "stop force + blade thrust (same direction); stresses on projected areas. Compare "
@@ -1918,7 +1950,7 @@ def run(write: bool = True, figures: bool = True) -> dict:
     mass = blade_mass_props(lay, S)
     cal = magnet_calibration()
     det = detents(lay, ax, S, pm, tb, mass, cal, ev["stop"])
-    loads = bem_loads()
+    loads = bem_loads(lay=lay)
     hub = hub_concept(lay, S, ev, slot, loads)
     print(f"core done {time.time() - t0:.0f} s", flush=True)
     fstudy = fold_study(blade, lay)
@@ -2082,9 +2114,22 @@ def run(write: bool = True, figures: bool = True) -> dict:
         "HEEL_W": lay.heel_w, "SHAFT_AFT_X": lay.hinge_x + lay.shaft_end_dx,
         "POCKET_CLEAR": lay.pocket_clear, "ROOT_CLEAR": lay.root_clear,
     }
+    if loads.get("curved_axis_check_used"):
+        bem_issue = ("BEM layout_axis_check flew the final blade on hinge (%g, %g) and the solved curved axis: "
+                     "cp peak %.4f vs %.4f nominal, max flap moment %.3f vs %.3f Nm at %g m/s (+%.1f %%), used "
+                     "for the hub load cases. blade_design.json rotor block still lists hinge (%g, %g) until "
+                     "params.py adopts the proposed values; the in-plane lead is still ignored there."
+                     % (lay.hinge_x, lay.hinge_r, loads["cp_peak"], loads["cp_peak_nominal_axis"],
+                        loads["max_flap_moment_Nm"], loads["max_flap_moment_nominal_axis_Nm"],
+                        loads["max_flow_m_s"],
+                        100 * (loads["max_flap_moment_Nm"] / loads["max_flap_moment_nominal_axis_Nm"] - 1),
+                        loads["bem_hinge_x_mm"], loads["bem_hinge_r_mm"]))
+    else:
+        bem_issue = ("BEM loads are for hinge (%s, %s) and a straight axis; re-run bem.py's layout axis check "
+                     "with hinge (%g, %g) and the solved curved axis (axis block)."
+                     % (loads.get("bem_hinge_x_mm"), loads.get("bem_hinge_r_mm"), lay.hinge_x, lay.hinge_r))
     out["open_issues"] = [
-        "BEM ran with hinge (124, 18.5) and a straight 12 deg axis; re-run with hinge (116, 14), the "
-        "solved curved axis (axis block) and r_aero_root 30: the shank is now 16 mm long, not 11.5.",
+        bem_issue,
         "In-plane lead (pitch axis offset toward the LE, 4.9 to 11 mm) yaws the sections vs the local "
         "tangential flow by atan(lead/r) (stowed_sections.yaw_vs_local_tangent_deg); BEM assumes 0.",
         "Pockets cross the equator joint (x 57.5): the internal layout must thicken the shell there.",

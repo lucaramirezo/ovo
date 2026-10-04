@@ -3787,51 +3787,56 @@
    "retention": "axial M3 screw into a tapped hole in the shaft end (M3 tap, 8 deep)",
    "slot": "per blade: hub_slot table (x, slot floor r_e, half-width tau) + run clearance"
   },
-  "loads_source": "blade_design.json: performance.envelope_up_to_runaway, structure_estimates",
+  "loads_source": "blade_design.json: layout_axis_check (hinge 116, 14, solved curved axis); torque from performance.envelope_up_to_runaway",
+  "loads_axis": "curved (layout_axis_check)",
   "load_cases": {
    "1": {
-    "flap_moment_Nm": 0.1969,
-    "thrust_per_blade_N": 3.6366,
-    "stop_force_N": 34.77,
-    "stop_contact_pressure_MPa": 0.71287,
-    "pin_reaction_N": 38.407,
-    "pin_double_shear_MPa": 2.7167,
-    "ear_bearing_MPa": 1.73,
-    "knuckle_bearing_MPa": 0.91445,
-    "knuckle_bending_MPa": 1.5343
+    "flap_moment_Nm": 0.208,
+    "thrust_per_blade_N": 3.6334,
+    "stop_force_N": 36.731,
+    "flap_moment_nominal_axis_Nm": 0.1969,
+    "stop_contact_pressure_MPa": 0.75306,
+    "pin_reaction_N": 40.364,
+    "pin_double_shear_MPa": 2.8552,
+    "ear_bearing_MPa": 1.8182,
+    "knuckle_bearing_MPa": 0.96105,
+    "knuckle_bending_MPa": 1.6208
    },
    "1.5": {
-    "flap_moment_Nm": 0.454,
-    "thrust_per_blade_N": 8.3464,
-    "stop_force_N": 80.171,
-    "stop_contact_pressure_MPa": 1.6437,
-    "pin_reaction_N": 88.518,
-    "pin_double_shear_MPa": 6.2614,
-    "ear_bearing_MPa": 3.9873,
-    "knuckle_bearing_MPa": 2.1076,
-    "knuckle_bending_MPa": 3.5377
+    "flap_moment_Nm": 0.4799,
+    "thrust_per_blade_N": 8.337,
+    "stop_force_N": 84.745,
+    "flap_moment_nominal_axis_Nm": 0.454,
+    "stop_contact_pressure_MPa": 1.7375,
+    "pin_reaction_N": 93.082,
+    "pin_double_shear_MPa": 6.5842,
+    "ear_bearing_MPa": 4.1929,
+    "knuckle_bearing_MPa": 2.2162,
+    "knuckle_bending_MPa": 3.7395
    },
    "2": {
-    "flap_moment_Nm": 0.811,
-    "thrust_per_blade_N": 14.955,
-    "stop_force_N": 143.21,
-    "stop_contact_pressure_MPa": 2.9362,
-    "pin_reaction_N": 158.17,
-    "pin_double_shear_MPa": 11.188,
-    "ear_bearing_MPa": 7.1247,
-    "knuckle_bearing_MPa": 3.7659,
-    "knuckle_bending_MPa": 6.3195
+    "flap_moment_Nm": 0.8583,
+    "thrust_per_blade_N": 14.941,
+    "stop_force_N": 151.57,
+    "flap_moment_nominal_axis_Nm": 0.811,
+    "stop_contact_pressure_MPa": 3.1075,
+    "pin_reaction_N": 166.51,
+    "pin_double_shear_MPa": 11.778,
+    "ear_bearing_MPa": 7.5003,
+    "knuckle_bearing_MPa": 3.9645,
+    "knuckle_bending_MPa": 6.6881
    },
    "2.5": {
-    "flap_moment_Nm": 1.269,
-    "thrust_per_blade_N": 23.444,
-    "stop_force_N": 224.09,
-    "stop_contact_pressure_MPa": 4.5944,
-    "pin_reaction_N": 247.54,
-    "pin_double_shear_MPa": 17.51,
-    "ear_bearing_MPa": 11.15,
-    "knuckle_bearing_MPa": 5.8937,
-    "knuckle_bending_MPa": 9.8883
+    "flap_moment_Nm": 1.3432,
+    "thrust_per_blade_N": 23.424,
+    "stop_force_N": 237.19,
+    "flap_moment_nominal_axis_Nm": 1.269,
+    "stop_contact_pressure_MPa": 4.863,
+    "pin_reaction_N": 260.62,
+    "pin_double_shear_MPa": 18.435,
+    "ear_bearing_MPa": 11.74,
+    "knuckle_bearing_MPa": 6.2052,
+    "knuckle_bending_MPa": 10.466
    }
   },
   "load_note": "ESTIMATES, first-order statics: stop force = flap moment / stop lever; pin reaction = stop force + blade thrust (same direction); stresses on projected areas. Compare with PETG/PLA strength in the report; the 2.5 m/s case is the BEM worst case."
@@ -4048,7 +4053,7 @@
   "ROOT_CLEAR": 0.8
  },
  "open_issues": [
-  "BEM ran with hinge (124, 18.5) and a straight 12 deg axis; re-run with hinge (116, 14), the solved curved axis (axis block) and r_aero_root 30: the shank is now 16 mm long, not 11.5.",
+  "BEM layout_axis_check flew the final blade on hinge (116, 14) and the solved curved axis: cp peak 0.3802 vs 0.3804 nominal, max flap moment 1.343 vs 1.269 Nm at 2.5 m/s (+5.8 %), used for the hub load cases. blade_design.json rotor block still lists hinge (124, 18.5) until params.py adopts the proposed values; the in-plane lead is still ignored there.",
   "In-plane lead (pitch axis offset toward the LE, 4.9 to 11 mm) yaws the sections vs the local tangential flow by atan(lead/r) (stowed_sections.yaw_vs_local_tangent_deg); BEM assumes 0.",
   "Pockets cross the equator joint (x 57.5): the internal layout must thicken the shell there.",
   "Magnet force model calibrated to catalogue pull (k ~ 0.63); verify detent feel on a coupon.",

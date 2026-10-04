@@ -3702,51 +3702,56 @@
     "retention": "axial M3 screw into a tapped hole in the shaft end (M3 tap, 8 deep)",
     "slot": "per blade: hub_slot table (x, slot floor r_e, half-width tau) + run clearance"
    },
-   "loads_source": "blade_design.json: performance.envelope_up_to_runaway, structure_estimates",
+   "loads_source": "blade_design.json: layout_axis_check (hinge 116, 14, solved curved axis); torque from performance.envelope_up_to_runaway",
+   "loads_axis": "curved (layout_axis_check)",
    "load_cases": {
     "1": {
-     "flap_moment_Nm": 0.1969,
-     "thrust_per_blade_N": 3.6366,
-     "stop_force_N": 34.77,
-     "stop_contact_pressure_MPa": 0.7129,
-     "pin_reaction_N": 38.407,
-     "pin_double_shear_MPa": 2.7167,
-     "ear_bearing_MPa": 1.73,
-     "knuckle_bearing_MPa": 0.9144,
-     "knuckle_bending_MPa": 1.5343
+     "flap_moment_Nm": 0.208,
+     "thrust_per_blade_N": 3.6334,
+     "stop_force_N": 36.731,
+     "flap_moment_nominal_axis_Nm": 0.1969,
+     "stop_contact_pressure_MPa": 0.7531,
+     "pin_reaction_N": 40.364,
+     "pin_double_shear_MPa": 2.8552,
+     "ear_bearing_MPa": 1.8182,
+     "knuckle_bearing_MPa": 0.961,
+     "knuckle_bending_MPa": 1.6208
     },
     "1.5": {
-     "flap_moment_Nm": 0.454,
-     "thrust_per_blade_N": 8.3464,
-     "stop_force_N": 80.171,
-     "stop_contact_pressure_MPa": 1.6437,
-     "pin_reaction_N": 88.518,
-     "pin_double_shear_MPa": 6.2614,
-     "ear_bearing_MPa": 3.9873,
-     "knuckle_bearing_MPa": 2.1076,
-     "knuckle_bending_MPa": 3.5377
+     "flap_moment_Nm": 0.4799,
+     "thrust_per_blade_N": 8.337,
+     "stop_force_N": 84.745,
+     "flap_moment_nominal_axis_Nm": 0.454,
+     "stop_contact_pressure_MPa": 1.7375,
+     "pin_reaction_N": 93.082,
+     "pin_double_shear_MPa": 6.5842,
+     "ear_bearing_MPa": 4.1929,
+     "knuckle_bearing_MPa": 2.2162,
+     "knuckle_bending_MPa": 3.7395
     },
     "2": {
-     "flap_moment_Nm": 0.811,
-     "thrust_per_blade_N": 14.955,
-     "stop_force_N": 143.21,
-     "stop_contact_pressure_MPa": 2.9362,
-     "pin_reaction_N": 158.17,
-     "pin_double_shear_MPa": 11.188,
-     "ear_bearing_MPa": 7.1247,
-     "knuckle_bearing_MPa": 3.7659,
-     "knuckle_bending_MPa": 6.3195
+     "flap_moment_Nm": 0.8583,
+     "thrust_per_blade_N": 14.941,
+     "stop_force_N": 151.57,
+     "flap_moment_nominal_axis_Nm": 0.811,
+     "stop_contact_pressure_MPa": 3.1075,
+     "pin_reaction_N": 166.51,
+     "pin_double_shear_MPa": 11.778,
+     "ear_bearing_MPa": 7.5003,
+     "knuckle_bearing_MPa": 3.9645,
+     "knuckle_bending_MPa": 6.6881
     },
     "2.5": {
-     "flap_moment_Nm": 1.269,
-     "thrust_per_blade_N": 23.444,
-     "stop_force_N": 224.09,
-     "stop_contact_pressure_MPa": 4.5944,
-     "pin_reaction_N": 247.54,
-     "pin_double_shear_MPa": 17.51,
-     "ear_bearing_MPa": 11.15,
-     "knuckle_bearing_MPa": 5.8937,
-     "knuckle_bending_MPa": 9.8883
+     "flap_moment_Nm": 1.3432,
+     "thrust_per_blade_N": 23.424,
+     "stop_force_N": 237.19,
+     "flap_moment_nominal_axis_Nm": 1.269,
+     "stop_contact_pressure_MPa": 4.863,
+     "pin_reaction_N": 260.62,
+     "pin_double_shear_MPa": 18.435,
+     "ear_bearing_MPa": 11.74,
+     "knuckle_bearing_MPa": 6.2052,
+     "knuckle_bending_MPa": 10.466
     }
    },
    "load_note": "ESTIMATES, first-order statics: stop force = flap moment / stop lever; pin reaction = stop force + blade thrust (same direction); stresses on projected areas. Compare with PETG/PLA strength in the report; the 2.5 m/s case is the BEM worst case."
@@ -5688,7 +5693,7 @@
   "Magnet forces come from a model scaled to catalogue pull (k 0.63); the stowed hold (25.8 N mm) may stop the flow from opening the blades. Verify both detents on a test print.",
   "Pin 3 x 22 (ISO 8734): check stock; fallback 3 x 20 with 2.7 mm ears.",
   "Hub wall over the shaft bore is exactly MIN_WALL (1.24 mm) in the three heel slots (x 114-122).",
-  "Rotor loads (stop 224 N, pin shear 17.5 MPa, ear bearing 11.2 MPa at 2.5 m/s) are first-order ESTIMATES; printed PETG allowables were not sourced for them.",
+  "Rotor loads (stop 237 N, pin shear 18.4 MPa, ear bearing 11.7 MPa at 2.5 m/s) are first-order ESTIMATES; printed PETG allowables were not sourced for them.",
   "Stowed, the section tops are flush but the outer LE/TE edges sit 1.0-1.6 mm below the hull: a visible recess, accepted."
  ]
 }
