@@ -6,9 +6,10 @@ blade skin parameterisation, mesh quality, all-ivory colours, display blanking p
 viewer controls, blade print cradle, closing-path check, output pruning); params write-back the same
 day (section 10); review 2 round the same day (section 9.2: bayonet-click breakaway ties, one detent
 boss top, tight skin-normal spinner windows, blended gland boss, pocket tips that follow the blade tip,
-fin root flare, strip groove, finer blade cradle, coupons, exploded view, studio backdrop); fresh
-integration build 2026-10-05 (`build.py --fresh`, then the fins, the shells' exports and `--only-assembly`
-once more; every number below).
+fin root flare, strip groove, finer blade cradle, coupons, exploded view, studio backdrop); nose round
+the same day (section 9.3: clean display nose with a v2 front shell for the gland, the display plug
+removed, coupon B checks by name, the couple ratio as a range over the measured yaw play, the slot and
+strip outline); one fresh integration build after it (`build.py --fresh`; every number below).
 Sources: `ovo/cad/*.py` (one module per subassembly, see the table below) and
 `ovo/cad/assembly.py` (integration). Every dimension comes from `ovo/params.py` and the layout
 tables in `data/`: the as-built deviations of the review and polish rounds were written back into
@@ -16,8 +17,9 @@ params.py (section 10), so params and the CAD agree. The CAD numbers below are m
 real solids and come from `out/cad/checks/*.json`.
 
 Regenerate everything with one command (logs in `out/work/build/`). The integration build
-`--fresh` of 2026-10-05 (review 2) took 2554 s: shells 1242, blade 256, rotor 223, drivetrain 20,
-fins 56, coupon 89, assembly checks and exports 581, renders 85; `--only-assembly` takes about 630 s.
+`--fresh` of 2026-10-05 (nose round) took 2011 s: shells 857 (five shells now), blade 222, rotor 161,
+drivetrain 18, fins 76, coupon 113, assembly checks and exports 489, renders 76; it pruned
+`gland_plug.step` and `gland_plug.stl`.
 
 ```
 .venv/bin/python scripts/build.py                  # modules, assembly, renders, summary table
@@ -29,8 +31,9 @@ fins 56, coupon 89, assembly checks and exports 581, renders 85; `--only-assembl
 
 `--fresh` ends by deleting every file in `out/cad/step`, `out/cad/stl`, `out/cad/checks`, `out/web`
 and `out/renders` that the build did not produce (`build.prune_outputs`: removed parts such as
-`inserts_m3_stator.step`, test artefacts such as `out/web/test.glb` and `manifest_test.json`, and
-the `hydroegg_*` files from before the rename). It never prunes without a part cache.
+`inserts_m3_stator.step` and, in the nose round, `gland_plug.*`, test artefacts such as
+`out/web/test.glb` and `manifest_test.json`, and the `hydroegg_*` files from before the rename). It
+never prunes without a part cache.
 
 `build.py` runs the six part modules through `scripts/cadrun.sh` (at most 2 OCC jobs on the
 machine), then `python -m ovo.cad.assembly --force` (rebuilds the part cache under
@@ -42,12 +45,12 @@ table (parts, interference, key clearances, spin sweep, viewer check, print plan
 | output | what |
 |---|---|
 | `out/cad/step/<part>.step` | every part in its assembled (world) pose, except `blade.step` and the coupon parts, which are in print pose |
-| `out/cad/stl/<part>.stl` | every printed part in print orientation (on z = 0, mm); the three blades share `blade.stl`, the two fins and the two fin blanks are identical pairs; every STL is watertight with 0 folded sliver pairs (the assembly's STL audit rewrites any that is not, section 5). The aft shells' STLs carry the bayonet-click breakaway ties (print only, review C1 / P1) |
+| `out/cad/stl/<part>.stl` | every printed part in print orientation (on z = 0, mm); the three blades share `blade.stl`, the two fins and the two fin blanks are identical pairs; `front_shell.stl` is the display shell (clean nose), `front_shell_v2.stl` the v2 one (gland seat and bore); every STL is watertight with 0 folded sliver pairs (the assembly's STL audit rewrites any that is not, section 5). The aft shells' STLs carry the bayonet-click breakaway ties (print only, review C1 / P1) |
 | `out/cad/stl/blade_cradle.stl` | the blade's sacrificial print cradle, in the coordinates of `blade.stl` (print one per blade, T13) |
-| `out/cad/step/ovo_assembly_stowed.step` | the machine as carried: PACKED state (blades stowed, fins off, blanking strips in, blanking plug), 57 named parts, 30.1 MB |
-| `out/cad/step/ovo_assembly_deployed.step` | the machine running: blades deployed, fins fitted, blanking plug, 57 named parts, 32.0 MB |
-| `out/web/ovo.glb`, `out/web/manifest.json` | viewer scene: 67 meshes, 277k triangles, 9.3 MB, 0 folded pairs; roles, rotor flags, `packed` and `v2` flags, explode vectors, blade pivots, cut-face section meshes, material table |
-| `out/web/packed_kit.glb`, `out/web/packed_kit.json` | a separate light scene: the packed egg with the two fins (and their magnets) lying flat on the ground in front of the nose (29 meshes) |
+| `out/cad/step/ovo_assembly_stowed.step` | the machine as carried: PACKED state (blades stowed, fins off, blanking strips in, the display front shell with its clean nose), 56 named parts, 31.3 MB |
+| `out/cad/step/ovo_assembly_deployed.step` | the machine running: blades deployed, fins fitted, display front shell, 56 named parts, 33.8 MB |
+| `out/web/ovo.glb`, `out/web/manifest.json` | viewer scene: 67 meshes, 313 639 triangles, 10.48 MB, 0 folded pairs; roles (`v2` for the v2 front shell), rotor flags, `packed` and `v2` flags, explode vectors, blade pivots, cut-face section meshes, material table |
+| `out/web/packed_kit.glb`, `out/web/packed_kit.json` | a separate light scene: the packed egg with the two fins (and their magnets) lying flat on the ground in front of the nose (28 meshes) |
 | `out/renders/*.png` | hero_deployed, stowed, packed_kit, cutaway, exploded, side, front (1600 x 1000) |
 | `out/cad/checks/<module>.json` | each module's own checks |
 | `out/cad/checks/assembly.json` | part audit, STL audit, interference matrix, key clearances, spin sweep, viewer fold check, print plan, BOM |
@@ -68,25 +71,32 @@ table (parts, interference, key clearances, spin sweep, viewer check, print plan
   blanking strips `fin_blank_0/1` in the recessed rails: the carry configuration). Fins are fitted in
   every state except PACKED. A part dict may carry `packed`: `False` = removed for packing (the
   fins), `True` = only in the packed egg (the blanks); the viewer follows the same flag (`packed=1`).
-* **Variants**: a part dict may carry `v2`. `True` marks v2 / cutaway hardware (the M12 cable gland):
-  only in CUTAWAY and the viewer's v2 mode. `False` marks its display-build stand-in (the blanking
-  plug): everywhere else. The STEP assemblies carry the plug.
+* **Variants** (owner decision 2026-10-05, nose round, section 9.3): the display build has a clean egg
+  nose, with no gland seat, no bore, no plug and no gland. A part dict may carry `v2`. `True` marks the
+  v2 hardware: the v2 front shell `front_shell_v2` (role `v2`: the gland seat and the tapped bore) and
+  the M12 cable gland. These exist only in CUTAWAY, V2 and the viewer's v2 mode. The role `v2` shell is
+  never in CUTAWAY, because the cutaway front shell, cut from the v2 shell, replaces it there. `False`
+  marks the display front shell `front_shell`, present everywhere else. The V2 state is STOWED with the
+  v2 hardware; its checks add only the pairs that involve a v2 part. The STEP assemblies are the
+  display build.
 
 ## 3. Part list
 
 72 parts: 62 from the modules (one of them the hidden brass seal sleeve, a BOM item only, so the
-part audit lists 71) plus 9 detent magnets that no builder modelled (added by
+part audit lists 71; the nose round added `front_shell_v2` and removed `gland_plug`) plus 9 detent magnets that no builder modelled (added by
 `assembly.magnets()` from the blade's seat geometry and the shells' boss geometry) and the
 sector-cut O-ring for the cutaway (`assembly.oring_cutaway()`). The coupon parts are `hidden` (not
 in the assembly; the brass seal sleeve is a BOM item only); the cutaway shells and the cut O-ring
-replace the full ones in CUTAWAY only. Every part is a valid solid; the compounds are intended
+replace the full ones in CUTAWAY only; the v2 front shell and the gland replace the display front
+shell in the V2 state only. Every part is a valid solid; the compounds are intended
 (several identical bought items in one part, or a bearing's two seals). Volumes are B-rep volumes.
 
 | part | module | role | rotor | kind | cm3 | notes |
 |---|---|---|---|---|---|---|
-| `front_shell` | shells | shell | | printed | 45.50 | nose, teardrop tow eye, gland seat (D18 boss without rim chamfer, blended into the nose by an R6 root fillet), carrier ring and twist-lock groove, bayonet socket with the 0.85 x 18 deg O-ring lead-in, 2 recessed half-dovetail fin rails sunk into bosses on the inner wall (no proud pads; each boss widened toward its nearer pocket liner), groove-floor magnet seats, pocket tips that follow the blade tip |
+| `front_shell` | shells | shell, `v2: False` | | printed (display build) | 45.00 | clean egg nose with the teardrop tow eye only (owner decision, section 9.3), nose-plug bridge, carrier ring and twist-lock groove, bayonet socket with the 0.85 x 18 deg O-ring lead-in, 2 recessed half-dovetail fin rails sunk into bosses on the inner wall (no proud pads; each boss widened toward its nearer pocket liner; slot mouths with R2 aft corners and a straight relief taper, review V8), groove-floor magnet seats, pocket tips that follow the blade tip |
+| `front_shell_v2` | shells | v2, `v2: True` | | printed (v2 build, replaces `front_shell`) | 45.51 | the same shell plus the M12 gland seat (D18 boss without rim chamfer, blended into the nose by an R6 root fillet) and the D10.5 tap-drill bore; identical to `front_shell` outside the gland zone (41167.225 mm3 both) |
 | `aft_shell` | shells | shell | | printed | 57.60 | spigot with O-ring groove and 3 bayonet lugs, bearing tube on 3 ribs, 3 blade pockets (smooth rim, 0.6 mm chamfer), 3 stowed-detent bosses leaned 49 deg, each started by a chin on the root-notch ramp (boss and chin share one top), 3 bayonet click tines in the spigot wall (0.81 mm underside slots; the STL carries 3 breakaway ties), static tail end x 108 |
-| `front_shell_cutaway`, `aft_shell_cutaway` | shells | shell_cutaway | | printed (optional) | 37.76, 43.49 | sector theta -73 to 17 removed (faces the hero / iso cameras) |
+| `front_shell_cutaway`, `aft_shell_cutaway` | shells | shell_cutaway | | printed (optional) | 37.77, 43.49 | sector theta -73 to 17 removed (faces the hero / iso cameras); the front one is cut from `front_shell_v2`, so it shows the gland seat with the gland |
 | `hub` | rotor | body | yes | printed | 14.38 | D-bore on the shaft flat, 3 slotted ear pairs, stop faces with glued block-magnet seats, flat front face; ivory |
 | `spinner` | rotor | body | yes | printed | 15.14 | 1.25 mm shell over the hub, one tight window per blade cut normal to the skin (review V1), M3 screw seat, D6 access bore with a 45 deg countersink at x 148.35 to 151.73; ivory |
 | `spinner_cap` | rotor | body | yes | printed | 1.09 | push-in tip cap: D5.7 x 12 spigot with 3 crush ribs, 45 deg shoulder, R3 Myring tip at x 160.99, fingernail groove at the joint; ivory |
@@ -109,10 +119,9 @@ replace the full ones in CUTAWAY only. Every part is a valid solid; the compound
 | `adapter_spacer` | drivetrain | internal | | printed | 3.16 | GL40-specific spacer |
 | `generator_stator`, `generator_bell` | drivetrain | internal | / yes | printed | 15.21, 8.35 | display stand-in for the CubeMars GL40 (real envelope); the bell turns on a journal; the stator has D2.5 pilots, no inserts, and D1.6 dimples on PCD 39 for the real M2.5 holes |
 | `inserts_m3_bell` | drivetrain | internal | yes | bought (2) | 0.08 | heat-set inserts in the replica bell (display only) |
-| `cable_gland_m12` | drivetrain | body, `v2: True` | | bought (v2) | 2.98 | Hummel HSK-K M12x1.5 in the nose seat; CUTAWAY and the viewer's v2 mode only |
-| `gland_plug` | drivetrain | body, `v2: False` | | printed | 1.52 | display M12 blanking plug: low dome covering the whole D18 seat flush with its edge, push-in crush ribs, coin slot; ivory |
-| `fin_0`, `fin_1` | fins | body | | printed | 5.60 each | Clark Y fins on recessed half-dovetail rails (no proud pad), 45 deg root flare beside the neck, tip corners on a short land, magnet retention; ivory; `packed: False` |
-| `fin_blank_0`, `fin_blank_1` | fins | body | | printed | 0.168 each | blanking strips, outer face on the hull profile (flush), fingernail groove near the aft end, entry wedge trimmed at 0.6 mm, same magnet pair; ivory; `packed: True` |
+| `cable_gland_m12` | drivetrain | body, `v2: True` | | bought (v2) | 2.98 | Hummel HSK-K M12x1.5 in the seat of `front_shell_v2`; CUTAWAY, V2 and the viewer's v2 mode only (the display build has no gland and no plug) |
+| `fin_0`, `fin_1` | fins | body | | printed | 5.62 each | Clark Y fins on recessed half-dovetail rails (no proud pad), tongue with rounded aft corners following the slot's relief taper, 45 deg root flare from the tongue's edges, tip corners on a short land, magnet retention; ivory; `packed: False` |
+| `fin_blank_0`, `fin_blank_1` | fins | body | | printed | 0.164 each | blanking strips, outer face on the hull profile (flush); outline of a tapered inlay (rounded aft and front corners, the relief taper, even 0.25 reveal), half-round fingernail notch at the aft end, entry wedge trimmed at 0.6 mm, same magnet pair; ivory; `packed: True` |
 | `rail_magnet_0/1`, `fin_magnet_0/1`, `fin_blank_magnet_0/1` | fins | body | | bought | 0.016 each | N52 4 x 2 x 2 blocks: groove floor, fin tongue, strip (`packed` as their host) |
 | `tolerance_coupon` (+ 3 keys) | coupon | hidden | | printed | 23.10 (+ 0.26, 0.52, 0.70) | print first: seats, pins, insert, M12 tap drill, bayonet and dovetail keys; the standing key `tolerance_coupon_key_tongue_up` prints as the fin |
 | `tolerance_coupon_b` | coupon | hidden | | printed | 18.40 | print with coupon A: hub D-bore, block and disc magnet seats (vertical, horizontal, and tilted 49 deg on the sloped +X end), upright ear with D2.9 / 3.0 / 3.1 holes |
@@ -121,7 +130,7 @@ replace the full ones in CUTAWAY only. Every part is a valid solid; the compound
 | `tail_magnet_0..2` | assembly | body (`_0`: shell) | | bought | 0.025 each | N52 disc 4 x 2 in the aft shell's stowed-detent bosses on the blade face normal (49 deg from radial); `tail_magnet_0` takes the shell role because its boss is in the cutaway sector |
 
 Colours (owner decision 2026-10-05): every part on the outside of the egg is ivory (shells, hub,
-spinner, spinner cap, fins, blanking strips, blanking plug); the blades are orange; the generator
+spinner, spinner cap, fins, blanking strips); the blades are orange; the generator
 replica is blue; the printed drivetrain internals are shown charcoal (`drive`).
 
 ## 4. How the parts fit
@@ -146,12 +155,18 @@ at theta 120 / 240 / 0, passes the ring notches and twists 30 deg toward -theta 
 330; the generator reaction torque drives the tabs into the stop. Carrier, adapter spacer and the
 replica stator stack on 4 M3 x 8 that self-tap into D2.5 pilots (1.65 mm from the bell journal
 groove; the real GL40 has M3 threads; its M2.5 holes on PCD 40 are D1.6 dimples on PCD 39 on the replica); the bell turns on the stator journal (0.298 mm min gap over
-a full turn) and carries claw A on 2 M3 x 4. In v2 the cable leaves through the carrier's theta 180
-notch to the M12 gland in the nose seat (gland to carrier 3.61 mm). The display build closes the
-seat with the printed blanking plug (`gland_plug`): a low ivory dome that covers the whole D18 seat
-flush with its edge (the seat has no rim chamfer and the boss blends into the nose through an R6
-fillet, review V2), pushed into the D10.5 tap-drill bore on three crush ribs (0.192 mm3 of rib press,
-seat face 0.000 mm), with a coin slot to twist it out.
+a full turn) and carries claw A on 2 M3 x 4.
+
+**Nose (owner decision 2026-10-05, section 9.3).** The display front shell `front_shell` has a clean
+egg nose. The tow eye is the only thing on it: a teardrop lug in the XZ plane, which seen from the
+front is one rounded 6 mm bar. There is no gland seat, no bore and no plug. The v2 front shell
+`front_shell_v2` is the same shell with the raised D18 gland seat (blended into the nose by an R6 root
+fillet, review V2) and the D10.5 tap-drill bore, built exactly as before. A v2 build prints it instead
+of `front_shell`, taps the bore M12x1.5 and screws the gland in. The cable then leaves through the
+carrier's theta 180 notch to the gland (gland to carrier 3.609 mm). The cutaway front shell is
+cut from the v2 shell, so the cutaway shows the seat with the gland in it. The display blanking plug
+of the polish round is removed from the build and the BOM: the display nose has nothing to plug, and
+the v2 shell carries the gland.
 
 **Coupling and shaft (aft shell).** The 608 (locating) and the 688 (floating) sit on three crush
 ribs each in the bearing tube. The shaft runs from x 52.5 to the hub at x 128. Claw B is a sleeve
@@ -188,11 +203,22 @@ and inward along a half-dovetail groove. The groove is sunk into a boss on the i
 shell wall, so no pad stands proud of the hull (measured: 0 mm3 of front shell more than 0.05 mm
 outside the hull at the rails). The fin is held by an N52 4 x 2 x 2 block in the tongue over a
 second one in the groove floor. For packing, pull each fin forward out of its slot and slide the
-blanking strip in: the strip is the tongue section with its outer face on the hull profile, flush
-when seated, held by the same magnet pair; to take it out, hook a fingernail in the groove across its
-outer face near the aft end and drag it forward (review C6). Stowed, the egg keeps its 75 mm diameter.
-Over the slot the fin's root carries a 45 deg flare from the neck edges up to the airfoil (review C4 /
-P3), so the tip-down print has no ledge. Details and numbers: `out/cad/checks/fins.json` and
+blanking strip in: the strip is the tongue with its outer face on the hull profile, flush when
+seated, held by the same magnet pair. To take it out, hook a fingernail in the half-round notch at
+its aft end, against the end stop, and drag it forward. Stowed, the egg keeps its 75 mm diameter.
+
+Slot outline (review V8, section 9.3). The groove is a ruled loft of outlines parallel to its floor.
+Its aft corners are rounded R2 at every height, the undercut flank included. The entry relief is no
+longer a full-width box ending in a 1.3 mm step. Its +w wall is now one straight taper (round-offs at
+both ends) from the full undercut width at the entry to the neck at the aft corner. The taper is the
+earliest one that still leaves an undercut lip of MIN_WALL + 0.1 beside it. The tongue and the strip
+follow the same outline, offset by the 0.25 clearance. Their aft corners take the groove radius minus
+the side's inset at each height, so they stay tangent to the same end stop. The strip's front corners
+at its 0.6 mm trim are rounded too. Stowed, the strip therefore reads as a tapered inlay with rounded
+ends, an even reveal and a small notch at one end.
+Over the slot the fin's root carries a 45 deg flare from the tongue's edges up to the airfoil (review
+C4 / P3; since 9.3 from the tongue's tapered +w edge, so the seated fin fills the whole slot mouth and
+the relief chamfer is gone), so the tip-down print has no ledge. Details and numbers: `out/cad/checks/fins.json` and
 `shells.json`.
 
 ### Assembly order
@@ -203,8 +229,9 @@ From `drivetrain.json` (assembly, 12 steps) and the rotor module:
 2. Stack carrier, adapter spacer and stator with 4 ISO 7380 M3 x 8 from the carrier counterbores,
    self-tapping into the pilots.
 3. Slide the bell onto the stator journal; bolt claw A to the bell with 2 ISO 4762 M3 x 4.
-4. Display build: push the blanking plug into the nose seat (coin slot outward). v2: tap the seat
-   M12x1.5, screw the gland in, pass the cable and lay it in the carrier notch.
+4. Display build (`front_shell`): nothing to do at the nose (clean nose, tow eye only). v2 build
+   (`front_shell_v2`): tap the seat bore M12x1.5, screw the gland in, pass the cable and lay it in the
+   carrier notch.
 5. Push carrier + generator + claw A into the front shell with the tabs at theta 120 / 240 / 0,
    then twist 30 deg toward -theta to lock.
 6. Press the 688, then the 608, into the aft shell's bearing tube (draw bolt).
@@ -233,7 +260,7 @@ From `drivetrain.json` (assembly, 12 steps) and the rotor module:
     restates this step with the measured numbers.
 
 Packing: pull each fin forward out of its rail (the magnet pair lets go) and slide its blanking
-strip in to the stop (a fingernail in its groove drags it out again). Before stowing, twist the joint until the bayonet clicks into its lock (the
+strip in to the stop (a fingernail in the notch at its aft end drags it out again). Before stowing, twist the joint until the bayonet clicks into its lock (the
 hard stop aligns the pockets across the joint).
 
 ## 5. Interference and clearance results
@@ -246,23 +273,27 @@ is tested whose boxes come within 3 mm.
 
 | state | fold deg | parts | pairs within 3 mm | intended overlaps | zero-gap contacts | defects (> 0.5 mm3, unexpected) |
 |---|---|---|---|---|---|---|
-| stowed | 90.0 | 57 | 262 | 13 | 36 | 0 |
-| deployed | 0.0 | 57 | 57 | 0 | 9 | 0 |
-| fold_30 | 30.0 | 57 | 69 | 0 | 6 | 0 |
-| fold_60 | 60.0 | 57 | 98 | 0 | 6 | 0 |
+| stowed | 90.0 | 56 | 261 | 12 | 36 | 0 |
+| deployed | 0.0 | 56 | 57 | 0 | 9 | 0 |
+| fold_30 | 30.0 | 56 | 69 | 0 | 6 | 0 |
+| fold_60 | 60.0 | 56 | 98 | 0 | 6 | 0 |
 | cutaway | 0.0 | 56 | 107 | 2 | 17 | 0 |
-| packed | 90.0 | 57 | 14 | 0 | 4 | 0 |
+| packed | 90.0 | 56 | 14 | 0 | 4 | 0 |
+| v2 | 90.0 | 57 | 24 | 0 | 6 | 0 |
 
 (Static pairs are computed once in STOWED; the other states add the pairs that involve a folding
 part, CUTAWAY the pairs that involve a cutaway part or the gland (v2), PACKED the pairs that involve
-a blanking strip. In CUTAWAY the gland replaces the plug; it has one part fewer because
-`tail_magnet_0`'s boss lies in the removed sector, so that magnet goes with the full shell.)
+a blanking strip, V2 the pairs that involve the v2 front shell or the gland. In CUTAWAY the gland
+comes in and `tail_magnet_0` goes with the full shell (its boss lies in the removed sector), so it
+has as many parts as STOWED; V2 swaps the display front shell for the v2 one and adds the gland. In
+V2 the gland sits in the v2 seat with 0 mm3 of overlap (thread core at the M12 minor diameter, spot
+face contact) and the fins, rail magnets, carrier, O-ring and aft shell touch the v2 shell as they
+touch the display one.)
 
 **Intended overlaps** (listed in `assembly.EXPECTED`, reported separately):
 
 | pair | kind | overlap mm3 | state | why |
 |---|---|---|---|---|
-| front_shell / gland_plug | press | 0.1925 | stowed | display blanking plug: 3 crush ribs (tips D10.6) in the D10.5 bore |
 | aft_shell / bearing_608 | press | 0.9424 | stowed | 608 outer race on 3 crush ribs (tips D21.9) |
 | aft_shell / bearing_688 | press | 0.5709 | stowed | 688 outer race on 3 crush ribs (tips D15.9) |
 | hub / hinge_pin_0 | press | 3.1727 | stowed | 3 mm pin pressed into the D2.90 printed ears |
@@ -282,7 +313,7 @@ The O-ring, the lip seal, the glued magnets and the fin magnets touch or sit in 
 overlap.
 
 **Zero-gap contacts** (designed): shells at the lug stop; carrier tabs on their stop; fin tongues
-and blanking strips on the rail floors and end stops; the plug's band on the gland seat; hub,
+and blanking strips on the rail floors and end stops; the gland on the v2 seat's spot face; hub,
 spinner, shaft end and spinner screw clamped together; grub on the D-flat; the stacked carrier /
 spacer / stator and claw A / bell / inserts faces; collar / shim / 608 inner race; magnets on their
 seat floors; pin fillers on the pin ends; deployed heels on the stop faces.
@@ -310,8 +341,9 @@ seat floors; pin fillers on the pin ends; deployed heels on the stop faces.
 | PASS | neighbour blades folding together | >= 3 mm at every fold |  | >= 1.0 (layout rule) |
 | PASS | claw B (rotating) in the static tube mouth | 1.262 mm | 0.95 | >= 0.3 |
 | PASS | claw A to claw B dog flanks | 0.300 mm | 0.3 | >= 0.25 |
-| PASS | display blanking plug in the gland seat: rib press overlap, seat face | 0.192 mm3, 0.000 mm |  | crush ribs only (< 3 mm3) |
-| PASS | cable gland to motor carrier | 3.609 mm | 2.275 | >= 1.0 |
+| PASS | v2 front shell / M12 cable gland: thread core overlap, gap (seated on the spot face) | 0.000 mm3, 0.000 mm |  | no overlap, contact on the spot face |
+| PASS | display front shell has no gland seat: the gland placed on it would overlap the clean nose by | 179.9 mm3 |  | > 100 mm3 (the gland is v2 only) |
+| PASS | cable gland (v2) to motor carrier | 3.609 mm | 2.275 | >= 1.0 |
 | PASS | generator replica to the shells | 3.122 mm | 0.637 | >= 0.5 (bay to shell) |
 | PASS | front / aft shell locked: overlap, gap | 0.0000 mm3, 0.000 mm (lugs on the hard stop) | 0.0 | no overlap |
 | PASS | closing path (bayonet entry, push, twist) vs the blades | fins off: closes at fold <= 85 deg (unfold >= 5 deg); fins on: fold <= 50 deg (unfold >= 40 deg) |  | 0 mm3 overlap |
@@ -346,9 +378,12 @@ shaft, which turn with it.
 
 **Mesh quality** (recheck R1): every STL is watertight with consistent winding and 0 folded sliver
 pairs (adjacent normals more than 170 deg apart; `stl[].folded_pairs_gt170`). The modules'
-`aft_shell.stl` (15) and `aft_shell_cutaway.stl` (10) had some, so the audit rewrote them through
-`export_web.write_clean_stl` (`stl[].regenerated` records it). The GLB has 0 in all 67 meshes,
-measured after reloading the float32 file.
+`aft_shell.stl` (15), `aft_shell_cutaway.stl` (10), `front_shell.stl`, `front_shell_v2.stl` and
+`front_shell_cutaway.stl` (2 each) had some, so the audit rewrote them through
+`export_web.write_clean_stl` (`stl[].regenerated` records it); all 27 STLs are watertight, match their
+B-rep volume within 1 % and fit the bed. The GLB has 0 in all 67 meshes, measured after reloading the
+float32 file; it grew to 313 639 triangles (10.48 MB, from 277k / 9.3 MB) mainly because it now
+carries the v2 front shell (34 780 triangles) where it carried the small plug.
 
 **Module checks** (each module's JSON): rotor (hub seat walls 1.27 / 1.26 / 3.08 mm, hub min wall
 1.220 mm, spinner min wall 1.239 mm (p01 1.243) on the 1.25 shell; windows (V1): aft end x 127.0, a 12.2 mm
@@ -370,10 +405,11 @@ Blade:
 
 Drivetrain: claw skin 1.2 over the counterbores, stator pilots 1.65 mm from the journal groove, stator
 dimples 1.19 mm from the chamfered rim in the first layer (P9), carrier web 1.01 mm between the D6.0
-counterbores and the D16 bore in every layer (P9, was 0.56), claw B bridge on a 0.2 mm membrane, plug
-print overhang 12.6 mm2 (the slot-roof bridge).
+counterbores and the D16 bore in every layer (P9, was 0.56), claw B bridge on a 0.2 mm membrane; 21
+parts (the display plug is gone, section 9.3), every interface check passes.
 
-Shells (42 checks, all pass):
+Shells (47 checks, all pass; five shells: `front_shell`, `front_shell_v2`, `aft_shell` and the two
+cutaways):
 
 * stowed blades: aero span 0.308 mm over the CAD pocket floors (layout surface; 0.337 on the CAD
   blade), side walls 0.829, rim 1.1, flush 0.065; pocket forward end: -theta bound at the front row
@@ -383,24 +419,43 @@ Shells (42 checks, all pass):
   magnet face stands up to 0.20 mm proud of the boss top at one side of the hole; pair 0.413 mm /
   2.29 N on the layout surface
 * walls under the pocket floors 2.135 (front) / 2.069 (aft); generator bay to the shells 0.637
-* fin rail groove walls (OCC rays, both fins): floor 1.552, magnet seat bottom 1.297, flat wall
-  1.445, neck 5.342 (theta 87.5) / 2.9 (theta 267.5, its boss now widens on -w, C7), undercut lip
-  2.355, end stop 2.634; slot to the pocket rims 5.809 (arc), grooves to the pocket voids 4.482; front
-  shell proud of the hull at the fins 0.0 mm
+* fin rail groove walls (OCC rays, both fins; the probes follow the review V8 outline: side rows stop
+  at the R2 aft corners, the lip rows start beside the relief taper): floor 1.552, magnet seat bottom
+  1.297, flat wall 1.47, neck 6.25 (theta 87.5) / 2.9 (theta 267.5, its boss widens on -w, C7),
+  undercut lip 3.164 / 2.539, end stop 3.152; slot to the pocket rims 5.809 (arc), grooves to the
+  pocket voids 4.529; front shell proud of the hull at the fins 0.0 mm
+* slot outline (review V8): aft corners R2.0 (floor plane, the flank too); entry relief a ramp taper
+  from u 1.84 to 11.28 (chord station), steepest 10.31 deg in plan; the undercut lip left beside it is
+  1.326 mm at its thinnest (computed along the flank normal; target MIN_WALL + 0.1 = 1.30)
 * joint: 0 mm3 locked, lugs on the stop; O-ring lead-in mouth r 32.879 (ring 32.528); bayonet
   click 0 mm3 locked, 1.818 mm3 along the twist, tine 2.97 N / 17.7 MPa (ESTIMATE); underside slots
   0.813 mm normal (`tine_gap.py`: 0.800 to 0.818), 3 breakaway ties 4.41 mm3 in the print solid
-* nose: gland boss root fillet R6 built; tow eye crown 5.0 / 7.45 mm, utilisation 0.41
-  PETG; gland thread engagement 6.06 mm
-* layer scans of the four shell STLs at the 0.1, 0.15 and 0.05 phases (0.2 mm layers): 0 islands
+* nose (owner decision, section 9.3): display shell: 0 of 12 seat-boss probes in material, 4 of 4
+  bore-axis probes in material (no seat, no bore); v2 and cutaway shells: 12 of 12 and 0 of 4 (seat
+  and bore); display nose proud of the hull (x 0 to 25, the eye left out) 0.0 mm; volume outside the
+  gland zone (x < 20, z < -8 removed) 41167.225 mm3 on both shells (inside it 3806.43 display, 4321.92
+  v2); display nose wall (x 3 to 22, every 5 deg) at least 2.005 mm (at x 20.48, the carrier groove)
+* v2 shell: gland boss root fillet R6 built; gland thread engagement 6.06 mm, bore exit x 14.78;
+  tow eye crown 5.0 / 7.45 mm, utilisation 0.41 PETG
+* layer scans of the five shell STLs at the 0.1, 0.15 and 0.05 phases (0.2 mm layers): 0 islands;
+  the display front shell's faces beyond 45.5 deg are those of the v2 shell (20 faces each), except
+  that its nose-plug bridge is the full disc, 1168.7 mm2 (1114.2 on the v2 shell, where the bore
+  pierces it)
 
 Fins (all pass): chord 30.0, span 70.0, incidence 12.5 deg (probes); root 0.101 to 0.102 mm over the
-skin; fin seated 0.013 mm3 (end-stop contact facets) and strip 0 mm3, both pulled out along the rail in
-0.5 mm steps over 20.1 mm with nothing larger; strip proud of the hull 0.0 mm; magnet pair 2.16 / 2.36 N
-normal (model / seated), about 1.34 N to slide out; tongue and strip seat ligaments 1.30 mm; GProp
-5606.0 / 5607.7 / 5599.2 mm3; couple ratio as built 1.1422 (band 1.10 to 1.155; but see the
-yaw play, section 8); print: 0.66 mm2 of the fin beyond 45.5 deg (the first 0.2 mm of the slot entry;
-was 25 mm2), the strip's only one its magnet seat's 2.1 mm ceiling bridge.
+skin; fin seated 0.0333 mm3 (end-stop contact facets) and strip 0.0053 mm3, both pulled out along the
+rail in 0.5 mm steps over 20.1 mm with nothing larger; strip proud of the hull 0.0 mm; strip reveal to
+the slot mouth just under the skin 0.25 / 0.25 mm on the -w side and 0.233 / 0.25 mm on the tapered +w
+side (min / max), closing from 0.25 to 0.056 mm around the aft corners onto the end-stop contact;
+magnet pair 2.16 / 2.36 N normal (model / seated), about 1.34 N to slide out; tongue and strip seat
+ligaments 1.263 mm (the side rows now run to the rounded aft corners); GProp 5615.5 / 5615.9 / 5608.6
+mm3. Yaw play of the seated fin, measured (`fins.yaw_play`: turned about the floor normal through the
+tongue centre and both ends of its end face, 0.25 deg steps refined to 0.03): +1.44 / -1.28 deg
+(incidence 11.11 / 13.74 deg). Couple ratio as built: nominal 1.1422, in the 1.10 to 1.155 band (ok);
+over the measured yaw play 1.040 to 1.233, NOT inside the band (ESTIMATE: both fins at the same end of
+their play, lift linear in the incidence about alpha_L0 -3.07 deg; `fins.json` couple_ratio_as_built).
+Print: 0.766 mm2 of the fin beyond 45 deg (was 0.66), the strip's only one its magnet seat's 2.1 mm
+ceiling bridge (8.61 mm2).
 
 ## 6. Web scene and viewer check
 
@@ -421,7 +476,8 @@ the GLB and manifest through `export_web.write_scene`.
 * **GLB check**: `assembly.glb_quality` reloads the written GLB (float32 positions) and counts
   folded pairs per mesh. The counts are in `assembly.json` under `web.mesh_quality`.
 
-Roles: shells and the O-ring `shell`, cutaway shells and the cut O-ring `shell_cutaway`, everything
+Roles: shells and the O-ring `shell`, the v2 front shell `v2` (a shell of the v2 build: shown only with
+`v2=1` and never in cutaway), cutaway shells and the cut O-ring `shell_cutaway`, everything
 inside `internal` (shown in cutaway and exploded views), visible bought parts and the detent
 magnets `body`, coupon parts and the blade cradle `hidden` (left out of the GLB). The cut faces of
 the cutaway shells are separate meshes (`*_cutaway_section`, colour #C98B5E, lifted 0.03 mm).
@@ -429,17 +485,19 @@ the cutaway shells are separate meshes (`*_cutaway_section`, colour #C98B5E, lif
 The manifest carries two variant flags:
 
 * `packed`: `false` for the fins and their magnets, `true` for the blanking strips and theirs.
-* `v2`: `true` for the M12 cable gland, which shows with `cutaway=1` or `v2=1`; `false` for the
-  display blanking plug, which shows otherwise.
+* `v2`: `true` for the M12 cable gland and the v2 front shell, which show with `v2=1` (the gland also
+  with `cutaway=1`, in the cutaway front shell cut from the v2 one); `false` for the display front shell
+  (clean nose), which shows otherwise. There is no display plug any more (section 9.3).
 
-Materials (owner decision): shells, hub, spinner, spinner cap, fins, blanking strips and the
-blanking plug are all ivory #ECE7DD (`shell`; the `hub` and `fin` keys are copies of it). The
+Materials (owner decision): shells, hub, spinner, spinner cap, fins and blanking strips are all
+ivory #ECE7DD (`shell`; the `hub` and `fin` keys are copies of it). The
 blades are orange #E8622C. The generator replica stays blue. The printed drivetrain internals
 (claws, carrier, spacer) take the new `drive` key (charcoal), so the cutaway keeps its contrast.
 
 **Viewer** (`viewer/index.html`). URL parameters are unchanged, with these additions:
 
-* `v2=0|1`: show the gland instead of the plug.
+* `v2=0|1`: the v2 build: the v2 front shell with its gland seat and the M12 gland in place of the
+  display front shell's clean nose.
 * `fit=tight&fill=<0..1>`: project the visible vertices for the chosen view, re-centre on their
   screen box and pull the camera in until the parts span `fill` of the frame (4 passes for
   perspective). The renders use it.
@@ -459,15 +517,16 @@ blades are orange #E8622C. The generator replica stays blue. The printed drivetr
 The controls were driven headless (`out/work/cad/polish_present/ui_test.py`):
 
 * packed on: the fins hide and the blanking strips show.
-* v2 on: the plug hides and the gland shows.
-* cutaway: the gland shows, with the cutaway shells.
+* v2 on: the display front shell hides and `front_shell_v2` and the gland show (nose round,
+  `out/work/cad/nose/ui_test.py` on the built scene).
+* cutaway (with or without v2): the cutaway shells and the gland show, `front_shell_v2` stays hidden.
 * fold slider to 1: blade_0 deploys (box max z 97.3).
 
 **Exploded view** (`assembly.EXPLODE_STATIONS`). One axial line in assembly order, in the deployed
 pose:
 
 1. front shell, with the fins sliding out along their rail path (the fins module's `explode`
-   vector) and the plug or gland 28 mm out of the nose seat along its axis (16 before V3)
+   vector) and, in the v2 / cutaway scenes, the gland 28 mm out of the nose seat along its axis
 2. carrier screws, carrier, adapter spacer, stator, bell, claw A and its screws
 3. claw B, collar, shim, 608, 688, O-ring
 4. aft shell, with the shaft left in it: its aft end shows behind the tail, carrying the lip seal
@@ -480,7 +539,7 @@ Each station is placed behind the previous one, its front face a set gap behind 
 station's aft face, with the extents measured on the real parts. A geometry change can therefore
 never make two stations collide.
 
-Measured: exploded length 406.5 mm against the egg's 178.1 mm, so 2.28 x (`assembly.exploded_extent`,
+Measured: exploded length 398.6 mm against the egg's 178.1 mm, so 2.24 x (`assembly.exploded_extent`,
 target about 2.2 x). The render (review V3) uses view 20 / 18 with the rotor turned 30 deg (`spin=30`):
 one horizontal line in build order with one blade straight up, one straight down and the third toward
 the viewer, so the frame's lower half carries a blade instead of staying empty.
@@ -496,23 +555,26 @@ tessellation); at fold = 0 the boxes match the stowed solids.
 
 | render | viewer URL parameters | shows |
 |---|---|---|
-| `hero_deployed.png` | view -40 / 22, fold 1, fill 0.86 | running: blades deployed on their stops, fins fitted, blanking plug in the nose seat; the two fins read as a level pair across the egg (review V5) |
+| `hero_deployed.png` | view -40 / 22, fold 1, fill 0.86 | running: blades deployed on their stops, fins fitted, the clean display nose with the tow eye; the two fins read as a level pair across the egg (review V5) |
 | `stowed.png` | view hero, fold 0, packed 1, fill 0.8 | carried: blades in their pockets, fins off, blanking strips in: the clean ivory egg with three orange stripes |
 | `packed_kit.png` | packed_kit scene, fill 0.86 | the packed egg with the two loose fins lying flat on the ground in front of the nose (`write_kit_scene`: each fin rests on the largest flat facet of its convex hull, long side along the egg, lowest point on the egg's ground plane) |
-| `cutaway.png` | view -40 / 22, cutaway, fold 1, fill 0.86 | generator, carrier, coupling, shaft, bearings, seal, the M12 gland (v2); copper section faces |
+| `cutaway.png` | view -40 / 22, cutaway, fold 1, fill 0.86 | generator, carrier, coupling, shaft, bearings, seal, the M12 gland in the v2 seat (the cutaway front shell is cut from `front_shell_v2`); copper section faces |
 | `exploded.png` | view 20 / 18, spin 30, fold 1, explode 1, fill 0.92, ground 0 | every part on one horizontal line in assembly order, blades 60 mm radially out, up and down; no ground shadow |
 | `side.png`, `front.png` | side / front, fold 1, fill 0.88 / 0.9, shadow 1 | profile and frontal area, with the whole ground shadow in frame |
 
-All seven were inspected after the review 2 build (2026-10-05). On the studio backdrop the ivory
-egg, its strips and the fins separate clearly. In `stowed.png` each stripe now runs into a smooth,
-rounded spinner window cut normal to the skin (no saw-tooth outline; crop
-`out/work/cad/fix3/zoom_stowed_tail_new.png`), the pocket's forward end follows the rounded blade tip
-(no white triangle ahead of the stripe, `zoom_stowed_stripe_front_new.png`), and the gland boss and
-plug read as one smooth bump blended into the nose (`zoom_stowed_nose_new.png`); it still stands 9 mm
-off the skin (section 8). The hero and cutaway cameras show both fins as a level pair; the exploded
-view fills the frame on one line with a blade above and below. Residual: the blanking strips keep
-their sharp corners and entry-relief step (V8, section 8); through each window the hub's slot bands
-still show as steps.
+All seven were inspected after the nose-round build (2026-10-05). On the studio backdrop the ivory
+egg, its strips and the fins separate clearly. `front.png`, `hero_deployed.png` and `stowed.png` show a
+clean egg nose: the tow eye is the only feature on it, and from the front it reads as one rounded
+lug. There is no bump under it. Close-ups of the display nose from below
+(`out/work/cad/nose/final_nose_below.png`, `final_display_front_below.png`, against the v2 mode
+`final_v2_front_below.png`) show a smooth underside, where the v2 shell carries the seat and the
+gland. `cutaway.png` shows the gland in its seat. In `stowed.png` the blanking strip reads as a
+tapered inlay with rounded ends and an even reveal (close-up `final_strip_close.png`). The step and
+the groove across it are gone; the notch sits at its aft end. The open run-out of the slot floor
+ahead of the strip's trimmed front stays visible as a shallow scoop. Each stripe runs into a smooth,
+rounded spinner window; the hero and cutaway cameras show both fins as a level pair; the exploded
+view fills the frame on one line with a blade above and below. Residual: through each window the
+hub's slot bands still show as steps (section 8).
 
 Blade close-ups (recheck R1, `out/work/cad/polish_present/blade_front_close.png`,
 `blade_back_abs.png`, made with `blade.preview_parts` / `blade.preview_web`): the pressure and
@@ -541,25 +603,27 @@ a straight crisp edge.
    blades are stowed. Measured (packed display, `openarea.py`): x 100-108 21.7 %, x 108-118 46.1 % (was 57.1), x 118-128 36.7 % (was 50.5); the shells measure 7.5 to 9.9 %.
 3. **Fins (owner decisions, v2 items).** The fins run on recessed rails with magnet retention and
    come off for packing; flush blanking strips keep the 75 mm egg. Not changed:
-   * yaw play: the tongue has 0.25 mm side clearance over its 12.1 mm length, so the fin can yaw
-     about +1.5 / -1.75 deg about the stop corners (review C5, `fin_yaw.py`); with a linear lift slope this is
-     about +-10 % lift, so the couple ratio as built (1.142) is really a range of about 1.01 to 1.25 (ESTIMATE, linear lift slope, alpha_L0 -3.07 deg)
-     against the 1.10 to 1.155 band. No effect on the display build; for v2, two or three crush
-     ribs (0.05 interference) on the tongue's flat side near its forward end would locate it
-     (proposal).
-   * the slot mouth and strip outline keep their sharp corners and the entry-relief step (review
-     V8, cosmetic): rounding them needs matching corners on the tongue and the strip and an S-blend
-     of the relief that the fin's relief chamfer and the slide checks would have to follow.
+   * yaw play: the tongue has 0.25 mm side clearance, so the seated fin can yaw +1.44 / -1.28 deg
+     about the floor normal (measured in `fins.json` yaw_play since section 9.3; review C5 had +1.5 /
+     -1.75 deg on the square-cornered tongue). `fins.json` couple_ratio_as_built reports the couple
+     ratio as a range: nominal 1.1422 (in the 1.10 to 1.155 band, ok), 1.040 to 1.233 over the play
+     (ESTIMATE, linear lift slope, alpha_L0 -3.07 deg), which is NOT inside the band. No effect on the
+     display build; for v2, two or three crush ribs (0.05 interference) on the tongue's flat side near
+     its forward end would locate it (proposal).
+   * the slot mouth and strip outline (review V8) were reworked in section 9.3: rounded aft corners,
+     a straight taper instead of the entry-relief step, rounded strip front, an aft-end nail notch.
+     The open run-out of the floor ahead of the strip's 0.6 mm trimmed front stays (about 1.7 mm
+     along the chord): the fin's tongue must slide out there.
    * the planform stays the constant-chord Clark Y plank (review V5 option 1, a tapered planform of
      equal area, changes the couple ratio: owner decision); the hero and cutaway cameras moved instead.
-4. **Nose gland seat (review V2).** The display build keeps the raised v2 seat (spot face 6.79 above
-   the nose, thread engagement 6.06 mm) and blends it into the nose with an R6 fillet, the plug flush
-   on top; the bump stands 9.1 (crown; the boss 5.3) mm off the skin. Sinking the seat (a counterbored spot face in a
-   thickened inner wall, GLAND boss_in_cavity True) would leave only the plug's dome proud, but it moves
-   the v2 gland interface toward the carrier: owner decision (proposal).
+4. **Nose gland seat (review V2): closed by the owner decision of the nose round (section 9.3).** The
+   display front shell has a clean nose; the raised seat (spot face 6.79 above the nose, R6 root
+   fillet, thread engagement 6.06 mm) exists only on `front_shell_v2`, the cutaway and the v2 docs. A
+   v2 build still shows the seat bump; sinking it (GLAND boss_in_cavity True) remains a v2 proposal.
 5. **Blade print support (T13).** The blade prints on `blade_cradle.stl` (stations every 0.25 mm since
    review P6): it carries 71 % of the 126 mm2 of blade faces beyond 45 deg, its top 0.20 to 0.33 mm under the blade along the span; the rest are the bridged ceilings of the heel slot and the shank seat (inside the blade) and faces within one layer of the bed next to the knuckle. Tree supports (top Z 0.2) stay as the fallback.
-6. **Nose-plug bridge (shells, T16).** The 38.6 mm flat bridge inside the nose is the only bridge; a
+6. **Nose-plug bridge (shells, T16).** The 38.6 mm flat bridge inside the nose is the only bridge
+   (1168.7 mm2 on the display shell, a full disc; 1114.2 mm2 on the v2 shell, pierced by the bore); a
    45 deg cone from r 19.2 would reach the carrier (x 22.7). Good bridge settings, expect a little sag on
    that internal face.
 7. **Joint click (T17).** The tine force and stress are an ESTIMATE from a cantilever model (2.97 N per
@@ -579,17 +643,16 @@ a straight crisp edge.
    * spinner: the D22.6 seat ceiling (item 8) and the three window tops: rounded arches whose last
      0.6 mm overhang as crescents up to 0.9 mm wide before a ~6 mm wide bridge closes them
    * hub: small arched-hole islands (largest 8 mm2, anchored)
-   * fin: 0.66 mm2 of root ledge over the first 0.2 mm of the slot entry (was 25 mm2); blanking strip:
-     the 2.1 mm wide ceiling of its magnet seat
-   * blanking plug: its 12.6 mm2 slot-roof bridge
+   * fin: 0.766 mm2 beyond 45 deg (was 25 mm2 before C4); blanking strip: the 2.1 mm wide ceiling of
+     its magnet seat
    * `tolerance_coupon_b`: its horizontal test holes (the point of the test)
 10. **Mesh repair.** OCC's tessellation of some shells leaves small gaps or folded sliver pairs at B-rep
     sliver faces; the assembly's STL audit rewrites such files through `export_web.write_clean_stl` and
     keeps the module's file when the rewrite is not better. The B-reps are valid.
 11. **Cutaway sector.** The carrier's theta 330 lock tab (r 27.2) lies in the removed sector beyond r 25:
     kept, it shows the twist lock.
-12. **File sizes.** `blade.step` 0.75 MB; assembly STEPs 30.1 / 32.0 MB (stowed / deployed); GLB 9.3 MB, 277k
-    triangles (Draco or meshopt compression would help the web page).
+12. **File sizes.** `blade.step` 0.75 MB; assembly STEPs 31.3 / 33.8 MB (stowed / deployed); GLB 10.48 MB,
+    313 639 triangles (Draco or meshopt compression would help the web page).
 13. Bought items to verify before ordering: 3 x 22 and 3 x 4 pins, the Ruland collar's set screw, the
     8 x 12 x 0.5 shim (DIN 988 lists 8 x 14), N52 6 x 2 x 2 and 4 x 2 x 2 blocks magnetised through a
     2 mm face. The layout's two equator magnet pairs at the joint are not modelled (no room in the
@@ -646,7 +709,7 @@ params write-back has since applied them all (section 10).
 | R6 stale outputs | `build.py --fresh` prunes every output the current parts do not produce | run 2026-10-05 against the polish build's part cache: removed `hydroegg_assembly_{stowed,deployed}.step`, `inserts_m3_stator.step`, `hydroegg.glb`, `test.glb`, `manifest_test.json`; every current part's files kept |
 | T13 blade on supports | `blade_cradle.stl`: a sacrificial support cradle in the blade's print coordinates. Rails under the heel and under the shank ramp, trailing edge and tip, top 0.2 mm below the blade (the support top-Z distance), 1.6 mm wide or the width of the blade's lowest 0.5 mm band + 0.4. Print it with the blade, slicer supports off. | 2 rails, 81 stations, up to 2.31 mm tall, 0.255 cm3; 0.200 mm to the blade, 0 mm3 overlap; it carries 57 % of the 126 mm2 of blade faces beyond 45 deg. The rest are the bridged ceilings of the two magnet seats and faces within 1.5 mm of the bed at the knuckle (section 8). Refined in 9.2 (P6): stations every 0.25 mm, 71 % |
 | colours (owner) | all-ivory egg: `hub` and `fin` materials = `shell`; printed drivetrain internals moved to a new charcoal `drive` key | renders |
-| cable gland (owner) | `gland_plug` (drivetrain): low domed M12 blanking plug, push-in. D10.0 spigot with 3 half-round crush ribs to D10.6 in the D10.5 tap-drill bore; it also grips a tapped thread on its crests. 0.4 mm band on the D18 seat flat (r 8.5), a shoulder arc from vertical to 45 deg, a D13.5 flat face with a 10 x 1.2 x 1.0 coin slot. Printed flat face down, spigot up. `cable_gland_m12` gets `v2: True`, the plug `v2: False`. | valid, 1.40 cm3; print overhang 12.6 mm2, all of it the slot-roof bridge; rib press overlap 0.192 mm3, seat face 0.000 mm |
+| cable gland (owner; superseded in 9.3: the plug is removed, the display nose is clean) | `gland_plug` (drivetrain): low domed M12 blanking plug, push-in. D10.0 spigot with 3 half-round crush ribs to D10.6 in the D10.5 tap-drill bore; it also grips a tapped thread on its crests. 0.4 mm band on the D18 seat flat (r 8.5), a shoulder arc from vertical to 45 deg, a D13.5 flat face with a 10 x 1.2 x 1.0 coin slot. Printed flat face down, spigot up. `cable_gland_m12` gets `v2: True`, the plug `v2: False`. | valid, 1.40 cm3; print overhang 12.6 mm2, all of it the slot-roof bridge; rib press overlap 0.192 mm3, seat face 0.000 mm |
 | CLEAR_ROTATE (engineering call) | radial per side for rotating fits (the knuckle on its pin, 0.15). Running and swept clearances read `RUN_CLEAR` (0.30, `getattr(P, "RUN_CLEAR", 0.30)` until params carries it) in `assembly.py` and in the drivetrain's bell journal. | hub and spinner fold sweep against `RUN_CLEAR`; geometry unchanged |
 | fins: recessed rail (owner decision; T07, T08, R2) | the proud pads are gone. The fin study (`layout_internal.py`) was re-run with the root on the skin: 30 x 70 Clark Y at 12.5 deg, theta 87.5 / 267.5, yaw pivot 0.05 c, x 26.2 to 55.5, 215 mm tip to tip (was 219). The rail is a straight half dovetail along the yawed chord (5.2 neck, 45 deg undercut to 6.5 at the floor) sunk into an inner boss of the front shell; it climbs inward going aft (slope -0.25), so the fin slides aft and in onto the end stop at x 39.4 and drag pushes it home. Entry relief where the undercut lip would be under 1.2 mm. Retention: an N52 4 x 2 x 2 block in the tongue over one in the groove floor (a cross pin cannot cross a flush groove). Flush blanking strips for the packed egg. Fin skin of 7 G1 splines (replaces the T19 face split) | shell proud of the hull at the fins 0.0 mm; couple 1.103 x the GL40 load-line torque (layout), 1.142 x as built (band 1.10 to 1.155); groove walls (OCC rays) floor 1.552, seat bottom 1.297, flat wall 1.445, neck 5.342, undercut lip 2.355, end stop 2.634; slot to pocket rims 5.348 (arc), grooves to pocket voids 4.444; bay to shells 0.637; fin root 0.101 to 0.102 over the skin; tongue 0.25 on the walls, 0.05 over the floor; fin and strip pulled out in 0.5 mm steps over 20.1 mm: 0 mm3 overlap; magnets 2.36 N seated, about 1.3 N to slide out (fin 0.04 N); fin prints tip down with no supports; GProp default 5588.2 / adaptive 5587.8 / mesh 5581.2 mm3, 0 folded pairs |
 | T15 stowed detent (owner call) | the aft-shell boss axis follows the blade face normal (lean 49.03 deg), its top follows the blade's inner face 0.1 mm off it (cubic fit), and a 2.5 mm wide chin swept down the face plane into the root-notch ramp starts the boss (kept 0.25 mm off the blade's lower envelope); the blade seat stays where it is | pair face-centre gap 0.420 mm, axis angle 1.66 deg, about 2.27 N; boss to blade 0.088 mm, 0 mm3; targets 0.45 mm / 2 deg / 2.0 N met; boss and chin tops unified in 9.2 (C2 / P2): boss to blade 0.171 mm |
@@ -670,10 +733,10 @@ then the whole model was rebuilt (`build.py --fresh`). Refuted or deferred items
 | C4 / P3 fin ledges | the 4.7 mm neck stood 0.4 to 1.75 mm beyond the 3.35 mm airfoil root: flat ledges facing the bed in the tip-down print; the tip-corner rounds overhung up to 74 deg near the bed | a root flare from each neck edge up to the airfoil skin at 43 deg (in section; a root fillet up to ~2 mm tall at the LE end, `fins._root_flare`); the tip-corner rounds stop where their face leans 42 deg and end on a short land perpendicular to the tip line (`fins._tip_corner`) | fin_0.stl: 0.66 mm2 beyond 45.5 deg (the first 0.2 mm of the slot entry), was 25 mm2 up to 88 deg; seated in the shell 0.013 mm3 (end-stop facets), slide-out path clean |
 | C6 strip grip | the flush strip had nothing to pull it forward with | a fingernail groove across the strip's outer face 2.6 mm ahead of its aft end: 1.2 wide, 0.6 deep, steep forward wall (the nail pulls on it), 45 deg aft flank | strip seated and pulled out: 0 mm3; flush (max proud 0.0) |
 | C7 rail boss of fin 1 | the boss was turned 180 deg for fin 1, so its 2.5 mm extension pointed at open wall and a 0.55 to 1.6 mm slit stayed against the theta-240 liner | each boss widens toward its nearer pocket (`shells.boss_extra_side`: +w for theta 87.5, -w for 267.5) | `crevice2.py`: no air run between the theta-267.5 boss and the 240 liner at x 32 to 40 (was 0.55 to 1.6 mm); groove walls >= 1.297 on both fins |
-| C8 front shell note | it said to tap the M12 seat | display build: leave the 10.5 mm bore for the push-in plug; v2: tap M12x1.5 | |
+| C8 front shell note | it said to tap the M12 seat | SUPERSEDED (nose round): the display front_shell has no seat or bore; front_shell_v2: tap M12x1.5 | |
 | C9 params pad_x | labelled as the slot mouth | kept (it feeds the fin study's interval checks), relabelled as the study's footprint envelope; the built mouth spans x 27.80 to 39.95 | |
 | V1 rotor band (major) | stepped, acute spinner windows (up to 69 deg wide, flanks ~50 deg to the skin), hub steps and the recessed shank behind them; the tail read torn | spinner windows rebuilt (`rotor.window_outline0`, `spinner_window0_radial`): the swept root's footprint in the spinner material + RUN_CLEAR + 0.7, closed and smoothed, cut RADIALLY (flanks normal to the skin), open at the front edge for the slide-on over the stowed blades, rounded top. The hub raise and the shank fairing were not built (section 8) | window area in the spinner -45 % (theta -38 to +26 deg, aft end x 127.0, top bridge 12.2 mm, cone ring 1.0 mm); blade roots to the spinner 0.98 mm over the fold (was 0.69); open skin (`openarea.py`, packed display) x 108-118 46.1 % (was 57.1), x 118-128 36.7 % (was 50.5) |
-| V2 nose plug (major) | the plug sat on a 5.1 mm plain cylinder boss: a two-step spigot 9 mm off the nose with a groove between seat chamfer and plug | the seat boss blends into the nose through an R6 root fillet (`shells._gland_root_fillet`; R7 failed in OCC), the seat lost its rim chamfer and the plug's base is flush with the seat edge (`GLAND_PLUG.base_r` 9.0): one smooth bump. Sinking the seat (moves the v2 interface) is a proposal for the owner | one bump: boss 5.3 mm, plug crown 9.1 mm above the skin (`plug_height.py`); rib press 0.192 mm3, seat face 0.000 mm |
+| V2 nose plug (major; superseded in 9.3: clean display nose, the seat on the v2 shell only) | the plug sat on a 5.1 mm plain cylinder boss: a two-step spigot 9 mm off the nose with a groove between seat chamfer and plug | the seat boss blends into the nose through an R6 root fillet (`shells._gland_root_fillet`; R7 failed in OCC), the seat lost its rim chamfer and the plug's base is flush with the seat edge (`GLAND_PLUG.base_r` 9.0): one smooth bump. Sinking the seat (moves the v2 interface) is a proposal for the owner | one bump: boss 5.3 mm, plug crown 9.1 mm above the skin (`plug_height.py`); rib press 0.192 mm3, seat face 0.000 mm |
 | V3 exploded view (major) | diagonal composition, empty lower half, a blade across the aft shell rim | view 20 / 18, rotor turned 90 deg: one horizontal line in build order with the blades radially up and down; blades 60 mm out (was 34), plug 28 mm out of its seat (was 16); studio backdrop | 406.5 mm long, 2.28 x the egg |
 | V4 pocket tips | the pocket's forward end was square (layout surface) while the CAD tip rounds off: an ~8 mm open triangle ahead of each stripe | over the tip zone the pocket takes the CAD blade's theta range + 2 mm, narrowing at the 45 deg rule: a chamfered corner that follows the rounded tip; the liner keeps the full bounds; every pocket check uses the CAD tip (`shells.blade_cloud`) | front row -theta bound -8.4 deg (was -18.0), 19 tip rows; the open triangle ahead of the tip (up to ~8 mm along x) is now a thin crescent under 4 mm; all pocket checks pass on the CAD tip |
 | V5 hero framing | the near fin dominated the hero and cutaway foreground | cameras at azimuth -18 (`build.py VIEWS`) | renders |
@@ -682,10 +745,27 @@ then the whole model was rebuilt (`build.py --fresh`). Refuted or deferred items
 | P4 fin on plate 3 | 73.7 mm tower on a 3.6 mm first layer, packed with its thin axis along Y | the print plan packs the fins with their chord along Y (an A1's bed motion axis); notes: 5 mm brim all round, outer walls <= 50 mm/s, 6 to 8 s minimum layer time | plate 3: fin_0 (5, 5, turned 90), fin_1 (29.1, 5, turned 90) |
 | P5 strip tip | `strip_tip_min` was declared but unused: a 0 to 0.47 mm knife edge | the strip's entry wedge is cut where thinner than 0.6 mm, with a 0.3 x 45 deg break; print the strips at 0.08 to 0.12 mm layers | strip front end 0.62 mm thick at its first sample (was 0.00 to 0.47) |
 | P6 blade cradle | the rail top sat 0.47 to 0.6 mm under the shank ramp, nothing under the face next to the knuckle | stations every 0.25 mm (`BLADE_CRADLE station_step`, was 1.0) | 328 stations in 2 rails; top 0.20 to 0.33 mm under the blade along the span (`te_gap.py`, was up to 0.57); 71 % of the faces beyond 45 deg carried (was 57 %) |
-| P7 coupons | the fin key printed like the strip, no 49 deg disc seat | a standing tongue key printed like the fin (`tolerance_coupon_key_tongue_up`, on a 10 mm stub, tongue up) and D4.0 / 4.1 / 4.2 seats on a sloped +X end of coupon B with their axes 49 deg from vertical; how_to_use rewritten | key 0.70 cm3, 10 x 5.8 x 15.2 mm; coupon B 18.40 cm3, all coupon features pass |
+| P7 coupons | the fin key printed like the strip, no 49 deg disc seat | a standing tongue key printed like the fin (`tolerance_coupon_key_tongue_up`, on a 10 mm stub, tongue up) and D4.0 / 4.1 / 4.2 seats on a sloped +X end of coupon B with their axes 49 deg from vertical; how_to_use rewritten | key 0.70 cm3, 10 x 5.8 x 15.2 mm; coupon B 18.40 cm3. Correction (section 9.3): "all coupon features pass" was wrong for this build: `coupon.checks` took coupon B by list index, which this new key had shifted, so its 12 coupon B probes read the tongue key and `coupon.json` reported all 12 False. Looked up by name since, the 21 coupon B features (with the new horizontal and tilted seat probes) pass |
 | P8 spinner seat ceiling | the D22.6 clamp ceiling is pierced by 4 holes (short cantilevers) | documented: face the clamp ring flat on sandpaper over glass before assembly (step 10, print notes) | |
 | P9 thin webs | stator replica holes 0.24 mm from the chamfered rim; carrier web 0.56 mm in its top layer | stator: D1.6 x 0.6 dimples on PCD 39 instead of the D2.5 holes on PCD 40; carrier: D6.0 counterbores and no centre-bore chamfer on that face | stator dimples 1.19 mm from the chamfered rim in the first layer (was 0.24); carrier web 1.01 mm in every layer (was 0.56 at the top) |
 | P10 plate 1 colours | the blue replica shared the ivory shell plate | the generator replica has its own plate (5, blue PLA) | plate 5: generator_bell (5, 5), generator_stator (59.5, 5) |
+
+### 9.3 Nose round (2026-10-05): clean display nose, coupon checks, couple ratio range, strip outline
+
+The last review found that, from the front and from below, the blended gland seat boss (5.3 mm) and
+the dome plug (9.1 mm proud) under the tow eye read as a pig snout. The owner decided that the
+DISPLAY build has a clean egg nose and that the cable gland is a v2 detail, shown only in the cutaway
+and in the v2 docs. One fresh build (`build.py --fresh`) followed the changes; every number is
+measured on it.
+
+| item | finding | what was done | measured after |
+|---|---|---|---|
+| clean display nose (owner decision) | the seat boss and the plug under the eye read as a snout | `shells.build_front_shell(v2=False)` builds `front_shell` without the seat block, its R6 fillet and the 10.5 bore. The same sequence with `v2=True` builds `front_shell_v2` exactly as before (role `v2`, `v2: True`; `front_shell` carries `v2: False`). The cutaway front shell is cut from the v2 shell, so it shows the seat and the gland. The viewer and `assembly.state_parts` learned the `v2` role (a shell of the v2 build, never in cutaway), and a V2 interference state was added | seat probes 0 / 12 and bore probes 4 / 4 in material on the display shell (12 / 0 on v2 and cutaway); display nose proud of the hull 0.0 mm (eye left out); volume outside the gland zone 41167.225 mm3 on both shells (inside 3806.43 / 4321.92); display nose wall >= 2.005 mm; display shell: 0 islands at 3 phases, its faces beyond 45.5 deg those of the v2 shell (the nose-plug bridge a full disc, 1168.7 mm2); renders (section 7) |
+| tow eye | it must read as one lug | unchanged (teardrop lug, R2 root, 1.2 edge rounds); with the seat gone it is the only feature on the nose | front view: one rounded 6 mm bar; crown 5.0 / 7.45 mm, utilisation 0.41 PETG |
+| display blanking plug | is it still needed? | removed from the build and the BOM: the display nose has nothing to plug, and the v2 build carries the gland. It is not kept as a v2 accessory: a v2 shell is tapped for the gland, and a v2 build without the cable is not a build state. `GLAND_PLUG` removed from params; `drivetrain.gland_plug*`, its EXPECTED press row, its print settings and its explode entry removed; print plan plate 1 renamed | 72 parts as before (`front_shell_v2` in, `gland_plug` out); STOWED, DEPLOYED and PACKED 56 parts (57 before), the STEP assemblies 56; `--fresh` pruned `gland_plug.step` / `.stl`; display build 235 g (PLA 204, PETG 31; was 238) |
+| coupon checks bug | `coupon.checks` took coupon B as `ps[3]`, which since P7 is `tolerance_coupon_key_tongue_up`: the 12 coupon B features reported False while section 9.2 said all pass | parts looked up by name; probes added for the horizontal block seats (6.0 / 6.1 / 6.2), the horizontal disc seats (D4.0 / 4.1 / 4.2) and the tilted disc seats on the sloped end, depth included (`coupon._hole_axis`) | 35 features (21 on coupon B), all pass; interfaces all pass |
+| couple ratio as a range | `fins.json` gave one number (1.1422) although the fin yaws in its rail | `fins.yaw_play` measures the free yaw of the seated fin against the front shell on every build; `couple_ratio_as_built` keeps the nominal and its band check (ok only if the nominal is in band) and adds the range over the play, flagged when it leaves the band | yaw +1.44 / -1.28 deg (incidence 11.11 / 13.74); nominal 1.1422, in band; range 1.040 to 1.233, NOT in band (ESTIMATE) |
+| strip outline (review V8) | the stowed strip read as a misfitted hatch: square corners, a stepped tongue-entry bay, a groove across its face | groove, tongue and strip are ruled lofts of floor-parallel outlines (`shells.rail_level_wire` / `rail_loft`, `fins.tongue_levels`): aft corners R2.0 at every height (tongue / strip 1.75 on -w, 1.64 / 1.75 on +w: the groove radius minus their inset); the entry relief is one straight taper of the +w wall (params `FIN.relief_shape` 'ramp') sized so the lip beside it is >= 1.30 mm, instead of a full-width box and a 1.3 mm step (an S-curve near the entry was tried and read as a boot); the fin's root flare rises from the tongue's own +w edge, so the relief chamfer is gone; strip front corners rounded R1.75 at the 0.6 trim; a half-round fingernail notch (R1.5, 0.8 deep) at the strip's aft end replaces the C6 groove | lip left 1.326 mm (computed), 2.539 mm (rays); taper 10.31 deg max in plan; reveal 0.25 / 0.233 to 0.25 mm along the sides; fin and strip seated and pulled out 20.1 mm: 0.0333 / 0.0053 mm3; seat ligaments 1.263 mm; fin overhang 0.766 mm2; strip proud 0.0 mm |
 
 ## 10. Params write-back (applied 2026-10-05; review 2 rows at the end of the table)
 
@@ -717,7 +797,7 @@ loosened, and the claw B running check now reads `RUN_CLEAR` (still 0.30).
 | `BAYONET.click` (new) | 3 tines, lock 120 / 240 / 0, arc 28, bump 0.5, dimples | | T17 |
 | `TOW_EYE` | teardrop outer profile, apex r 1.5, hole apex flat 2.0, root fillet r 2.0 | | T06 |
 | `GLAND` | `tap_drill_d` 10.5; `display`: blanking plug | | owner decision |
-| `GLAND_PLUG` (new) | base_r 8.5, band 0.4, dome_r 6, spigot D10 x 6, chamfer 0.5, 3 ribs r 0.5 to D10.6, slot 10 x 1.2 x 1 | | owner decision |
+| `GLAND_PLUG` (new; removed in the nose round) | base_r 8.5, band 0.4, dome_r 6, spigot D10 x 6, chamfer 0.5, 3 ribs r 0.5 to D10.6, slot 10 x 1.2 x 1 | | owner decision |
 | `SPINNER_ACCESS` | x [131.0, 148.354]; `countersink_x` [148.354, 151.725] | x [134, 165] | T02 |
 | `SPINNER_CAP` (new) | x_joint 151.725, spigot 5.7 x 12, rib tips D6.1, rib_w 0.6, groove chamfer 0.8, x_tip_built 160.99 | | T02 |
 | `BLADE_CRADLE` (new) | gap 0.2, min_w 1.6, station step 1.0, min_float 0.4 | | T13 |
@@ -730,6 +810,11 @@ loosened, and the claw B running check now reads `RUN_CLEAR` (still 0.30).
 | `GLAND_PLUG.base_r` (review 2) | 9.0 = seat_d / 2 (no seat chamfer) | 8.5 | V2: plug flush with the seat edge |
 | `BLADE_CRADLE.station_step` (review 2) | 0.25 | 1.0 | P6 |
 | `FIN.pad_x` (review 2) | value kept, comment: the study's footprint envelope (built mouth x 27.80 to 39.95) | | C9 (the fin study's interval checks read it) |
+| `GLAND.display`, `GLAND.v2_shell` (nose round) | display: none, a clean nose (`front_shell`); the seat, the bore and the gland are v2 only (`front_shell_v2`, the cutaway, the viewer's v2 mode) | display: blanking plug | owner decision (section 9.3); the seat values (`seat_d`, `boss_root_fillet_r`, `tap_drill_d`) now describe the v2 shell |
+| `GLAND_PLUG` (nose round) | removed | the display plug block | the plug part is gone from the build and the BOM |
+| `FIN.slot_corner_r` (nose round, new) | 2.0: the groove's aft corners in the floor plane, the flank included (tongue and strip: 2.0 minus their inset, 1.75 / 1.64) | square corners | review V8 |
+| `FIN.relief_shape`, `FIN.relief_lip_margin` (nose round, new) | 'ramp' (one straight taper of the +w wall from the full undercut width at the entry to the neck at the aft corner), margin 0.1 | full-width relief box to `u_relief`, a 1.3 mm step | review V8; the taper keeps the lip beside it >= MIN_WALL + 0.1 |
+| `FIN.strip_nail_notch` (nose round, new) | r 1.5, depth 0.8: half disc at the strip's aft end | fins DESIGN `nail_groove` (1.2 x 0.6 across the face, 2.6 from the stop) | review V8 (replaces the C6 groove) |
 
 Module edits that came with it: `common.py` (DEP_MAGNET, STOW_* from DETENTS), `shells.py` (FIN =
 params.FIN; FIN_RAIL, STOW_DETENT, BAYONET_CLICK, SEAL_LEAD, FLOOR_PRINT_DEG, EYE_*, GLAND_DRILL_D

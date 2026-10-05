@@ -443,11 +443,28 @@ def _hole_d(solid: Solid, x: float, y: float, z: float, d: float) -> dict:
     return dict(xy=[x, y], z=z, d=d, ok=bool(ok))
 
 
+def _hole_axis(solid: Solid, c, axis, d: float) -> bool:
+    """Probe a hole of diameter d on any axis through c: 12 points at r = d/2 - 0.01 must be outside the solid,
+    12 at d/2 + 0.01 inside."""
+    a = np.asarray(axis, float)
+    a /= np.linalg.norm(a)
+    e1 = np.cross(a, [0.0, 0.0, 1.0] if abs(a[2]) < 0.9 else [1.0, 0.0, 0.0])
+    e1 /= np.linalg.norm(e1)
+    e2 = np.cross(a, e1)
+    ok = True
+    for t in np.linspace(0, 2 * math.pi, 12, endpoint=False):
+        rad = math.cos(t) * e1 + math.sin(t) * e2
+        ok &= (not solid.is_inside(Vector(*(np.asarray(c) + (d / 2 - 0.01) * rad)))) and \
+            solid.is_inside(Vector(*(np.asarray(c) + (d / 2 + 0.01) * rad)))
+    return bool(ok)
+
+
 def checks() -> dict:
     import trimesh
     ps = parts()
-    blk, kl, kt = (p["print"] for p in ps[:3])
-    cb = ps[3]["print"]
+    by = {p["name"]: p["print"] for p in ps}             # look parts up by name (the parts list grew, review P7)
+    blk, kl, kt = by["tolerance_coupon"], by["tolerance_coupon_key_lug"], by["tolerance_coupon_key_tongue"]
+    cb = by["tolerance_coupon_b"]
     res = dict(parts=[], features=[], interfaces=[])
     for p in ps:
         c = check(p["print"], p["name"])
@@ -485,7 +502,31 @@ def checks() -> dict:
     for x, d in EAR["holes"]:
         pin_ = Vector(x, EAR["y"], CB_H + 6.0 + d / 2 - 0.02)
         pout = Vector(x, EAR["y"], CB_H + 6.0 + d / 2 + 0.02)
-        F.append(dict(feature="B: ear press hole horizontal D%.1f" % d, ok=bool((not cb.is_inside(pin_)) and cb.is_inside(pout))))
+        F.append(dict(feature="B: ear press hole horizontal D%.1f" % d, ok=bool((not cb.is_inside(pin_)) and cb.is_inside(pout))
+                      and _hole_axis(cb, (x, EAR["y"], CB_H + 6.0), (0, 1, 0), d)))
+    y_face = -CB_D / 2
+    for x, (a, b) in HSEATS:                       # 6.x along z, 2.x along x, SEAT_DEPTH into +y from the -Y face
+        y1, zc = y_face + 1.0, CB_H / 2
+        ok = (not cb.is_inside(Vector(x + b / 2 - 0.02, y1, zc + a / 2 - 0.02))) and \
+            cb.is_inside(Vector(x + b / 2 + 0.02, y1, zc)) and cb.is_inside(Vector(x - b / 2 - 0.02, y1, zc)) and \
+            cb.is_inside(Vector(x, y1, zc + a / 2 + 0.02)) and cb.is_inside(Vector(x, y1, zc - a / 2 - 0.02)) and \
+            (not cb.is_inside(Vector(x, y_face + SEAT_DEPTH - 0.02, zc))) and cb.is_inside(Vector(x, y_face + SEAT_DEPTH + 0.02, zc))
+        F.append(dict(feature="B: block seat horizontal (-Y face) %.1f x %.1f, %.1f deep" % (a, b, SEAT_DEPTH), xy=[x, y_face],
+                      ok=bool(ok)))
+    for x, d in HDISCS:
+        ok = _hole_axis(cb, (x, y_face + 1.0, CB_H / 2), (0, 1, 0), d) and \
+            (not cb.is_inside(Vector(x, y_face + SEAT_DEPTH - 0.02, CB_H / 2))) and cb.is_inside(Vector(x, y_face + SEAT_DEPTH + 0.02, CB_H / 2))
+        F.append(dict(feature="B: disc seat horizontal (-Y face) D%.1f, %.1f deep" % (d, SEAT_DEPTH), xy=[x, y_face], ok=bool(ok)))
+    a_ = math.radians(TILT["deg"])
+    nrm = np.array([math.sin(a_), 0.0, math.cos(a_)])
+    s_mid = (CB_W / 2 - TILT["x0"]) / math.cos(a_) / 2
+    pc = np.array([TILT["x0"] + s_mid * math.cos(a_), 0.0, CB_H - s_mid * math.sin(a_)])
+    for y, d in zip(TILT["ys"], TILT["ds"]):
+        c0 = pc + np.array([0.0, y, 0.0])
+        ok = _hole_axis(cb, c0 - 1.0 * nrm, nrm, d) and \
+            (not cb.is_inside(Vector(*(c0 - (SEAT_DEPTH - 0.02) * nrm)))) and cb.is_inside(Vector(*(c0 - (SEAT_DEPTH + 0.02) * nrm)))
+        F.append(dict(feature="B: disc seat tilted %.1f deg (sloped +X end) D%.1f, %.1f deep" % (TILT["deg"], d, SEAT_DEPTH),
+                      xy=[round(float(c0[0]), 2), y], ok=bool(ok)))
     I = res["interfaces"]
 
     def add(name, value, ok, **kw):

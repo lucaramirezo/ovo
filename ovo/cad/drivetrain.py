@@ -733,66 +733,9 @@ def cable_gland() -> Solid:
     return _place_on_axis(body, c, u)
 
 
-# Display M12 blanking plug (owner decision 2026-10-05: the display build carries a low plug, the
-# gland only shows in the cutaway and the v2 documentation). Dimensions: params GLAND_PLUG.
-_GP = P.GLAND_PLUG
-PLUG = dict(
-    base_r=_GP["base_r"],                  # 8.5: on the seat's flat, inside its 0.5 x 45 chamfer
-    band=_GP["band"],                      # 0.4 short vertical band above the seat face
-    dome_r=_GP["dome_r"],                  # 6.0 shoulder arc: vertical at the band, 45 deg at the flat face
-    spigot_r=_GP["spigot_d"] / 2,          # D10.0 core in the D10.5 tap-drill bore (0.25 radial)
-    spigot_len=_GP["spigot_len"],          # 6.0 into the bore (9.6 deep from the spot face)
-    spigot_chamfer=_GP["spigot_chamfer"],
-    rib_r=_GP["rib_r"],                    # 3 half-round crush ribs, tips at D10.5 - 2 PRESS_FIT = D10.6
-    slot=tuple(_GP["slot_l_w_d"]),         # coin slot across the flat face: length, width, depth
-)
-
-
-def gland_plug_local() -> Solid:
-    """Low domed M12 blanking plug in its own frame: axis +X outward, x = 0 on the spot face. A
-    push-in plug: D10.0 spigot with 3 half-round crush ribs to D10.6 in the D10.5 tap-drill bore
-    (it also grips a tapped M12x1.5 thread on its crests), a 0.4 mm band on the seat, then a shoulder
-    arc from vertical to 45 deg and a flat outer face with a coin slot. Printed outer face down: every
-    face is within 45 deg of vertical, the slot roof is a 1.2 mm bridge."""
-    from build123d import BuildLine, BuildPart, BuildSketch, CenterArc, Polyline, make_face
-    G = PLUG
-    R0, b, Ra, rs, L, ch = G["base_r"], G["band"], G["dome_r"], G["spigot_r"], G["spigot_len"], G["spigot_chamfer"]
-    a = math.radians(45.0)
-    s_top, r_top = b + Ra * math.sin(a), R0 - Ra * (1 - math.cos(a))
-    with BuildPart() as bp:
-        with BuildSketch(Plane.XZ):
-            with BuildLine():
-                Polyline((s_top, 0.0), (-L, 0.0), (-L, rs - ch), (-L + ch, rs), (0.0, rs), (0.0, R0), (b, R0))
-                CenterArc((b, R0 - Ra), Ra, 90.0, -45.0)
-                Polyline((s_top, r_top), (s_top, 0.0))
-            make_face()
-        revolve(axis=Axis.X)
-    body = bp.part
-    rr = G["rib_r"]
-    rc = GLAND_DRILL_D / 2 - P.PRESS_FIT - rr               # rib axis radius: tip at r 5.30
-    for k in range(3):
-        th = math.radians(90.0 + 120.0 * k)
-        e = Vector(0.0, math.sin(th), math.cos(th))
-        p0, p1 = Vector(-L + 1.2, 0, 0) + e * rc, Vector(-0.6, 0, 0) + e * rc
-        rib = Solid.make_cylinder(rr, (p1 - p0).length, Plane(origin=p0, z_dir=(1, 0, 0)))
-        lead = Solid.make_cone(0.02, rr, 0.6, Plane(origin=p0 - Vector(0.6, 0, 0), z_dir=(1, 0, 0)))
-        body = body.fuse(rib).fuse(lead)
-    ln, w, d = G["slot"]
-    body = body - Solid.make_box(d + 0.1, ln, w, Plane(origin=(s_top - d, -ln / 2, -w / 2)))
-    return body.clean()
-
-
-GLAND_DRILL_D = P.GLAND["tap_drill_d"]   # 10.5 M12x1.5 tap drill (shells.GLAND_DRILL_D)
-
-
-def gland_plug() -> Solid:
-    c, u = gland_frame()
-    return _place_on_axis(gland_plug_local(), c, u)
-
-
-def gland_plug_print() -> Solid:
-    """Outer (flat) face on the bed, spigot up: +X (outward) maps to -Z."""
-    return on_bed(gland_plug_local(), (0, 90, 0))
+# Owner decision 2026-10-05 (nose round): the display build has a clean egg nose (shells.front_shell has no gland
+# seat and no bore), so the display M12 blanking plug of the polish round is gone from the build and the BOM. The
+# gland lives on the v2 front shell (shells.front_shell_v2) and shows in the CUTAWAY state and the viewer's v2 mode.
 
 
 def _place_on_axis(shape: Shape, origin: Vector, axis: Vector) -> Shape:
@@ -907,15 +850,10 @@ def parts() -> list[dict]:
                     "only. Modelled at the hole size."))
     gl = cable_gland()
     out.append(_bom("cable_gland_m12", gl, None, "default", "body", False, 1, True, [-90, 0, -14],
-                    "Hummel HSK-K M12x1.5 PA grey (1.209.1200.50), thread in the tapped nose seat. v2 / cutaway "
-                    "hardware: v2=True, shown only in the CUTAWAY state and the viewer's v2 mode; the display build "
-                    "carries gland_plug instead.", v2=True))
-    out.append(_bom("gland_plug", gland_plug(), gland_plug_print(), "shell", "body", False, 1, False, [-90, 0, -14],
-                    "Display M12 blanking plug, PLA in the shell colour: low dome on the D18 gland seat, push-in "
-                    "(D10.0 spigot, 3 crush ribs to D10.6 in the D10.5 tap-drill bore; grips a tapped M12 thread "
-                    "too), coin slot to twist it out. Print the flat outer face on the bed, spigot up, no supports "
-                    "(shoulder arc ends at 45 deg, slot roof a 1.2 mm bridge), 100 % infill. v2=False: hidden in "
-                    "the CUTAWAY state and the viewer's v2 mode, where the gland shows.", v2=False))
+                    "Hummel HSK-K M12x1.5 PA grey (1.209.1200.50), thread in the tapped seat of the v2 front shell "
+                    "(front_shell_v2). v2 / cutaway hardware: v2=True, shown only in the CUTAWAY state (the cutaway "
+                    "front shell is cut from the v2 one) and the viewer's v2 mode; the display build has a clean "
+                    "nose and no gland (owner decision 2026-10-05).", v2=True))
     out.append(_bom("tool_seal_sleeve", seal_sleeve(), None, "steel", "hidden", False, 1, True, [0, 0, 0],
                     "assembly tool: K&S brass tube 9 x 0.45 mm (ID 8.1) x 25 with a filed lead-in; slid over the "
                     "protruding shaft end while the lip seal is pushed home. Parked aft of the model."))
@@ -980,17 +918,6 @@ def preview_in_shells() -> list[dict]:
         out += fin_parts()
     except Exception:  # noqa: BLE001
         pass
-    return out
-
-
-def preview_plug() -> list[dict]:
-    """Close-up: the blanking plug on the front shell's gland seat (front shell from the newest
-    shells cache) and, beside it, the plug in its print orientation."""
-    out = [dict(name="gland_plug", shape=gland_plug(), material="shell", role="body")]
-    out += [dict(d, material="stand") for d in _latest_shells(("front_shell",))]
-    c, u = gland_frame()
-    pr = gland_plug_print().moved(Location((c.X + 30.0, c.Y, c.Z - 25.0)))
-    out.append(dict(name="gland_plug_print", shape=pr, material="blade", role="body"))
     return out
 
 
@@ -1186,10 +1113,10 @@ def assembly_sequence() -> list[dict]:
              "face with 2 x M3 x 4 ISO 4762 at 0 / 180 (2.5 mm key down the dog counterbores).",
              check="journal 12.0 in 12.6 (RUN_CLEAR 0.3 per side, PLA on PLA), 7.5 mm long; v2: claw A bolts to the GL40 rotor "
              "face (rotor holes 2.5 deep, 2.0 engaged).", ok=True),
-        dict(step=4, sub="front shell", action="Display build: push the M12 blanking plug into the nose seat (crush "
-             "ribs, coin slot outward). v2: tap the seat M12x1.5, screw the gland in, pass the cable, leave the slack "
-             "loop, solder the leads and lay the cable in the carrier notch.", check="plug ribs D10.6 in the D10.5 "
-             "tap-drill bore; v2 cable OD <= 6.5 in a 7.5 notch, the pad window (r 12-20.5) opens into the notch.",
+        dict(step=4, sub="front shell", action="Display build (front_shell): nothing to do at the nose, it is a "
+             "clean egg nose with the tow eye only. v2 build (front_shell_v2): tap the 10.5 seat bore M12x1.5, screw "
+             "the gland in, pass the cable, leave the slack loop, solder the leads and lay the cable in the carrier "
+             "notch.", check="v2: cable OD <= 6.5 in a 7.5 notch, the pad window (r 12-20.5) opens into the notch.",
              ok=True),
         dict(step=5, sub="front shell", action=f"Push carrier + generator + claw A in through the socket with the tabs "
              f"at theta {entry[0]:.0f} / {entry[1]:.0f} / {entry[2]:.0f}, through the ring notches, then twist "
@@ -1276,7 +1203,8 @@ def integration_check() -> dict:
         sel = np.all((pa >= lo) & (pa <= hi), axis=1)
         return float(cKDTree(pb).query(pa[sel])[0].min()) if sel.any() else float("inf")
 
-    SH = {n: mesh(import_brep(f"{d}/{n}.brep"), 0.03) for n in ("front_shell", "aft_shell")}
+    SH = {n: mesh(import_brep(f"{d}/{n}.brep"), 0.03) for n in ("front_shell", "aft_shell", "front_shell_v2")
+          if Path(f"{d}/{n}.brep").exists()}
     mine = {p["name"]: p["shape"] for p in parts()}
     try:
         from .fins import parts as fin_parts
@@ -1288,10 +1216,12 @@ def integration_check() -> dict:
               "fin_cross_pins": "snug in the D2.0 pad hole", "motor_carrier": "tabs on the hard stop"}
     rows = []
     for nm, sh in (("front_shell", ("motor_carrier", "adapter_spacer", "generator_stator", "generator_bell",
-                                    "claw_a", "screws_carrier_m3x8", "cable_gland_m12", "fin_0", "fin_1",
-                                    "fin_cross_pins", "oring_141")),
+                                    "claw_a", "screws_carrier_m3x8", "fin_0", "fin_1", "fin_cross_pins", "oring_141")),
+                   ("front_shell_v2", ("cable_gland_m12", "motor_carrier")),
                    ("aft_shell", ("claw_b", "shaft_collar", "shim_8x12x0p5", "shaft", "oring_141",
                                   "lip_seal_tc8x16x5", "bearing_608", "bearing_688", "claw_a", "generator_bell"))):
+        if nm not in SH:
+            continue
         for n in sh:
             if n not in mine:
                 continue

@@ -29,7 +29,7 @@
   <label>explode <input id="s-explode" type="range" min="0" max="1" step="0.01" value="0"></label>
   <label title="fins off, blanking strips in (the egg as carried)"><input id="c-packed" type="checkbox"> packed</label>
   <label><input id="c-cutaway" type="checkbox"> cutaway</label>
-  <label title="v2 hardware: the M12 cable gland instead of the display blanking plug"><input id="c-v2" type="checkbox"> v2 gland</label>
+  <label title="v2 hardware: the v2 front shell (gland seat) with the M12 cable gland instead of the display shell's clean nose"><input id="c-v2" type="checkbox"> v2 gland</label>
   <label><input id="c-spin" type="checkbox"> spin</label>
 </div>
 <script type="module">
@@ -38,7 +38,8 @@
 // CAD frame is Z-up with the flow along +X; three.js is Y-up, so the model root is
 // rotated -90 deg about X. URL params (all optional):
 //   m=<manifest url>  fold=0..1 (0 stowed, 1 deployed)  explode=0..1  cutaway=0|1  packed=0|1
-//   v2=0|1 (the M12 gland instead of the display blanking plug; cutaway=1 implies it)
+//   v2=0|1 (the v2 front shell with its gland seat and the M12 gland instead of the display shell's clean nose;
+//          cutaway=1 implies the gland, the cutaway front shell being cut from the v2 shell)
 //   internals=0|1  stand=0|1  spin=<deg>  view=<az>,<el> | iso|side|front|back|top
 //   zoom=<factor>  fit=sphere|tight  fill=<0..1: with fit=tight, the share of the frame the parts span>
 //   shadow=1 (with fit=tight: the key light's ground shadow is framed too, for the level side / front views)
@@ -154,13 +155,15 @@ function visible(p) {
   // then, parts flagged packed:false (fins) only otherwise
   if (p.packed === true && !state.packed) return false;
   if (p.packed === false && state.packed) return false;
-  // v2:true parts (the cable gland) show with cutaway or v2, v2:false parts (the display plug) otherwise
+  // v2:true parts (the cable gland, the v2 front shell) show with cutaway or v2, v2:false parts (the display
+  // front shell with its clean nose) otherwise
   const v2 = state.v2 || state.cutaway;
   if (p.v2 === true && !v2) return false;
   if (p.v2 === false && v2) return false;
   const internals = state.internals ?? (state.cutaway || state.explode > 0.01);
   switch (p.role) {
     case 'shell': return !state.cutaway;
+    case 'v2': return v2 && !state.cutaway;          // the v2 front shell: a shell of the v2 build (never in cutaway)
     case 'shell_cutaway': return state.cutaway;
     case 'internal': return internals;
     case 'stand': return state.stand;

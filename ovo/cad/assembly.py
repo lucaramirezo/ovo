@@ -7,13 +7,18 @@ detent magnets no builder models, poses the rotor in its states and checks the w
             blade i at psi 120 i sits over the pocket at theta = -psi)
   DEPLOYED  blades rotated by their pivot (blade module) to fold 0
   FOLD_30 / FOLD_60  intermediate folds (fold angle as in blade.blade_world: 0 deployed)
-  CUTAWAY   cutaway shells + internals, blades deployed (display variant)
+  CUTAWAY   cutaway shells + internals, blades deployed (display variant; the cutaway front shell is cut
+            from the v2 front shell, so it shows the gland seat with the gland in it)
   PACKED    STOWED with the fins taken off and the flush blanking strips in the rail grooves
             (finding T08 / owner decision: the clean 75 mm egg; used for the stowed STEP and render)
+  V2        STOWED with the v2 hardware: the v2 front shell (gland seat, tapped bore) and the M12 gland in
+            place of the display front shell (the viewer's v2 mode; only pairs with a v2 part are new)
 
-Variants: a part flagged v2=True (the M12 cable gland) exists only in CUTAWAY (and the viewer's v2
-mode); v2=False (the display blanking plug) everywhere else. packed=False parts (fins) leave the
-PACKED state, packed=True parts (blanking strips) exist only there.
+Variants (owner decision 2026-10-05, nose round): a part flagged v2=True (the M12 cable gland, the v2 front
+shell front_shell_v2, role "v2") exists only in CUTAWAY / V2 (role "v2" never in CUTAWAY: the cutaway shells
+replace it there); v2=False (the display front shell, clean nose) everywhere else. The display build has no
+gland and no plug. packed=False parts (fins) leave the PACKED state, packed=True parts (blanking strips)
+exist only there.
 
 Outputs (scripts/build.py runs this after the part modules):
   out/cad/checks/assembly.json              interference matrix, key clearances, STL audit, BOM
@@ -60,7 +65,7 @@ MESH_TOL = {"default": (0.02, 0.1), "shell": (0.03, 0.1)}
 WEB_TOL = {"default": (0.05, 0.25), "shell": (0.05, 0.25), "blade": (0.03, 0.2)}
 SEARCH = 3.0                       # min_gap search length (mm): gaps above it read as ">= 3"
 DEFECT_MM3 = 0.5                   # unexpected overlap above this is a defect
-FOLD_STATES = {"stowed": 90.0, "fold_60": 60.0, "fold_30": 30.0, "deployed": 0.0, "packed": 90.0}
+FOLD_STATES = {"stowed": 90.0, "fold_60": 60.0, "fold_30": 30.0, "deployed": 0.0, "packed": 90.0, "v2": 90.0}
 # Engineering call 2026-10-05: CLEAR_ROTATE is radial per side for rotating fits (knuckle on pin 0.15);
 # swept / running clearances between moving bodies are RUN_CLEAR 0.3 (params).
 RUN_CLEAR = float(P.RUN_CLEAR)
@@ -340,16 +345,16 @@ def posed_shape(part: dict, fold_deg: float) -> Shape:
 
 
 def state_parts(parts: list[dict], state: str) -> list[dict]:
-    """Parts present in a state (no hidden parts; cutaway shells only in CUTAWAY; parts flagged
-    packed=True only in PACKED, packed=False never in PACKED; v2=True only in CUTAWAY / v2,
-    v2=False never there)."""
+    """Parts present in a state (no hidden parts; cutaway shells only in CUTAWAY; full shells and the role "v2"
+    shell never in CUTAWAY; parts flagged packed=True only in PACKED, packed=False never in PACKED; v2=True only
+    in CUTAWAY / V2, v2=False never there)."""
     cut = state == "cutaway"
     packed = state == "packed"
     v2 = cut or state == "v2"
     out = []
     for p in parts:
         r = p.get("role", "body")
-        if r == "hidden" or (r == "shell" and cut) or (r == "shell_cutaway" and not cut):
+        if r == "hidden" or (r in ("shell", "v2") and cut) or (r == "shell_cutaway" and not cut):
             continue
         if (p.get("packed") is True and not packed) or (p.get("packed") is False and packed):
             continue
@@ -450,7 +455,6 @@ EXPECTED = [
     ("spinner_screw", "shaft", "thread", "M3 x 8 in the shaft's tapped end"),
     ("hub_grub", "hub", "thread", "M3 grub tapped into the PLA hub"),
     ("cable_gland_m12", "front_shell*", "thread", "M12x1.5 gland thread in the tapped seat"),
-    ("gland_plug", "front_shell*", "press", "display blanking plug: 3 crush ribs (tips D10.6) in the D10.5 bore"),
     ("bearing_608", "shaft", "contact", "inner race on the shaft (zero clearance)"),
     ("bearing_688", "shaft", "contact", "inner race on the shaft (slip fit)"),
     ("bearing_*_seals", "bearing_*", "part", "rubber seals of the same bearing"),
@@ -493,7 +497,7 @@ def pair_metrics(pa: dict, pb: dict, fold: float) -> dict | None:
     return _PAIR[key]
 
 
-def interference(parts: list[dict], states=("stowed", "deployed", "fold_30", "fold_60", "cutaway", "packed")) -> dict:
+def interference(parts: list[dict], states=("stowed", "deployed", "fold_30", "fold_60", "cutaway", "packed", "v2")) -> dict:
     """Pairwise overlap volume and min gap for every pair of parts present in each state."""
     res = {}
     for st in states:
@@ -506,7 +510,9 @@ def interference(parts: list[dict], states=("stowed", "deployed", "fold_30", "fo
                 a, b = S[i], S[j]
                 if st == "packed" and not (_is_packed_part(a) or _is_packed_part(b)):
                     continue                     # identical to the stowed row
-                if st not in ("stowed", "packed") and not (a.get("pivot") or b.get("pivot")) and \
+                if st == "v2" and not (a.get("v2") is True or b.get("v2") is True):
+                    continue                     # identical to the stowed row
+                if st not in ("stowed", "packed", "v2") and not (a.get("pivot") or b.get("pivot")) and \
                         not (st == "cutaway" and ("cutaway" in a["name"] or "cutaway" in b["name"])):
                     continue                     # static pair: identical to the stowed row
                 m = pair_metrics(a, b, fold)
@@ -747,11 +753,16 @@ def key_clearances(parts: list[dict], extras: dict) -> list[dict]:
         gap_location(part_mesh(B["claw_b"]), part_mesh(aft)))
     g = _gap(B["claw_a"], B["claw_b"])
     add("claw A to claw B dog flanks", f"{g:.3f} mm", g >= 0.25, 0.3, ">= 0.25")
-    pl = B.get("gland_plug")
-    if pl is not None:
-        ov_p = float((part_manifold(pl) ^ part_manifold(front)).volume())
-        add("display blanking plug in the gland seat: rib press overlap, seat face", f"{ov_p:.3f} mm3, "
-            f"{_gap(pl, front) if ov_p < 1e-3 else 0.0:.3f} mm", ov_p < 3.0, None, "crush ribs only (< 3 mm3)")
+    # owner decision 2026-10-05 (nose round): the display nose is clean (no plug); the gland sits in the v2 shell
+    v2s, gl_ = B.get("front_shell_v2"), B["cable_gland_m12"]
+    if v2s is not None:
+        ov_g = float((part_manifold(gl_) ^ part_manifold(v2s)).volume())
+        add("v2 front shell / M12 cable gland: thread core overlap, gap (seated on the spot face)",
+            f"{ov_g:.3f} mm3, {_gap(gl_, v2s) if ov_g < 1e-3 else 0.0:.3f} mm", ov_g < DEFECT_MM3, None,
+            "no overlap, contact on the spot face")
+        ov_d = float((part_manifold(gl_) ^ part_manifold(front)).volume())
+        add("display front shell has no gland seat: the gland placed on it would overlap the clean nose by", f"{ov_d:.1f} mm3",
+            ov_d > 100.0, None, "> 100 mm3 (the gland is v2 only, never with front_shell)")
     g = float(part_manifold(B["cable_gland_m12"]).min_gap(part_manifold(B["motor_carrier"]), 10.0))
     gl = lay_checks["gland seat block and bore (cable exit) ahead of the carrier plate"]
     add("cable gland to motor carrier", f"{g:.3f} mm" if g < 10.0 else ">= 10 mm", g >= gl["limit_mm"],
@@ -879,7 +890,7 @@ def spin_sweep(parts: list[dict], step: float = 10.0) -> dict:
 
 # (station, member patterns, gap in front of it mm; None = anchor). Front to aft.
 EXPLODE_STATIONS = [
-    ("front", ["front_shell*", "fin_*", "rail_magnet_*", "gland_plug", "cable_gland_m12"], None),
+    ("front", ["front_shell*", "fin_*", "rail_magnet_*", "cable_gland_m12"], None),
     ("carrier", ["motor_carrier"], 15.0),           # room for the carrier screws in front of it
     ("spacer", ["adapter_spacer"], 2.5),
     ("stator", ["generator_stator"], 2.5),
@@ -908,7 +919,7 @@ HUB_MAGNET_OUT = 16.0     # hub magnets radially out of the stop-face seats (thr
 BLADE_MAGNET_OUT = 6.0    # blade magnets out of their seats along the seat axis
 TAIL_MAGNET_OUT = 8.0     # tail magnets out of the bosses along the boss axis
 SCREW_OUT = {"screws_carrier_m3x8": -11.0, "screws_claw_a_m3x4": 8.0}   # along X from their station
-PLUG_OUT = 28.0           # plug / gland out of the nose seat along the gland axis (V3: 16 barely separated)
+PLUG_OUT = 28.0           # v2 gland out of the nose seat along the gland axis (V3: 16 barely separated)
 LIP_GAP = 3.0             # lip seal this far behind the static tail end, on the protruding shaft
 
 
@@ -974,7 +985,7 @@ def explode_map(parts: list[dict], extras: dict) -> dict:
             v = np.array([dx["aft"] + aft_hi + LIP_GAP - lo, 0.0, 0.0])
         elif n.startswith(("fin_", "rail_magnet_")):
             v += np.asarray(p.get("explode") or [0.0, 0.0, 0.0], float)      # the fins module's slide-out path
-        elif n in ("gland_plug", "cable_gland_m12"):
+        elif n == "cable_gland_m12":
             g = P.GLAND
             t = math.radians(g["theta_deg"])
             a = math.radians(g["axis_angle_from_x_deg"])
@@ -1352,16 +1363,19 @@ DENSITY = {"PLA": 1.24, "PETG": 1.27}          # g/cm3
 LINE_W = 0.42                                    # mm, 0.4 nozzle
 # display build (v1). Walls and infill follow the module notes where they give them.
 PLATE_COUPON = "0 tolerance coupon (PLA; print a PETG copy too)"
-PLATE_SHELLS = "1 shells, strips and plug (ivory PLA)"
+PLATE_SHELLS = "1 shells and strips (ivory PLA)"
 PLATE_GEN = "5 generator replica (blue PLA)"
 PLATE_ROTOR = "2 rotor (PLA, each blade on its cradle)"
 PLATE_PETG = "3 drivetrain + fins (PETG)"
 PLATE_CUT = "4 cutaway shells (PLA, optional display variant)"
+PLATE_V2 = "6 v2 front shell (PETG, v2 wet build only: replaces front_shell)"
 PRINT_SETTINGS = {
     "front_shell": dict(mat="PLA", walls=6, infill=0.15, supports="none (38.6 mm nose-plug bridge)", brim=0, plate=PLATE_SHELLS),
     "aft_shell": dict(mat="PLA", walls=6, infill=0.15, supports="none (0.6 mm seal stop ring; detent boss + chin tops "
                       "lean <= 49 deg, no island at 0.05 / 0.1 / 0.15 layer phases; click tines bridge to breakaway "
                       "ties: cut the 3 ties through the slits after printing)", brim=0, plate=PLATE_SHELLS),
+    "front_shell_v2": dict(mat="PETG", walls=6, infill=0.15, supports="none (38.6 mm nose-plug bridge; gland seat boss "
+                           "with a concave R6 root fillet)", brim=0, optional=True, plate=PLATE_V2),
     "front_shell_cutaway": dict(mat="PLA", walls=6, infill=0.15, supports="none", brim=0, optional=True, plate=PLATE_CUT),
     "aft_shell_cutaway": dict(mat="PLA", walls=6, infill=0.15, supports="none", brim=0, optional=True, plate=PLATE_CUT),
     "hub": dict(mat="PLA", walls=4, infill=0.40, supports="none (bridges <= 14.6 mm)", brim=0, plate=PLATE_ROTOR),
@@ -1375,8 +1389,6 @@ PRINT_SETTINGS = {
                   "top 0.2 under the blade); fallback tree supports, top Z 0.2", brim=5, plate=PLATE_ROTOR),
     "blade_cradle": dict(mat="PLA", walls=2, infill=0.15, supports="none (it is the support)", brim=0,
                          plate=PLATE_ROTOR),
-    "gland_plug": dict(mat="PLA", walls=3, infill=1.0, supports="none (flat face down; slot roof 1.2 mm bridge)",
-                       brim=0, plate=PLATE_SHELLS),
     "claw_a": dict(mat="PETG", walls=4, infill=0.40, supports="none", brim=0, plate=PLATE_PETG),
     "claw_b": dict(mat="PETG", walls=4, infill=0.40, supports="none (D16.2 bridge on a 0.2 mm membrane, drill it out)",
                    brim=0, plate=PLATE_PETG),

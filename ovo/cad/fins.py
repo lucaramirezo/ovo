@@ -23,16 +23,21 @@ data/layout_internal.json; FIN_MAGNET for the retention pair):
   skin: the airfoil is cut by the hull offset by root_gap (0.1 with the tongue seated on the floor).
 * Root tongue (the keel): the shell groove inset by CLEAR_SLIDE on its walls and by 0.05 over the
   floor (the magnet pair pulls the tongue onto the floor), from ahead of the slot entry to the end stop
-  (contact), cut by the same hull offset so it fills the slot up to the fin root; in the entry relief
-  it fills the full groove width. The rail climbs inward going aft (slope -0.25): the fin slides aft
-  and in onto the stop, drag pushes it home, and pulled forward every root point lifts off the skin.
+  (contact), cut by the same hull offset so it fills the slot up to the fin root. Review V8 outline: a ruled
+  loft of floor-parallel outlines (shells.rail_loft) whose +w wall follows the groove's tapered entry relief
+  offset by CLEAR_SLIDE (it fills the slot mouth everywhere) and whose aft corners are rounded (the groove's
+  radius minus the side's inset at each height, tangent to the same end stop); the root flare rises from the
+  tongue's own edges, so no relief chamfer is needed. The rail climbs inward going aft (slope -0.25): the
+  fin slides aft and in onto the stop, drag pushes it home, and pulled forward every root point lifts off
+  the skin.
 * Retention: an N52 4 x 2 x 2 block (magnetised through 2) in a seat in the tongue bottom over a second
   one in the groove floor (shells): the cross pin of the proud pad cannot cross a flush groove (a
   tangential hole at the pin depth leaves the hull at a grazing angle about 12 mm each side of the
   slot). The pair holds normal to the floor; along the rail it holds by the shear of the pair
   (fins.json: both computed with the layout's calibrated charge model).
-* Blanking strip: the same tongue section from the entry to the stop with its outer face ON the hull
-  profile (flush when seated), the same magnet seat.
+* Blanking strip: the same tongue from the entry to the stop with its outer face ON the hull profile (flush
+  when seated), the same magnet seat; its outline reads as an inlay (review V8): rounded aft corners, the
+  straight +w taper, rounded front corners at the 0.6 mm trim, a half-round fingernail notch at the aft end.
 * Print: fin TIP DOWN (span vertical, the tongue on top: every face within 45 deg, the undercut flank
   of the tongue at 45 deg, the magnet seat opens upward); strip on its floor face (the seat opens on the
   bed). Both fins are the same part (theta FIN[0] and FIN[0] + 180 = the first turned 180 deg about X).
@@ -84,8 +89,10 @@ DESIGN = dict(
     root_flare_deg=43.0,               # review C4 / P3: root flare from the neck edges to the airfoil skin
                                        # (43 in its section: the root face's slope along the chord adds ~1 deg)
     tip_land_deg=42.0,                 # tip corner rounds stop where their face leans this from vertical
-    nail_groove=dict(from_stop=2.6, w=1.2, depth=0.6),   # review C6: across the strip's outer face, steep
-                                       # forward wall (the nail pulls on it), 45 deg aft flank
+    # strip outline round (review V8): a half-round fingernail notch at the strip's aft end replaces the C6 groove
+    # across its outer face (params FIN strip_nail_notch: radius, depth below the skin)
+    nail_notch=dict(F["strip_nail_notch"]),
+    corner_r=R["corner_r"],            # the groove's aft corner radius (the tongue / strip take R - their inset)
 )
 
 # --------------------------------------------------------------------------
@@ -261,14 +268,62 @@ def tongue_section(RF: dict, H: float = 20.0) -> tuple[list, list]:
     return dov, rel
 
 
+def relief_offset_curve(RF: dict, c: float):
+    """The groove's entry relief curve w_m (plan coordinates t = k u, w) offset by c toward -w along its plan
+    normal: the tongue's / strip's +w wall in the taper keeps the true clearance c to the groove's (review V8)."""
+    k = RF["k"]
+    tg = np.arange((RF["u_entry"] - DESIGN["u_ahead"] - 4.0) * k, (RF["u_stop"] + 4.0) * k, 0.01)
+    wg = np.asarray(RF["w_m"](tg / k), float)
+    m = np.gradient(wg, tg)
+    q = np.sqrt(1.0 + m * m)
+    to, wo = tg + c * m / q, wg - c / q
+    order = np.argsort(to)
+    to, wo = to[order], wo[order]
+    return lambda t: np.interp(np.asarray(t, float), to, wo)
+
+
+def tongue_levels(RF: dict) -> dict:
+    """Levels of the tongue / strip loft (shells.rail_loft), the groove inset by clear_side on its walls and
+    flank and clear_floor over the floor (tongue_section), with the groove's tapered entry relief offset by
+    clear_side (relief_offset_curve) and its rounded aft corners: the tongue ends ON the end stop (contact),
+    so each corner takes the groove's radius minus the horizontal inset of its side at that height (only then
+    is the tongue's arc tangent to both the stop and its side inside the groove's arc): clear_side on the -w
+    wall and the neck, the flank's horizontal inset (about 1.44 x clear_side) below the groove's undercut top."""
+    R_ = RF["R"]
+    dov, _ = tongue_section(RF)
+    (w_lo, z_bot), (w_bb, _), (w_hi, z_n) = dov[0], dov[1], dov[2]
+    uc, Rc, c = R_["uc_h"], DESIGN["corner_r"], DESIGN["clear_side"]
+    w_n, w_b = RF["w_n"], RF["w_b"]
+    w_mo = relief_offset_curve(RF, c)
+
+    def wf(h):                                              # tongue flank / neck at height h
+        return w_bb + (w_hi - w_bb) * (min(h, z_n) - z_bot) / (z_n - z_bot)
+
+    def e(h):                                               # groove wall minus tongue wall (horizontal), neck zone
+        return (w_b - (w_b - w_n) * min(h, uc) / uc) - wf(h)
+    H = 20.0
+    hs = list(np.linspace(z_bot, z_n, 4)) + ([uc] if uc > z_n + 1e-6 else []) + [H]
+    levels = [(h, (lambda t, h=h: SH._smax(np.full(np.shape(t), wf(h)), w_mo(t))), Rc - e(h)) for h in hs]
+    return dict(levels=levels, w_lo=w_lo, r_lo=Rc - c, z_bot=z_bot, z_n=z_n, w_bb=w_bb, w_hi=w_hi,
+                r_hi=[round(Rc - e(h), 4) for h in hs], w_mo=w_mo)
+
+
+def strip_w_plus_bottom(RF: dict):
+    """+w edge of the tongue / strip bottom (plan), as a function of u."""
+    TL = tongue_levels(RF)
+    wp = TL["levels"][0][1]
+    return lambda u: float(wp(np.array([u * RF["k"]]))[0])
+
+
 def _tongue_prism(fr: dict, u_end: float | None = None) -> Solid:
+    """The tongue / strip body before the hull cut (review V8 outline): a ruled loft of rail_level_wire outlines
+    from the tongue bottom (clear_floor over the floor) through the inset flank to the neck and on up, from
+    u_ahead before the slot entry to the end stop, with the tapered relief and the rounded aft corners."""
     RF = fr["RF"]
-    dov, rel = tongue_section(RF)
-    u_a = RF["u_entry"] - DESIGN["u_ahead"]
+    k = RF["k"]
     u_end = RF["u_stop"] if u_end is None else u_end
-    t = SH._prism_uwh(RF, dov, u_a, u_end).fuse(SH._prism_uwh(RF, rel, u_a, RF["u_relief"])).clean()
-    sols = t.solids()
-    return max(sols, key=lambda x: x.volume) if len(sols) > 1 else sols[0]
+    TL = tongue_levels(RF)
+    return SH.rail_loft(RF, TL["levels"], TL["w_lo"], (RF["u_entry"] - DESIGN["u_ahead"]) * k, u_end * k, TL["r_lo"])
 
 
 def _tongue_seat(fr: dict) -> Solid:
@@ -353,18 +408,22 @@ def planform(fr: dict, a_lo: float) -> Solid:
     return Solid.extrude(face, Vector(*(20.0 * Fr["w"])))
 
 
-def _root_flare(fr: dict, n_sec: int = 15) -> Solid:
+def _root_flare(fr: dict, n_sec: int = 25) -> Solid:
     """Review C4 / P3: over the slot the tongue's neck (4.7 wide) is wider than the airfoil root above it, so
     the neck's top (the root face, root_gap over the skin) showed as 0.4 to 1.75 mm ledges beside the airfoil,
     facing the bed when the fin prints tip down. This flare fills them: at each chord station over the tongue,
-    a 45 deg flank from each neck edge at the root face up and in to the airfoil skin (a root fillet, up to
-    ~2 mm tall at the LE end), as a ruled loft of sections whose bottom dips 0.08 into the tongue (fused with
-    it, never below the skin; a boolean cut with the hull offset returned nothing), from 0.2 behind the slot
-    entry to 0.2 ahead of the end stop (the shell is under the root face beyond them)."""
+    a 45 deg flank from each edge of the tongue's top at the root face up and in to the airfoil skin (a root
+    fillet), as a ruled loft of sections whose bottom dips 0.08 into the tongue (fused with it, never below the
+    skin; a boolean cut with the hull offset returned nothing), from 0.2 behind the slot entry to 0.2 ahead of
+    the end stop (the shell is under the root face beyond them). Review V8: the +w edge is the tongue's own
+    (the tapered entry relief, wider than the neck over most of the slot), so the flare also covers the ledge
+    the relief chamfer used to cut away, and the seated fin fills the whole slot mouth."""
     RF = fr["RF"]
     c = fr["c"]
     dov, _ = tongue_section(RF)
-    w_lo, w_hi = dov[0][0], dov[2][0]
+    w_lo, w_hi0 = dov[0][0], dov[2][0]
+    TL = tongue_levels(RF)
+    w_top = TL["levels"][-1][1]                                # tongue +w above the neck (the root face level)
     up, lo, info = clarky(DESIGN["n_section"], te=P.MIN_TE / c)
     w_c = -0.5 * (info["y_min"] + info["y_max"]) * c
     g = DESIGN["root_gap"]
@@ -372,6 +431,7 @@ def _root_flare(fr: dict, n_sec: int = 15) -> Solid:
     u0, u1 = max(RF["u_entry"] + 0.2, 0.25), RF["u_stop"] - 0.2
     wires = []
     for u in np.linspace(u0, u1, n_sec):
+        w_hi = max(w_hi0, float(w_top(np.array([u * RF["k"]]))[0]))
         wu = w_c + c * float(np.interp(u / c, up[:, 0], up[:, 1]))
         wl = w_c + c * float(np.interp(u / c, lo[:, 0], lo[:, 1]))
         a_p, a_m = RF["a_hull"](u, w_hi, g), RF["a_hull"](u, w_lo, g)
@@ -397,7 +457,7 @@ def fin0() -> tuple[Solid, dict]:
     body = SH.inter(body, planform(fr, a_lo - 1.0))
     hull_g = _hull_offset(DESIGN["root_gap"])
     body = body.cut(hull_g)
-    tg = SH.inter(_tongue_prism(fr), hull_g).cut(_relief_chamfer(fr))
+    tg = SH.inter(_tongue_prism(fr), hull_g)
     fin = body.fuse(tg).fuse(_root_flare(fr)).clean()
     fin = fin.cut(_tongue_seat(fr))
     sols = fin.solids()
@@ -407,43 +467,15 @@ def fin0() -> tuple[Solid, dict]:
     return fin, info
 
 
-def _relief_chamfer(fr: dict) -> Solid:
-    """Fin only: in the slot's entry relief the tongue is wider than the airfoil nose above it, which left a
-    2-2.6 mm ledge facing the bed when the fin prints tip down. Remove the relief part beyond the tongue's
-    neck wall (w > w_hi) above a plane through the root face at w_hi that falls 1.2 per 1 toward +w (50 deg
-    from the root face): the ledge becomes a 40 deg face; a V notch then shows beside the fin's LE root in
-    the slot entry (the blanking strip keeps the full width)."""
-    RF = fr["RF"]
-    Fr = RF["F"]
-    dov, rel = tongue_section(RF)
-    w_hi = dov[2][0]
-    g = DESIGN["root_gap"]
-    ez = np.array([0.0, 0.0, 1.0])
-
-    def P(u):
-        q = Fr["o"] + u * Fr["u"] + w_hi * Fr["w"]
-        return np.array([q[0], q[1], RF["a_hull"](u, w_hi, g)])
-    p1, p2 = P(RF["u_entry"]), P(RF["u_relief"])
-    d1 = p2 - p1
-    d2 = Fr["w"] - 1.2 * ez
-    nc = np.cross(d1, d2)
-    if nc @ (Fr["w"] + ez) < 0:
-        nc = -nc                                                # toward +w / +a: the side removed
-    nc /= np.linalg.norm(nc)
-    hs = SH.halfspace(tuple(p1), tuple(-nc))                    # the region on the +nc side
-    zone = SH._prism_uwh(RF, [(w_hi, -1.0), (RF["w_b"] + 1.0, -1.0), (RF["w_b"] + 1.0, 20.0), (w_hi, 20.0)],
-                         RF["u_entry"] - DESIGN["u_ahead"], RF["u_relief"] + 1.0)
-    return SH.inter(zone, hs)
-
-
 def strip_trim_u(fr: dict) -> float:
     """Chord station where the strip's entry wedge (hull over the floor) reaches strip_tip_min at its
     thinnest point across the strip (review P5: DESIGN strip_tip_min was declared but not applied)."""
     RF = fr["RF"]
     dov, rel = tongue_section(RF)
     z_bot = dov[0][1]
-    ws = np.linspace(dov[0][0], rel[1][0], 9)
+    wpb = strip_w_plus_bottom(RF)
     for u in np.arange(RF["u_entry"] - 2.0, RF["u_stop"], 0.02):
+        ws = np.linspace(dov[0][0], wpb(u), 9)                  # across the strip bottom at this station
         th = min(RF["a_hull"](u, w) - (RF["a_f"](u) + z_bot) for w in ws)
         if th >= DESIGN["strip_tip_min"]:
             return float(u)
@@ -452,8 +484,10 @@ def strip_trim_u(fr: dict) -> float:
 
 def _strip_end_cutters(fr: dict) -> list:
     """(1) the entry wedge ahead of strip_trim_u (a plane normal to the chord), with a strip_tip_break 45 deg
-    break on its top edge; (2) the fingernail groove across the outer face near the aft end (review C6): its
-    forward wall normal to the skin is what a nail pulls the strip forward by, its aft flank is 45 deg."""
+    break on its top edge; (2) the fingernail notch at the aft end (review V8, replaces the C6 groove across the
+    outer face): a half disc in plan on the strip centreline, centred on the end stop, nail_notch depth below
+    the skin at its centre; the nail goes in against the shell's end stop and pulls on the notch's curved
+    forward wall."""
     RF = fr["RF"]
     Fr = RF["F"]
     u_t = strip_trim_u(fr)
@@ -465,22 +499,62 @@ def _strip_end_cutters(fr: dict) -> list:
     q = fr["W"](u_t + b, 0.0, a_top)
     nb = (-Fr["u"] + ez) / math.sqrt(2.0)
     cut_break = SH.halfspace((q.X, q.Y, q.Z), tuple(-nb))                      # ahead of / above the 45 deg plane
-    G = DESIGN["nail_groove"]
-    u_f = RF["u_stop"] - G["from_stop"] - G["w"] / 2                           # forward wall
-    a_s = RF["a_hull"](u_f + G["w"] / 2, 0.0)
-    d = G["depth"]
-    prof = [(u_f, a_s + 3.0), (u_f, a_s - d), (u_f + G["w"] - d, a_s - d), (u_f + G["w"], a_s), (u_f + G["w"], a_s + 3.0)]
-    o = -6.0
-    face = Face(Wire.make_polygon([fr["W"](u, o, a) for u, a in prof], close=True))
-    groove = Solid.extrude(face, Vector(*(12.0 * Fr["w"])))
-    return [cut_end, cut_break, groove]
+    N = DESIGN["nail_notch"]
+    wm = 0.5 * (RF["w0"] + RF["w_n"])
+    a_s = RF["a_hull"](RF["u_stop"], wm)
+    c0 = fr["W"](RF["u_stop"], wm, a_s - N["depth"])
+    notch = Solid.make_cylinder(N["r"], N["depth"] + 4.0, Plane(origin=c0, z_dir=(0.0, 0.0, 1.0)))
+    return [cut_end, cut_break, notch] + _strip_front_corners(fr, u_t)
+
+
+def _strip_front_corners(fr: dict, u_t: float) -> list:
+    """Review V8: the strip's trimmed front end gets rounded plan corners (the -w aft corner radius, R -
+    clear_side), so both ends of the inlay read rounded. Two vertical prisms (along z, the radial line at the fin
+    angle, like the slot walls) of the plan regions outside a corner arc tangent to the front line (u = u_t)
+    and to the strip's side there: the -w wall, and the +w wall (the relief taper, its local slope)."""
+    RF = fr["RF"]
+    k = RF["k"]
+    TL = tongue_levels(RF)
+    r = TL["r_lo"]
+    t0 = u_t * k
+    w_lo = TL["w_lo"]
+    wt = TL["levels"][-1][1]
+    w_s = float(wt(np.array([t0]))[0])
+    m = float((wt(np.array([t0 + 0.2]))[0] - wt(np.array([t0 - 0.2]))[0]) / 0.4)
+    q = math.hypot(1.0, m)
+    n_in = np.array([m, -1.0]) / q                             # side line normal toward the strip (-w)
+    s2 = 1.0 / math.sqrt(2.0)
+
+    def P3(tw):
+        return Vector(*RF["Q"](float(tw[0]) / k, float(tw[1]), -1.0))
+    out = []
+    # -w corner
+    C = np.array([t0 + r, w_lo + r])
+    Tf, Ts = np.array([t0, w_lo + r]), np.array([t0 + r, w_lo])
+    M = C + r * np.array([-s2, -s2])
+    poly = [Ts, Ts + np.array([0.0, -2.0]), np.array([t0 - 1.0, w_lo - 2.0]), np.array([t0 - 1.0, Tf[1]]), Tf]
+    # +w corner (the side leans with the taper)
+    w_c = w_s + r * m - r * q
+    C2 = np.array([t0 + r, w_c])
+    Tf2, Ts2 = np.array([t0, w_c]), C2 - r * n_in
+    d_mid = np.array([-1.0, 0.0]) - n_in
+    M2 = C2 + r * d_mid / np.linalg.norm(d_mid)
+    E2 = Ts2 - 2.0 * n_in
+    poly2 = [Tf2, np.array([t0 - 1.0, Tf2[1]]), np.array([t0 - 1.0, E2[1]]), E2, Ts2]
+    for pts, (a, mid, b) in ((poly, (Tf, M, Ts)), (poly2, (Ts2, M2, Tf2))):
+        edges = [Edge.make_line(P3(pts[i]), P3(pts[i + 1])) for i in range(len(pts) - 1)]
+        edges.append(Edge.make_three_point_arc(P3(a), P3(mid), P3(b)))
+        face = Face(Wire(edges))
+        out.append(Solid.extrude(face, Vector(0.0, 0.0, 14.0)))
+    return out
 
 
 def strip0() -> Solid:
-    """The theta-0 blanking strip (world): the tongue section from the slot entry to the stop, its outer
-    face ON the hull (flush with the tongue bottom 0.05 over the floor), the magnet seat; its entry wedge
-    trimmed where thinner than strip_tip_min with a 45 deg break (P5), a fingernail groove near its aft end
-    to drag it forward out of the slot (C6)."""
+    """The theta-0 blanking strip (world): the tongue from the slot entry to the stop, its outer face ON the
+    hull (flush with the tongue bottom 0.05 over the floor), the magnet seat; its entry wedge trimmed where
+    thinner than strip_tip_min with a 45 deg break (P5); review V8: its outline follows the slot mouth (rounded
+    aft corners, the relief taper, no step) and a half-round fingernail notch at its aft end drags it forward
+    out of the slot."""
     fr = frame()
     st = SH.inter(_tongue_prism(fr), _hull_offset(0.0))
     st = st.cut(_tongue_seat(fr))
@@ -567,21 +641,23 @@ def parts() -> list[dict]:
                   "a 3.6 mm wide first layer): 5 mm brim all round, outer walls <= 50 mm/s, 6-8 s minimum layer "
                   "time, and on a bed-slinger (A1) set the chord along the bed's motion axis (Y). Glue the "
                   "4 x 2 x 2 N52 block into the tongue-bottom seat (attracting the floor magnet). Fit: hook a "
-                  "fingernail in the blanking strip's groove and drag it forward out of the slot, set the tongue "
-                  "in at the slot entry and push the fin aft and in to the stop; it clicks on the magnet pair. "
-                  "Yaw play in the groove about +-1.5 deg (0.25 mm side clearance over the 12.1 mm tongue): "
-                  "irrelevant for the display build, a v2 item (couple ratio)." % tuple(ths)))
+                  "fingernail in the blanking strip's notch at its aft end and drag it forward out of the slot, set "
+                  "the tongue in at the slot entry and push the fin aft and in to the stop; it clicks on the magnet "
+                  "pair. The tongue's aft corners are rounded like the slot's. Yaw play in the groove about +1.4 / "
+                  "-1.3 deg (0.25 mm side clearance; fins.json yaw_play): irrelevant for the display build, a v2 "
+                  "item (the couple ratio is a range, fins.json couple_ratio_as_built)." % tuple(ths)))
     for k, th in enumerate(ths):
         out.append(dict(
             name=f"fin_blank_{k}", shape=at_azimuth(B["strip"], th), print=ps, material="shell", role="body",
             rotor=False, qty=1, bought=False, explode=_explode_vec(fr, th, 16.0, 12.0), theta_deg=th, packed=True,
-            notes="Blanking strip for the packed egg (fins off): the fin tongue's section with its outer face on "
-                  "the hull profile, flush when seated; slides in like the fin and is held by the same magnet "
-                  "pair; to remove it, hook a fingernail in the groove across its outer face near the aft end and "
-                  "drag it forward. PLA/PETG in the shell colour; prints on its floor face (the magnet seat opens "
-                  "on the bed), no supports; its flush face slopes ~29 deg, so print it with 0.08 to 0.12 mm "
-                  "layers (or variable layer height) and no ironing to avoid terraces; the entry wedge is trimmed "
-                  "at 0.6 mm."))
+            notes="Blanking strip for the packed egg (fins off): the fin tongue with its outer face on the hull "
+                  "profile, flush when seated; slides in like the fin and is held by the same magnet pair. Its "
+                  "outline follows the slot mouth (review V8): rounded aft corners, a straight taper on the +w side "
+                  "(the entry relief), rounded front corners, an even 0.25 mm reveal; to remove it, hook a "
+                  "fingernail in the half-round notch at its aft end (against the end stop) and drag it forward. "
+                  "PLA/PETG in the shell colour; prints on its floor face (the magnet seat opens on the bed), no "
+                  "supports; its flush face slopes ~29 deg, so print it with 0.08 to 0.12 mm layers (or variable "
+                  "layer height) and no ironing to avoid terraces; the entry wedge is trimmed at 0.6 mm."))
     mag_note = ("N52 block 4 x 2 x 2 magnetised through 2 (VERIFY), CA-glued in the "
                 "4.1 x 2.1 x 2.05 seat, face %.2f mm %s; the floor / tongue pair attracts" % (R["magnet"]["recess"], "%s"))
     for k, th in enumerate(ths):
@@ -780,15 +856,16 @@ def _ray_walls(shape, origins, dirs) -> np.ndarray:
 def seat_ligaments(part: Solid, fr: dict, h_plane: float) -> dict:
     """Material around a 4.1 x 2.1 x 2.05 tongue / strip magnet seat, MEASURED with OCC rays from inside
     the seat void: across w (both sides), along the floor (forward and aft walls) and up into the part
-    (n_f), on a grid of starting points; the first material run along each ray is the ligament."""
+    (n_f), on a grid of starting points (the side rows run to the aft corners, where the rounded tongue end of
+    review V8 comes closest); the first material run along each ray is the ligament."""
     M = R["magnet"]
     org, t, w, n = _floor_frame(fr, h_plane)
     L, Wd, D = M["seat"][0], M["seat"][1], M["depth"]
     out = {}
     for key, d_, pts in (
-            ("side_-w", -w, [org + a * t + 0.05 * w + h * n for a in np.linspace(0.3, L - 0.3, 7)
+            ("side_-w", -w, [org + a * t + 0.05 * w + h * n for a in np.linspace(0.3, L - 0.05, 9)
                             for h in np.linspace(0.2, D - 0.2, 5)]),
-            ("side_+w", w, [org + a * t + (Wd - 0.05) * w + h * n for a in np.linspace(0.3, L - 0.3, 7)
+            ("side_+w", w, [org + a * t + (Wd - 0.05) * w + h * n for a in np.linspace(0.3, L - 0.05, 9)
                            for h in np.linspace(0.2, D - 0.2, 5)]),
             ("aft_wall", t, [org + (L - 0.05) * t + b * w + h * n for b in np.linspace(0.3, Wd - 0.3, 4)
                             for h in np.linspace(0.2, D - 0.2, 5)]),
@@ -820,13 +897,118 @@ def slide_sweep(m_part, m_shell, fr: dict, th: float, d_max: float, step: float 
                 step_mm=step)
 
 
+def yaw_play(m_fin, m_sh, fr: dict, th: float, step: float = 0.25, max_deg: float = 6.0) -> dict:
+    """Free yaw of the seated fin in its groove, MEASURED on the meshes (manifold3d): the fin (world, at theta th) is
+    turned about the floor normal n_f through three pivots on the tongue bottom (the tongue centre and the two
+    ends of its end face on the stop) in `step` increments, both senses, until its overlap with the front shell
+    (cropped to the rail) exceeds the seated overlap by 0.05 mm3. Sense: + is right-handed about the outward
+    floor normal (the fin's trailing edge swings toward +theta, the incidence falls). Each limit is refined to
+    step / 8 by bisection."""
+    import manifold3d as m3
+    RF = fr["RF"]
+    TL = tongue_levels(RF)
+    t_ = math.radians(-th)
+    Rx = np.array([[1.0, 0.0, 0.0], [0.0, math.cos(t_), -math.sin(t_)], [0.0, math.sin(t_), math.cos(t_)]])
+    box_pts = np.array([RF["Q"](u, w, h) for u in (RF["u_entry"] - 3.0, RF["u_stop"] + 3.0)
+                        for w in (RF["w0"] - 4.0, RF["w_b"] + 4.0) for h in (-4.0, 9.0)]) @ Rx.T
+    lo, hi = box_pts.min(0), box_pts.max(0)
+    crop = m_sh ^ m3.Manifold.cube(tuple(float(v) for v in hi - lo)).translate(tuple(float(v) for v in lo))
+    base = float((m_fin ^ crop).volume())
+    ax = Rx @ RF["n_f"]
+    pivots = {"tongue_centre": RF["Q"](0.5 * (RF["u_entry"] + RF["u_stop"]), 0.5 * (TL["w_lo"] + TL["w_hi"]), TL["z_bot"]),
+              "stop_end_-w": RF["Q"](RF["u_stop"], TL["w_lo"] + TL["r_lo"], TL["z_bot"]),
+              "stop_end_+w": RF["Q"](RF["u_stop"], TL["w_hi"] - TL["r_hi"][-1], TL["z_bot"])}
+
+    def T(p, deg):
+        a = math.radians(deg)
+        K = np.array([[0, -ax[2], ax[1]], [ax[2], 0, -ax[0]], [-ax[1], ax[0], 0]])
+        R_ = np.eye(3) + math.sin(a) * K + (1 - math.cos(a)) * K @ K
+        pw = Rx @ p
+        return np.hstack([R_, (pw - R_ @ pw)[:, None]])
+    out = {"seated_overlap_mm3": round(base, 4), "step_deg": step}
+    free = {"+": 0.0, "-": 0.0}
+    for name, p in pivots.items():
+        row = {}
+        for sg in (1.0, -1.0):
+            f_ = 0.0
+            hit = None
+            for k in range(1, int(round(max_deg / step)) + 1):
+                d = sg * step * k
+                if float((m_fin.transform(T(p, d)) ^ crop).volume()) > base + 0.05:
+                    hit = d
+                    break
+                f_ = d
+            if hit is not None:                                  # refine the limit to step / 8
+                a_, b_ = f_, hit
+                for _ in range(3):
+                    mid = 0.5 * (a_ + b_)
+                    a_, b_ = (mid, b_) if float((m_fin.transform(T(p, mid)) ^ crop).volume()) <= base + 0.05 else (a_, mid)
+                f_ = round(a_, 4)
+            row["+" if sg > 0 else "-"] = dict(free_deg=f_, first_contact_deg=hit)
+            key = "+" if sg > 0 else "-"
+            free[key] = max(free[key], abs(f_))
+        out[name] = row
+    out["free_plus_deg"], out["free_minus_deg"] = free["+"], free["-"]
+    # incidence change of the chord for a yaw about n_f (theta 0 frame, exact rotation)
+    Fr = RF["F"]
+
+    def inc_after(deg):
+        a = math.radians(deg)
+        n = RF["n_f"]
+        K = np.array([[0, -n[2], n[1]], [n[2], 0, -n[0]], [-n[1], n[0], 0]])
+        R_ = np.eye(3) + math.sin(a) * K + (1 - math.cos(a)) * K @ K
+        u_ = R_ @ Fr["u"]
+        return math.degrees(math.atan2(-u_[1], u_[0]))
+    i0 = inc_after(0.0)
+    out["incidence_deg"] = dict(seated=round(i0, 4), at_plus=round(inc_after(free["+"]), 4),
+                                at_minus=round(inc_after(-free["-"]), 4))
+    return out
+
+
+def strip_reveal(m_strip_tm, crop: Solid, fr: dict, th: float, u_t: float, n_max: int = 400) -> dict:
+    """Visible reveal (gap) between the seated blanking strip and the slot mouth just under the skin (review V8: a
+    deliberate inlay has an even reveal): points sampled on the strip 0.15 to 0.45 mm under the hull radius, the
+    nail notch, the end face on the stop (contact) and the rounded front corners left out, their exact (OCC)
+    distance to the front shell (cropped)."""
+    import trimesh
+    from build123d import Vertex
+    RF = fr["RF"]
+    v = np.asarray(trimesh.sample.sample_surface(m_strip_tm, 60000, seed=3)[0])
+    depth = profile.radius(np.clip(v[:, 0], 0, P.HULL_L)) - np.hypot(v[:, 1], v[:, 2])
+    t_ = math.radians(th)
+    Rx = np.array([[1.0, 0.0, 0.0], [0.0, math.cos(-t_), -math.sin(-t_)], [0.0, math.sin(-t_), math.cos(-t_)]])
+    v0 = v @ Rx                                                        # back to theta 0 (inverse rotation)
+    Fr = RF["F"]
+    uu = (v0 - Fr["o"]) @ Fr["u"]
+    ww = (v0 - Fr["o"]) @ Fr["w"]
+    wm = 0.5 * (RF["w0"] + RF["w_n"])
+    N = DESIGN["nail_notch"]
+    notch = np.hypot((uu - RF["u_stop"]) * RF["k"], ww - wm) < N["r"] + 0.3
+    r_f = tongue_levels(RF)["r_lo"]                                    # the front corners' radius (rounded front)
+    endface = uu > RF["u_stop"] - 0.03                                 # on the stop: designed contact, not a reveal
+    sel = np.nonzero((depth > 0.15) & (depth < 0.45) & (uu > u_t + (r_f + 0.3) / RF["k"]) & ~notch & ~endface)[0]
+    sel = sel[np.linspace(0, len(sel) - 1, min(n_max, len(sel))).astype(int)]
+    d = np.array([Vertex(*map(float, q)).distance_to(crop) for q in v[sel]])
+    side = np.where(ww[sel] > wm, "+w", "-w")
+    aft = uu[sel] > RF["u_stop"] - (DESIGN["corner_r"] + 0.2) / RF["k"]
+    return dict(n=int(len(sel)), min_mm=round(float(d.min()), 3), median_mm=round(float(np.median(d)), 3),
+                max_mm=round(float(d.max()), 3), p95_mm=round(float(np.percentile(d, 95)), 3),
+                sides={k: [round(float(d[(side == k) & ~aft].min()), 3), round(float(d[(side == k) & ~aft].max()), 3)]
+                       for k in ("-w", "+w")},
+                aft_end=[round(float(d[aft].min()), 3), round(float(d[aft].max()), 3)] if aft.any() else None)
+
+
 def checks() -> dict:
     ps = parts()
     B = _built()
     fr, RF = B["fr"], B["fr"]["RF"]
     res = dict(section=B["info"], parts=[], interfaces=[], fin_block_vs_params=SH.FIN_VS_PARAMS,
                rail=dict(u_entry=RF["u_entry"], u_relief=RF["u_relief"], u_stop=RF["u_stop"], u_magnet=RF["u_mag"],
-                         slope=RF["s"], design=DESIGN))
+                         slope=RF["s"], relief_taper=dict(shape=RF["relief_shape"], u=[RF["u_r0"], RF["u_r1"]],
+                                                          max_plan_slope_deg=RF["relief_max_slope_deg"],
+                                                          lip_left_min_mm=RF["relief_lip_min"]),
+                         tongue_corner_r=dict(r_lo=tongue_levels(RF)["r_lo"], r_hi=tongue_levels(RF)["r_hi"]),
+                         strip_trim_u=strip_trim_u(fr), design=DESIGN))
     up, lo, _ = clarky(DESIGN["n_section"], te=P.MIN_TE / F["chord"])
     cmp_ = compare_uiuc(up, lo)
     res["section_vs_uiuc"] = cmp_
@@ -840,8 +1022,10 @@ def checks() -> dict:
         r0 = lay["torque_basis"]["ratio"]
         res["couple_ratio_as_built"] = dict(layout_ratio=round(r0, 4), factor=round(f, 4), ratio=round(r0 * f, 4),
                                             band=[1.10, 1.155], ok=1.10 <= r0 * f <= 1.155,
-                                            note="layout ratio (UIUC section) x NeuralFoil lift factor of the CAD "
-                                                 "section (MIN_TE trailing edge) at Re 55 k, n_crit 5")
+                                            alpha_L0_cad_deg=nfc["alpha_L0_deg"],
+                                            note="nominal (fin seated on its rail axis): layout ratio (UIUC section) x "
+                                                 "NeuralFoil lift factor of the CAD section (MIN_TE trailing edge) at "
+                                                 "Re 55 k, n_crit 5; ok = the nominal is in the band")
     except Exception as ex:  # noqa: BLE001
         res["couple_ratio_as_built"] = f"not computed: {ex}"
     I = res["interfaces"]
@@ -938,6 +1122,45 @@ def checks() -> dict:
             note="charge model x layout k; slide-out = peak shear + friction 0.3 x normal (ESTIMATE); fin mass ~ "
                  "60 % of the solid PETG volume (ESTIMATE)")
         res["magnet_model_check"] = disc_force_check()
+        # yaw play of the seated fin (measured) and the couple ratio as a range over it (review: report a range)
+        yp = yaw_play(m_fin, m_sh, fr, th)
+        res["yaw_play"] = yp
+        add("fin_0 yaw play in the rail, LOWER BOUND (contact-free yaw about 3 sampled pivots on the floor normal, 0.25 deg steps refined to 0.03; the true free yaw about the best pivot can be larger; + = incidence "
+            "falls), deg",
+            [yp["free_plus_deg"], -yp["free_minus_deg"]], yp["free_plus_deg"] > 0 and yp["free_minus_deg"] > 0,
+            note="0.25 mm side clearance over the tongue; the fin is held only by the magnet pair against yaw")
+        cr = res.get("couple_ratio_as_built")
+        if isinstance(cr, dict):
+            i0, aL0 = F["incidence_deg"], cr["alpha_L0_cad_deg"]
+            lin = lambda i: cr["ratio"] * (i - aL0) / (i0 - aL0)               # noqa: E731
+            r_lo, r_hi = sorted((lin(yp["incidence_deg"]["at_plus"]), lin(yp["incidence_deg"]["at_minus"])))
+            cr.update(range=[round(r_lo, 4), round(r_hi, 4)], range_in_band=bool(1.10 <= r_lo and r_hi <= 1.155),
+                      incidence_range_deg=[yp["incidence_deg"]["at_plus"], yp["incidence_deg"]["at_minus"]],
+                      yaw_play_deg=[yp["free_plus_deg"], -yp["free_minus_deg"]],
+                      range_note="ESTIMATE and LOWER BOUND on the spread: both fins at the same end of their measured (3-pivot, lower-bound) yaw play (the worst case for "
+                                 "the couple), lift linear in the incidence about the CAD section's NeuralFoil "
+                                 "alpha_L0 (as the nominal); the range is NOT inside the band, the nominal is: for "
+                                 "v2, crush ribs on the tongue's flat side would locate the fin (proposal)"
+                                 if not (1.10 <= r_lo and r_hi <= 1.155) else
+                                 "ESTIMATE: both fins at the same end of their measured yaw play, lift linear in the "
+                                 "incidence about the CAD section's NeuralFoil alpha_L0")
+            add("couple ratio as built: nominal (band 1.10 to 1.155) / range over the measured yaw play (ESTIMATE)",
+                [cr["ratio"], cr["range"]], cr["ok"],
+                note="ok = the nominal is in the band; range in band: %s" % cr["range_in_band"])
+        # review V8: an even reveal between the strip and the slot mouth just under the skin
+        t_ = math.radians(-th)
+        Rx = np.array([[1.0, 0.0, 0.0], [0.0, math.cos(t_), -math.sin(t_)], [0.0, math.sin(t_), math.cos(t_)]])
+        bp = np.array([RF["Q"](u, w, h) for u in (RF["u_entry"] - 3.0, RF["u_stop"] + 3.0)
+                       for w in (RF["w0"] - 4.0, RF["w_b"] + 4.0) for h in (-4.0, 9.0)]) @ Rx.T
+        lo_, hi_ = bp.min(0), bp.max(0)
+        crop = SH.inter(front, Solid.make_box(*(hi_ - lo_)).moved(Location(tuple(lo_))))
+        rv = strip_reveal(_mesh(at_azimuth(B["strip"], th), 0.02), crop, fr, th, strip_trim_u(fr))
+        res["strip_reveal"] = rv
+        sd = rv["sides"]
+        add("blanking strip reveal to the slot mouth 0.15 to 0.45 mm under the skin: -w side / +w side (the taper) "
+            "min, max; around the rounded aft corners min, max (it closes to the end-stop contact), mm",
+            [sd["-w"], sd["+w"], rv["aft_end"]], min(sd["-w"][0], sd["+w"][0]) >= 0.2 and max(sd["-w"][1], sd["+w"][1]) <= 0.3,
+            note="even reveal along both sides (clear_side 0.25 normal to the walls); the strip's end sits on the stop")
     except Exception as ex:  # noqa: BLE001
         import traceback
         traceback.print_exc()

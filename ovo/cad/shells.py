@@ -68,9 +68,15 @@ layout JSON; nothing below changes them):
 * Nose: plug forward of NOSE_PLUG.x_45 with a flat bridge (38.6 mm, reported as a bridge),
   tow eye (finding T06): a teardrop lug, its outer profile parallel to the hole's teardrop so the
   crown keeps TOW_EYE ring_w (5.0) normal to the 45 deg flanks, the hole apex cut to a 2 mm flat,
-  the root blended R2 into the nose; raised gland seat block (no rim chamfer, blended into the nose by
-  an R6 root fillet, review V2), 10.5 mm tap-drill bore through block, wall and plug (display build: the
-  push-in blanking plug in the plain bore; v2: tapped M12x1.5 for the gland, no modelled thread).
+  the root blended R2 into the nose. Owner decision 2026-10-05 (nose round): the DISPLAY front shell
+  (front_shell) has a clean egg nose, the tow eye only. The v2 front shell (front_shell_v2, role "v2") adds
+  the raised gland seat block (no rim chamfer, blended into the nose by an R6 root fillet, review V2) and the
+  10.5 mm tap-drill bore through block, wall and plug (tapped M12x1.5 for the gland, no modelled thread);
+  the cutaway front shell is cut from it. Everything else is built by the same sequence (nose_checks).
+* Fin slot outline (review V8): the groove is a ruled loft of floor-parallel outlines (rail_level_wire):
+  aft corners rounded FIN slot_corner_r through the flank, and the entry relief is a straight taper of the
+  +w wall (relief_shape 'ramp') from the full undercut width at the entry to the neck at the aft corner,
+  sized so the undercut lip left beside it stays >= MIN_WALL + relief_lip_margin (no 1.3 mm step).
 """
 
 from __future__ import annotations
@@ -217,14 +223,19 @@ FIN_RAIL = dict(
     clear_side=P.CLEAR_SLIDE,                  # tongue / strip to the groove walls (normal)
     clear_floor=FIN["clear_floor"],            # 0.05: the magnet pair pulls the tongue onto the floor
     lip_min=P.MIN_WALL,                        # entry relief: the undercut lip starts >= MIN_WALL thick
+    relief_lip_margin=FIN["relief_lip_margin"],   # the relief taper keeps the lip >= lip_min + this
+    relief_shape=FIN["relief_shape"],             # 'ramp' (straight taper to the aft corner) or 's' (short S-curve)
+    corner_r=FIN["slot_corner_r"],              # aft corners of the groove (floor plane), review V8
     magnet=dict(size=tuple(P.FIN_MAGNET["size"]), seat=tuple(P.FIN_MAGNET["seat"]),
                 depth=P.FIN_MAGNET["seat_depth"], recess=P.FIN_MAGNET["recess"],
                 u_from_stop=P.FIN_MAGNET["u_from_stop"], part=P.FIN_MAGNET["part"]),
     note="fin frame (u along the yawed chord from the LE, w across + toward +theta, a radial at the fin "
          "angle); floor a_f(u) = floor_a_stop + slope (u - u_stop); section above the floor: flat wall at "
          "w0 full height, neck wall at w0 + slot_w from uc_h up through the skin, 45 deg undercut to "
-         "w0 + groove_w at the floor; entry relief (neck opened to the full width up through the skin) "
-         "where the undercut lip would be thinner than lip_min; floor magnet seat 1.75 ahead of the stop "
+         "w0 + groove_w at the floor; entry relief: the +w wall above the flank tapers from the full width "
+         "at the entry to the neck at the aft corner (relief_shape), so the lip left beside it is >= lip_min "
+         "+ relief_lip_margin; aft corners rounded corner_r (floor plane, the flank too); floor magnet seat "
+         "1.75 ahead of the stop "
          "(4.1 x 2.1 x 2.05 along the floor, its forward wall a 45 deg undercut so it prints); boss under "
          "the floor: boss_floor_t, boss_magnet_t under the seat (45 deg aft end), boss_side_t beside it.",
 )
@@ -1003,9 +1014,9 @@ GLAND_BORE_LEN = 9.6                       # from the spot face: fully through t
 
 
 def _gland_block() -> Solid:
-    """Seat boss: a D seat_d cylinder on the gland axis up to the spot face. No rim chamfer (review V2):
-    the display plug's base covers the whole seat flush with its edge (GLAND_PLUG base_r = seat_d / 2), so
-    no groove shows between them; the boss blends into the nose through _gland_root_fillet."""
+    """Seat boss (front_shell_v2 only): a D seat_d cylinder on the gland axis up to the spot face, with no
+    rim chamfer; the boss blends into the nose through _gland_root_fillet. The display front_shell has no
+    seat, bore or plug (clean egg nose)."""
     G, F = P.GLAND, gland_frame()
     S, A = F["S"], F["A"]
     L = 14.0
@@ -1087,6 +1098,7 @@ def fin_frame() -> dict:
                 phi=math.atan(k))
 
 
+@functools.lru_cache(maxsize=1)
 def rail_frame() -> dict:
     """Recessed fin rail (FIN_RAIL) of the theta-0 fin, world coordinates at theta 0 (rotate with
     C.at_azimuth). A point at fin-frame station u (along the yawed chord from the LE), lateral w (+
@@ -1143,9 +1155,117 @@ def rail_frame() -> dict:
     M = R["magnet"]
     u_m1 = u_stop - M["u_from_stop"]                         # seat aft wall (u at the floor)
     u_m0 = u_m1 - M["seat"][0] / k                           # seat forward wall at the floor mouth
+    tp = _relief_taper(R, w_n, w_b, u_entry, u_stop, a_f, a_hull)
     return dict(F=F, R=R, s=s, k=k, rv=rv, t=t, n_f=n_f, u_stop=u_stop, u_entry=u_entry, u_relief=u_rel,
                 lip_at_relief_end=lip(u_rel), w0=w0, w_n=w_n, w_b=w_b, a_f=a_f, Q=Q, a_hull=a_hull,
-                u_mag=(u_m0, u_m1), lip=lip)
+                u_mag=(u_m0, u_m1), lip=lip, **tp)
+
+
+RELIEF_EPS = 0.08          # smooth-max width (mm) of the groove's +w wall (relief curve vs undercut flank)
+
+
+def _smax(a, b, eps: float = RELIEF_EPS):
+    """C1 smooth maximum: exactly max(a, b) where they differ by eps or more, a quadratic blend (up to eps / 4
+    above the max) where they come closer."""
+    a, b = np.asarray(a, float), np.asarray(b, float)
+    d = np.abs(a - b)
+    return np.maximum(a, b) + np.where(d < eps, (eps - d) ** 2 / (4.0 * eps), 0.0)
+
+
+def _relief_taper(R: dict, w_n: float, w_b: float, u_entry: float, u_stop: float, a_f, a_hull) -> dict:
+    """Entry relief as a taper (strip outline round, review V8): the +w wall of the groove above the undercut
+    flank is w_m(u), a smoothstep from the full undercut width (w_b + RELIEF_EPS) down to the neck (w_n -
+    RELIEF_EPS). The relief must remove the undercut lip wherever it would be thinner than lip_min + margin:
+    w_req(u) is the smallest wall position whose lip (shell over the 45 deg flank beside it, along the flank
+    normal to the skin) reaches that; the lip grows toward w_b, so the material left beside a wall at w_m is
+    as thick as the lip at w_m. The S-curve is the shortest smoothstep that stays above w_req everywhere,
+    stretched to a plan slope of at most RELIEF_MAX_SLOPE_DEG (it reads as a deliberate flare, not a bay)."""
+    lip_t = R["lip_min"] + R["relief_lip_margin"]
+    uc = R["uc_h"]
+
+    def lip_w(u, w):
+        # distance along the flank normal (45 deg, +w and up) from the flank point at w to the skin (bisection: the
+        # skin falls and the ray rises along it, so the sign changes once)
+        h = uc * (w_b - w) / (w_b - w_n)
+        g = lambda d: a_hull(u, w + d / math.sqrt(2.0)) - (a_f(u) + h + d / math.sqrt(2.0))   # noqa: E731
+        if g(0.0) <= 0.0:
+            return 0.0
+        lo, hi = 0.0, 6.0
+        if g(hi) > 0.0:
+            return hi
+        for _ in range(22):
+            mid = 0.5 * (lo + hi)
+            lo, hi = (mid, hi) if g(mid) > 0.0 else (lo, mid)
+        return lo
+
+    us = np.arange(u_entry - 0.5, u_stop, 0.05)
+    req = np.full(len(us), w_n)
+    for i, u in enumerate(us):
+        if lip_w(u, w_n) >= lip_t:
+            continue
+        if lip_w(u, w_b) < lip_t:
+            req[i] = w_b
+            continue
+        lo, hi = w_n, w_b
+        for _ in range(18):
+            mid = 0.5 * (lo + hi)
+            lo, hi = (mid, hi) if lip_w(u, mid) < lip_t else (lo, mid)
+        req[i] = hi
+    top, bot = w_b + RELIEF_EPS, w_n - RELIEF_EPS
+    shape = R.get("relief_shape", "ramp")
+    b = RELIEF_RAMP_BLEND
+
+    def ramp(x):
+        # straight taper with C1 round-offs over the first and last fraction b (slope 1 / (1 - b) in between)
+        x = np.clip(np.asarray(x, float), 0.0, 1.0)
+        k_ = 1.0 / (2.0 * b * (1.0 - b))
+        return np.where(x < b, k_ * x * x, np.where(x > 1.0 - b, 1.0 - k_ * (1.0 - x) ** 2, (x - b / 2.0) / (1.0 - b)))
+
+    def curve(u, u0, u1):
+        x = (np.asarray(u, float) - u0) / (u1 - u0)
+        if shape == "s":
+            x = np.clip(x, 0.0, 1.0)
+            return top - (top - bot) * (3.0 * x * x - 2.0 * x ** 3)
+        return top - (top - bot) * ramp(x)
+    need = req > w_n + 1e-9
+    best = None
+    if shape == "s":
+        # the shortest smoothstep (no steeper than RELIEF_MAX_SLOPE_DEG) that removes the least
+        L_slope = 1.5 * (top - bot) / math.tan(math.radians(RELIEF_MAX_SLOPE_DEG))
+        for L in np.arange(L_slope, L_slope + 4.0, 0.05):
+            for u0 in np.arange(u_entry - 3.0, u_stop - L, 0.025):
+                c = curve(us, u0, u0 + L)
+                if np.all(c[need] >= req[need]):
+                    area = float(np.sum(np.maximum(c - np.maximum(req, w_n), 0.0)) * 0.05)
+                    if best is None or area < best[0]:
+                        best = (area, float(u0), float(u0 + L))
+                    break
+    else:
+        # 'ramp' (owner look: a tapered inlay, one straight +w edge): the taper runs to the aft corner (its end
+        # blends into the corner arc's tangent) and starts as early as the lip requirement allows
+        u1 = u_stop - (R["corner_r"] + RELIEF_RAMP_END_GAP) / math.hypot(1.0, R["slope"])
+        for u0 in np.arange(u_entry - 3.0, u1 - 1.0, 0.025):
+            if np.all(curve(us[need], u0, u1) >= req[need]):
+                best = (0.0, float(u0), float(u1))
+                break
+    if best is None:
+        raise RuntimeError("no relief taper keeps the undercut lip")
+    _, u0, u1 = best
+    c = curve(us, u0, u1)
+    under = c < w_b - 1e-6                       # an undercut is left beside the wall: its lip is the one at the wall
+    i_lip = [lip_w(u, float(max(cw, w_n))) for u, cw in zip(us[under], c[under])]
+    sl = np.gradient(curve(us, u0, u1), us)
+    return dict(u_r0=float(u0), u_r1=float(u1), relief_shape=shape, w_m=lambda u: curve(u, u0, u1),
+                relief_req=dict(u=us[need].round(3).tolist(), w_req=req[need].round(3).tolist()),
+                relief_lip_min=float(min(i_lip)) if i_lip else None, relief_lip_target=lip_t,
+                relief_max_slope_deg=round(float(math.degrees(math.atan(float(np.abs(sl).max())))), 2))
+
+
+RELIEF_RAMP_BLEND = 0.15         # DESIGN: round-off fraction at each end of the ramp taper
+RELIEF_RAMP_END_GAP = 0.3        # DESIGN: the ramp reaches the neck this far (mm, floor plane) ahead of the aft arc
+
+
+RELIEF_MAX_SLOPE_DEG = 35.0      # DESIGN: steepest plan angle of the relief S-curve (a gentle flare)
 
 
 def _prism_uwh(RF: dict, sec_wh, u0: float, u1: float) -> Solid:
@@ -1178,18 +1298,68 @@ def _magnet_seat_local(RF: dict, h_floor: float = 0.0, up: bool = False) -> Soli
     return box.fuse(ramp).clean()
 
 
+def rail_level_wire(RF: dict, h: float, w_lo: float, w_plus, t_a: float, t_end: float, r_lo: float, r_hi: float,
+                    dt: float = 0.2) -> Wire:
+    """Outline of a groove (or tongue / strip) level: the plane parallel to the groove floor at height h above
+    it (offset along z, as Q), in local coordinates (t, w) with t = k u along the rail (rv): P(t, w) = Q(t / k,
+    w, h) maps them isometrically. Edges, always in this order so two levels loft edge to edge (ruled): the
+    front line at t_a, the +w side w_plus(t) (one spline from t_a to the aft arc), the +w aft arc (radius
+    r_hi), the end line t = t_end, the -w aft arc (r_lo), the -w line at w_lo. Both arcs are tangent to the
+    end line and to their side (review V8: the slot mouth's aft corners)."""
+    k = RF["k"]
+    td = Vector(*RF["t"])
+
+    def P3(t, w):
+        return Vector(*RF["Q"](float(t) / k, float(w), h))
+    tc = t_end - r_hi
+    n = max(int(math.ceil((tc - t_a) / dt)), 8)
+    ts = np.linspace(t_a, tc, n + 1)
+    ws = np.asarray(w_plus(ts), float)
+    w_c = float(ws[-1])
+    s2 = 1.0 / math.sqrt(2.0)
+    lo_c = (t_end - r_lo, w_lo + r_lo)
+    edges = [Edge.make_line(P3(t_a, w_lo), P3(t_a, ws[0])),
+             # parameters = t: the ruled loft joins equal-t points of the levels' splines
+             Edge.make_spline([P3(t, w) for t, w in zip(ts, ws)], tangents=[td, td],
+                              parameters=list((ts - t_a) / (tc - t_a))),
+             Edge.make_three_point_arc(P3(tc, w_c), P3(tc + r_hi * s2, w_c - r_hi + r_hi * s2), P3(t_end, w_c - r_hi)),
+             Edge.make_line(P3(t_end, w_c - r_hi), P3(t_end, lo_c[1])),
+             Edge.make_three_point_arc(P3(t_end, lo_c[1]), P3(lo_c[0] + r_lo * s2, lo_c[1] - r_lo * s2), P3(lo_c[0], w_lo)),
+             Edge.make_line(P3(lo_c[0], w_lo), P3(t_a, w_lo))]
+    return Wire(edges)
+
+
+def rail_loft(RF: dict, levels: list, w_lo: float, t_a: float, t_end: float, r_lo: float) -> Solid:
+    """Ruled loft through rail_level_wire outlines; levels = [(h, w_plus, r_hi), ...] bottom to top."""
+    wires = [rail_level_wire(RF, h, w_lo, wp, t_a, t_end, r_lo, rh) for h, wp, rh in levels]
+    s = Solid.make_loft(wires, ruled=True)
+    assert s.is_valid, "rail loft invalid"
+    return s
+
+
+def groove_w_plus(RF: dict, h: float):
+    """+w wall of the groove at height h above the floor: the smooth max of the undercut flank (w_b at the
+    floor to w_n at uc_h, then the neck) and the entry relief curve w_m (review V8: a taper, no step)."""
+    R = RF["R"]
+    w_n, w_b, k = RF["w_n"], RF["w_b"], RF["k"]
+    wf = w_b - (w_b - w_n) * min(max(h, 0.0), R["uc_h"]) / R["uc_h"]
+    return lambda t: _smax(np.full(np.shape(t), wf), RF["w_m"](np.asarray(t) / k))
+
+
 def _rail_groove_local() -> Solid:
-    """Groove cutter of the theta-0 fin: dovetail prism from ahead of the entry to the stop (plane
-    u = u_stop), the entry relief (full width up through the skin, ahead of u_relief) and the floor
-    magnet seat."""
+    """Groove cutter of the theta-0 fin (review V8 outline): a ruled loft of floor-parallel outlines from the
+    floor to the undercut top (6 levels, the flank) and on up through the skin, from ahead of the entry to the
+    end stop (t = k u_stop); the +w wall is the smooth max of the 45 deg flank / neck and the tapered entry
+    relief, the aft corners are rounded corner_r at every level (in the flank too); plus the floor magnet
+    seat."""
     RF = rail_frame()
     R = RF["R"]
+    k = RF["k"]
     H = 25.0
-    w0, w_n, w_b = RF["w0"], RF["w_n"], RF["w_b"]
-    u_a = RF["u_entry"] - 8.0
-    dov = _prism_uwh(RF, [(w0, 0.0), (w_b, 0.0), (w_n, R["uc_h"]), (w_n, H), (w0, H)], u_a, RF["u_stop"])
-    rel = _prism_uwh(RF, [(w0, 0.0), (w_b, 0.0), (w_b, H), (w0, H)], u_a, RF["u_relief"])
-    g = dov.fuse(rel).clean()
+    t_a, t_end = (RF["u_entry"] - 8.0) * k, RF["u_stop"] * k
+    Rc = R["corner_r"]
+    hs = list(np.linspace(0.0, R["uc_h"], 6)) + [H]
+    g = rail_loft(RF, [(h, groove_w_plus(RF, h), Rc) for h in hs], RF["w0"], t_a, t_end, Rc)
     g = g.fuse(_magnet_seat_local(RF)).clean()
     sols = g.solids()
     g = max(sols, key=lambda x: x.volume) if len(sols) > 1 else sols[0]
@@ -1291,20 +1461,26 @@ def _front_core(skin: float = 1.0) -> Solid:
                           ("L", (EQ + 1.0, 0.0))])
 
 
-def build_front_shell() -> Solid:
+def build_front_shell(v2: bool = False) -> Solid:
+    """The front shell. v2 False (owner decision 2026-10-05, nose round): the DISPLAY shell, a clean egg nose
+    with only the tow eye on it (no gland seat block, no fillet, no M12 bore); v2 True: the v2 shell with the
+    raised gland seat (R6 root fillet, review V2) and the 10.5 tap bore, built exactly as before. Everything
+    else (eye, nose-plug bridge, carrier ring, socket, rails, pockets, click dimples) is the same sequence."""
     t0 = time.time()
     hull = _front_hull()
     core = _front_core()
     outer = _eye_root_fillet(hull.fuse(_eye()))
-    outer = _gland_root_fillet(outer.fuse(_gland_block().cut(core)).clean())
+    if v2:
+        outer = _gland_root_fillet(outer.fuse(_gland_block().cut(core)).clean())
     body = outer.cut(_front_cavity())
     liners = [inter(l, hull) for l in pocket_cutters(liner=True)]
     body = body.fuse(*liners, *rail_bosses())
-    cutters = _socket_cutters() + _carrier_cutters() + [_gland_bore(), _seal_lead_cutter()] + rail_grooves() + \
-        pocket_cutters() + _click_dimples()
+    cutters = _socket_cutters() + _carrier_cutters() + ([_gland_bore()] if v2 else []) + [_seal_lead_cutter()] + \
+        rail_grooves() + pocket_cutters() + _click_dimples()
     body = body.cut(*cutters)
-    body = single(body, "front_shell")
-    print(f"front shell {time.time() - t0:.1f} s", flush=True)
+    name = "front_shell_v2" if v2 else "front_shell"
+    body = single(body, name)
+    print(f"{name} {time.time() - t0:.1f} s", flush=True)
     return body
 
 
@@ -1772,7 +1948,9 @@ def build_aft_shell() -> Solid:
 # --------------------------------------------------------------------------
 
 PRINT_ROT = (0.0, 90.0, 0.0)               # +X -> -Z: equator / tail end face on the bed
-NAMES = ("front_shell", "aft_shell", "front_shell_cutaway", "aft_shell_cutaway")
+# front_shell: the DISPLAY shell (clean nose); front_shell_v2: the v2 shell with the gland seat and tap bore (role
+# "v2"); the cutaway front shell is cut from the v2 one (it shows the seat with the gland in it)
+NAMES = ("front_shell", "aft_shell", "front_shell_v2", "front_shell_cutaway", "aft_shell_cutaway")
 PRINT_EXTRA = ("aft_shell_print", "aft_shell_cutaway_print")   # world pose + the click ties (print only)
 
 
@@ -1800,16 +1978,17 @@ def build_all(force: bool = False) -> dict:
     for old in (WORK / "cache").glob("*"):                 # stale keys (older sources)
         if old.is_dir() and old != cdir:
             shutil.rmtree(old, ignore_errors=True)
-    front = build_front_shell()
+    front = build_front_shell(v2=False)
+    front_v2 = build_front_shell(v2=True)
     aft = build_aft_shell()
-    fc = single(front.cut(cutaway_sector(True)), "front_shell_cutaway")
+    fc = single(front_v2.cut(cutaway_sector(True)), "front_shell_cutaway")
     ac = single(aft.cut(cutaway_sector(False)), "aft_shell_cutaway")
     ties = _click_ties()
     ap = single(fuse(aft, *ties), "aft_shell_print")
     sec = cutaway_sector(False)
     ties_c = [t_ for t_ in (t.cut(sec) for t in ties) if t_.volume > 1e-3]
     acp = single(fuse(ac, *ties_c), "aft_shell_cutaway_print") if ties_c else ac
-    out = dict(front_shell=front, aft_shell=aft, front_shell_cutaway=fc, aft_shell_cutaway=ac,
+    out = dict(front_shell=front, aft_shell=aft, front_shell_v2=front_v2, front_shell_cutaway=fc, aft_shell_cutaway=ac,
                aft_shell_print=ap, aft_shell_cutaway_print=acp)
     cdir.mkdir(parents=True, exist_ok=True)
     for n, s in out.items():
@@ -1819,16 +1998,21 @@ def build_all(force: bool = False) -> dict:
 
 
 NOTES = {
-    "front_shell": "PLA (display) / PETG (v2). Prints nose-up on its equator face, no supports: the nose "
+    "front_shell": "Display build front shell, PLA. Prints nose-up on its equator face, no supports: the nose "
                    "plug's 38.6 mm flat bridge is the only bridge (good bridge settings: cooling 100 %, bridge "
                    "speed ~25 mm/s; expect a little sag on that internal face); the tow eye is a teardrop lug "
                    "pointing up with a 2 mm flat on its hole apex; socket ceiling, lip chamfer, O-ring lead-in, "
                    "carrier groove ceiling and pocket ramps are 45 deg; pocket lips undercut in-slice. Recessed fin "
                    "rails: the grooves run near-vertical, their inner bosses thicken downward and end on a 45 deg "
                    "cone, the floor magnet seats have a 45 deg undercut forward wall; glue a 4 x 2 x 2 N52 block "
-                   "(face 0.05 below the floor) in each. Three bayonet-click dimples in the socket ring. Gland seat: "
-                   "a D18 boss blended into the nose by an R6 root fillet; display build: leave the 10.5 mm bore for "
-                   "the push-in blanking plug; v2: tap M12x1.5 for the gland.",
+                   "(face 0.05 below the floor) in each; the slot mouths have R2 aft corners and a straight taper "
+                   "(the entry relief). Three bayonet-click dimples in the socket ring. Clean egg nose (owner "
+                   "decision 2026-10-05): only the tow eye, no gland seat, no bore, no plug.",
+    "front_shell_v2": "v2 build front shell (PETG for the wet build), role v2: replaces front_shell. The same shell "
+                      "with the raised M12 gland seat (D18 boss blended into the nose by an R6 root fillet) and the "
+                      "10.5 mm tap-drill bore through block, wall and nose plug: tap M12x1.5 and screw in the cable "
+                      "gland. Prints like front_shell (nose up, no supports; the seat boss and its concave fillet "
+                      "stand between printable faces). The cutaway front shell is cut from this one.",
     "aft_shell": "PLA / PETG. Prints on its tail end face, spigot tip up, no supports: lugs, O-ring groove "
                  "flank, root ring and notch ramps at 45 deg; the stowed-detent bosses lean with the blade face "
                  "(49.0 deg from vertical in print, owner call T15: a 4 deg overhang over the 4.1 mm hole) and "
@@ -1844,18 +2028,29 @@ NOTES = {
 
 
 def parts() -> list[dict]:
+    """Shell part dicts. Variant flags (owner decision 2026-10-05, nose round): front_shell (display, clean nose)
+    carries v2=False, so the viewer's v2 mode hides it; front_shell_v2 has role "v2" (a shell that exists only in
+    the v2 state: hidden in CUTAWAY like a shell, shown only with v2=1) and v2=True; the cutaway front shell is
+    cut from the v2 shell (it shows the gland seat with the gland in it)."""
     S = build_all()
     out = []
     for n in NAMES:
         base = n.replace("_cutaway", "")
         cut = n.endswith("_cutaway")
         pr = S.get(n + "_print", S[n])                     # aft shells: + the breakaway click ties (C1 / P1)
-        out.append(dict(
+        d = dict(
             name=n, shape=S[n], print=C.on_bed(pr, PRINT_ROT), material="shell",
-            role="shell_cutaway" if cut else "shell", rotor=False, qty=1, bought=False,
-            explode=[-80.0, 0.0, 0.0] if base == "front_shell" else [30.0, 0.0, 0.0],
-            notes=NOTES[base] + (" Cutaway: sector theta %g..%g removed (display only)." % CUTAWAY_THETA if cut else ""),
-        ))
+            role="shell_cutaway" if cut else ("v2" if n == "front_shell_v2" else "shell"), rotor=False, qty=1,
+            bought=False, explode=[-80.0, 0.0, 0.0] if base.startswith("front_shell") else [30.0, 0.0, 0.0],
+            notes=(NOTES[base] if n != "front_shell_cutaway" else
+                   "Cutaway display variant of front_shell_v2 (it keeps the v2 gland seat and bore, so the cutaway "
+                   "shows the M12 gland in place); prints like front_shell.") +
+            (" Cutaway: sector theta %g..%g removed (display only)." % CUTAWAY_THETA if cut else ""))
+        if n == "front_shell":
+            d["v2"] = False
+        elif n == "front_shell_v2":
+            d["v2"] = True
+        out.append(d)
     return out
 
 
@@ -2355,7 +2550,10 @@ def rail_wall_checks(front: Solid) -> dict:
     w0, w_n, w_b = RF["w0"], RF["w_n"], RF["w_b"]
     M = R["magnet"]
     wm = 0.5 * (w0 + w_n)
-    u_lo, u_hi = RF["u_entry"] + 1.0, RF["u_stop"] - 0.2
+    # review V8 outline: the side probes stop where the aft corners (corner_r in the floor plane) begin, the neck
+    # wall probes start where the relief taper reaches the neck, and the lip probes start beside the taper (flank
+    # points outside the relief wall w_m: the lip that is left)
+    u_lo, u_hi = RF["u_entry"] + 1.0, RF["u_stop"] - (R["corner_r"] + 0.1) / RF["k"]
     us = np.linspace(u_lo, u_hi, 14)
     um0, um1 = RF["u_mag"][0] - (M["depth"] + 0.3) / RF["k"], RF["u_mag"][1] + 0.3 / RF["k"]
     out = {}
@@ -2381,7 +2579,7 @@ def rail_wall_checks(front: Solid) -> dict:
                 D.append(-wv)
         res["flat_wall_-w"] = float(np.min(_occ_wall(S0, O, D)))
         O, D = [], []
-        for u in us[us >= RF["u_relief"] + 0.2]:
+        for u in us[us >= max(RF["u_relief"] + 0.2, RF["u_r1"] + 0.05)]:
             a_h = RF["a_hull"](u, w_n) - RF["a_f"](u)
             for h in np.linspace(R["uc_h"] + 0.2, max(R["uc_h"] + 0.25, a_h - 0.3), 4):
                 O.append(Q(u, w_n - 0.03, h))
@@ -2389,14 +2587,18 @@ def rail_wall_checks(front: Solid) -> dict:
         res["neck_wall_+w"] = float(np.min(_occ_wall(S0, O, D))) if O else None
         nfl = (wv + n_f) / np.linalg.norm(wv + n_f)            # flank normal (into the lip), approx
         O, D = [], []
-        for u in us[us >= RF["u_relief"] + 0.05]:
+        for u in us:
+            w_wall = float(RF["w_m"](u))
             for f_ in np.linspace(0.15, 0.85, 4):
                 w = w_n + f_ * (w_b - w_n)
+                if w < w_wall + 0.15:
+                    continue                                   # in the relief: no lip over this flank point
                 h = R["uc_h"] * (1 - f_)
                 O.append(Q(u, w, h) - 0.03 * nfl)
                 D.append(nfl)
         res["undercut_lip"] = float(np.min(_occ_wall(S0, O, D))) if O else None
-        O = [Q(RF["u_stop"], w, h) - 0.03 * F_["u"] for w in np.linspace(w0 + 0.3, w_n - 0.3, 5)
+        O = [Q(RF["u_stop"], w, h) - 0.03 * F_["u"] for w in np.linspace(w0 + R["corner_r"] + 0.1,
+                                                                          w_n - R["corner_r"] - 0.1, 3)
              for h in np.linspace(0.3, RF["a_hull"](RF["u_stop"], 0.0) - RF["a_f"](RF["u_stop"]) - 0.4, 5)]
         res["end_stop_+u"] = float(np.min(_occ_wall(S0, O, [F_["u"]] * len(O))))
         out["theta_%g" % th] = {k: (round(v, 3) if v is not None else None) for k, v in res.items()}
@@ -2482,11 +2684,12 @@ def interface_checks(S: dict) -> list:
     car = _carrier_cutters()
     hull_skin = min(c_.distance_to(_front_outer_skin()) for c_ in car[::2])
     add("carrier groove to the outer hull surface (wall left), mm", round(hull_skin, 3), hull_skin >= P.MIN_WALL, P.MIN_WALL)
-    # gland
-    ge = gland_engagement(front)
-    add("gland M12 thread engagement in solid material (min over 72 generatrices), mm", ge["min_mm"],
+    # gland (v2 front shell; the display shell has a clean nose, owner decision 2026-10-05)
+    front_v2 = S["front_shell_v2"]
+    ge = gland_engagement(front_v2)
+    add("v2 front shell: gland M12 thread engagement in solid material (min over 72 generatrices), mm", ge["min_mm"],
         ge["min_mm"] >= 6.0, "6.0 (layout 6.05)")
-    add("gland bore (cable exit) x max, ahead of the carrier ring at x %.1f" % P.CARRIER["ring"]["x"][0], ge["bore_x_max_mm"],
+    add("v2 front shell: gland bore (cable exit) x max, ahead of the carrier ring at x %.1f" % P.CARRIER["ring"]["x"][0], ge["bore_x_max_mm"],
         ge["bore_x_max_mm"] <= P.CARRIER["ring"]["x"][0] - 1.0, "<= %.1f" % (P.CARRIER["ring"]["x"][0] - 1.0))
     # joint
     vi = sum(x.volume for x in (front.intersect(aft) or []))
@@ -2535,7 +2738,7 @@ def interface_checks(S: dict) -> list:
     G_ = gland_frame()
     gl_body = Solid.make_cylinder(17.3 / 2, 21.0, Plane(origin=Vector(*G_["S"]), z_dir=Vector(*G_["A"])))
     d_eg = _eye().distance_to(gl_body)
-    add("tow eye ring to the gland body (D17.3 x 21 envelope on the gland axis), mm", round(d_eg, 3),
+    add("v2: tow eye ring to the gland body (D17.3 x 21 envelope on the gland axis), mm", round(d_eg, 3),
         d_eg >= 2.0, ">= 2.0 (layout GLAND_TOW_CLEAR)")
     shk = Solid.make_box(29.0, 24.0, 10.0).moved(Location((-30.0, -12.0, -5.0)))   # x -30..-1, |y| <= 12, |z| <= 5
     d_gs = gl_body.distance_to(shk)
@@ -2591,9 +2794,20 @@ def interface_checks(S: dict) -> list:
         "(grid), deg; static magnet face proud of the boss top at the hole rim (max), mm",
         [round(float(ang_[zone_].max()), 2), round(g["magnet_proud_of_top_mm"], 3)],
         float(ang_[zone_].max()) <= STOW_DETENT["axis_lean_deg"] + 0.1, "<= %.1f deg (owner call T15)" % STOW_DETENT["axis_lean_deg"])
-    # review V2: gland boss root fillet
-    add("gland seat boss blended into the nose (root fillet radius built), mm", GLAND_FILLET["r_built"],
+    # review V2: gland boss root fillet (v2 shell)
+    add("v2 front shell: gland seat boss blended into the nose (root fillet radius built), mm", GLAND_FILLET["r_built"],
         GLAND_FILLET["r_built"] is not None and GLAND_FILLET["r_built"] >= 3.0, ">= 3 (wanted %g)" % GLAND_FILLET["r_wanted"])
+    # owner decision 2026-10-05 (nose round): clean display nose, v2 shell = display shell + the gland seat only
+    for c_ in nose_checks(S):
+        add(*c_)
+    # review V8: slot mouth outline (rounded aft corners, the tapered entry relief and the lip it leaves)
+    RFv = rail_frame()
+    add("fin rail slot mouth (review V8): aft corner radius (floor plane), mm; entry relief taper %s from u %.2f to %.2f, "
+        "steepest plan angle, deg; undercut lip left beside it (computed, along the flank normal), mm"
+        % (RFv["relief_shape"], RFv["u_r0"], RFv["u_r1"]),
+        [FIN_RAIL["corner_r"], RFv["relief_max_slope_deg"], round(RFv["relief_lip_min"], 3)],
+        RFv["relief_lip_min"] >= RFv["relief_lip_target"] - 1e-6,
+        "lip >= %.2f (MIN_WALL + relief_lip_margin)" % RFv["relief_lip_target"])
     # review V4: pocket forward end
     tp = pp["tip"]
     add("pocket forward end follows the CAD blade tip (V4): -theta bound at the front row, deg (table %.1f); tip zone "
@@ -2618,6 +2832,75 @@ def interface_checks(S: dict) -> list:
     return out
 
 
+def nose_checks(S: dict) -> list:
+    """Owner decision 2026-10-05 (nose round), measured on the solids: (1) the display front shell has no gland
+    seat and no bore (points inside the v2 seat boss lie outside it, points on the bore axis inside the nose plug
+    lie in its material) while the v2 shell and the cutaway shell have both; (2) nothing of the display nose stands
+    proud of the hull except the tow eye (mesh 0.05); (3) the two front shells are identical outside the gland
+    zone (B-rep volumes with the zone removed); (4) the display nose wall (OCC rays from the skin along the
+    inward normal, x 3 to 22, every 5 deg): no thin wall. Returns (check, value, ok, limit) rows."""
+    front, v2, fc = S["front_shell"], S["front_shell_v2"], S["front_shell_cutaway"]
+    F = gland_frame()
+    Sp, A = F["S"], F["A"]
+    u = np.cross(A, [0.0, 1.0, 0.0])
+    u /= np.linalg.norm(u)
+    v = np.cross(A, u)
+    boss = []
+    for ph in np.linspace(0.0, 2.0 * math.pi, 12, endpoint=False):
+        q = Sp - 1.0 * A + 7.0 * (math.cos(ph) * u + math.sin(ph) * v)
+        if math.hypot(q[1], q[2]) > r_out(max(q[0], 0.0)) + 0.5:          # off the hull: boss material only
+            boss.append(q)
+    bore = [Sp - d * A for d in (4.0, 4.5, 5.0, 5.5)]                      # on the axis, inside the nose plug
+    assert all(q[0] < P.NOSE_PLUG["x_45"] and math.hypot(q[1], q[2]) < r_out(q[0]) - 0.5 for q in bore)
+    ins = {k: _occ_inside(sh, boss + bore) for k, sh in (("display", front), ("v2", v2), ("cutaway", fc))}
+    nb = len(boss)
+    ok1 = (not ins["display"][:nb].any() and ins["display"][nb:].all() and ins["v2"][:nb].all()
+           and not ins["v2"][nb:].any() and ins["cutaway"][:nb].all() and not ins["cutaway"][nb:].any())
+    out = [("nose: gland seat boss probes inside (display / v2 / cutaway), of %d; bore-axis probes in material "
+            "(display / v2 / cutaway), of %d" % (nb, len(bore)),
+            [[int(ins[k][:nb].sum()) for k in ("display", "v2", "cutaway")],
+             [int(ins[k][nb:].sum()) for k in ("display", "v2", "cutaway")]], ok1,
+            "display: 0 / %d (clean nose); v2 and cutaway: %d / 0 (seat and bore)" % (len(bore), nb))]
+    # (2) proud of the hull, nose zone, display shell
+    m = _mesh(front, 0.05)
+    vv = np.asarray(m.vertices)
+    E = P.TOW_EYE
+    eye = (np.abs(vv[:, 1]) < E["ring_t"] / 2 + E["root_fillet_r"] + 0.5) & (vv[:, 0] < 4.0)
+    zone = (vv[:, 0] > 0.0) & (vv[:, 0] < 25.0) & ~eye
+    proud = float((np.hypot(vv[zone, 1], vv[zone, 2]) - profile.radius(vv[zone, 0])).max())
+    out.append(("display nose (x 0..25, tow eye excluded): material proud of the hull (max, mesh 0.05), mm",
+                round(proud, 3), proud <= 0.03, "<= 0.03 (tessellation): a clean egg nose"))
+
+    # (3) identical outside the gland zone: B-rep volumes (tight GProp) of both shells with the zone box removed,
+    #     and of the zone itself (the seat boss + fillet minus the bore). Box: x < 20, z < -8 (theta about 180)
+    zone_box = Solid.make_box(40.0, 60.0, 42.0).moved(Location((-20.0, -30.0, -50.0)))
+    vo = [_volume(sh.cut(zone_box)) for sh in (front, v2)]
+    vz = [_volume(inter(sh, zone_box)) for sh in (front, v2)]
+    out.append(("front_shell_v2 vs front_shell: volume outside the gland zone (x < 20, z < -8 removed), display / "
+                "v2, mm3; inside the zone, display / v2, mm3 (the plug bridge, carrier ring, socket, rails and "
+                "pockets identical)", [[round(vo[0], 3), round(vo[1], 3)], [round(vz[0], 2), round(vz[1], 2)]],
+                abs(vo[0] - vo[1]) < 1e-3, "outside the zone equal (< 0.001 mm3)"))
+    # (4) display nose wall thickness
+    O, D = [], []
+    for x in np.linspace(3.0, 22.0, 39):
+        rr = r_out(x)
+        dr = (r_out(x + 0.01) - r_out(x - 0.01)) / 0.02
+        for th in np.arange(0.0, 360.0, 5.0):
+            t_ = math.radians(th)
+            e_r = np.array([0.0, math.sin(t_), math.cos(t_)])
+            n_out = np.array([-dr, 0.0, 0.0]) + e_r
+            n_out /= np.linalg.norm(n_out)
+            O.append(np.array([x, 0.0, 0.0]) + rr * e_r + 0.05 * n_out)
+            D.append(-n_out)
+    w = _occ_wall(front, O, D, far=60.0)
+    k = int(np.argmin(w))
+    out.append(("display nose wall (x 3..22, every 5 deg; OCC rays from the skin along the inward normal): min, mm",
+                [round(float(w.min()) - 0.0, 3), dict(at_x=round(float(O[k][0]), 2),
+                                                      theta=round(float(math.degrees(math.atan2(O[k][1], O[k][2])) % 360), 1))],
+                float(w.min()) >= P.MIN_WALL, ">= MIN_WALL %.1f (HULL_WALL %.1f)" % (P.MIN_WALL, P.HULL_WALL)))
+    return out
+
+
 def _front_outer_skin() -> Solid:
     """Solid outside the front hull (a thick shell around it) for wall-thickness distances."""
     big = revolve_nodes([("L", (-30.0, 0.0)), ("L", (-30.0, 80.0)), ("L", (EQ + 5, 80.0)), ("L", (EQ + 5, 0.0))])
@@ -2632,7 +2915,7 @@ def section_figure(S: dict, path: Path) -> None:
     from matplotlib.patches import Circle, PathPatch, Rectangle
     from matplotlib.path import Path as MPath
 
-    planes = [(0.0, "theta 0 (top: blade 0 pocket, rib) / 180 (bottom: gland)"),
+    planes = [(0.0, "theta 0 (top: blade 0 pocket, rib) / 180 (bottom: clean display nose; the v2 shell's gland seat is here)"),
               (LOCK[0], "theta %g (top: locked lug, channel stop) / %g (bottom)" % (LOCK[0], LOCK[0] + 180)),
               (FIN["theta_deg"][0], "theta %g (top) / %g (bottom): fin angles, the yawed rail groove crosses the "
                "plane obliquely" % tuple(FIN["theta_deg"]))]

@@ -26,7 +26,7 @@ Bambu Lab printer (256 mm cube).
 | Name | Ovo. Python package `ovo`; the local folder keeps its old name. |
 | Fins | Recessed dovetail rail cut into a thickened inner wall of the front shell, closed by a flush blanking strip when the fins are off. Stowed, the egg stays at its 75 mm diameter. |
 | Colours | All-ivory egg (shells, hub, spinner, fins) with orange blades: stowed it reads as one egg with three orange stripes. |
-| Cable gland | Display build carries a low M12 blanking plug; the gland shows in the cutaway and the v2 documentation. |
+| Cable gland | Display build has a clean egg nose (front_shell, no gland seat); the seat, the M12 tap bore and the gland live on the front_shell_v2 variant, shown in the cutaway and the v2 documentation. |
 
 ## Engineering decisions (taken in design, open to change)
 

@@ -12,7 +12,7 @@ Steps (each geometry job goes through scripts/cadrun.sh, at most 2 OCC jobs mach
   1. part modules, in dependency order: shells, blade, rotor, drivetrain, fins, coupon. Each writes
      out/cad/step/<part>.step, out/cad/stl/<part>.stl (print orientation) and out/cad/checks/<module>.json
   2. ovo.cad.assembly --force: rebuilds the part cache from the modules, interference matrix
-     (stowed / deployed / fold 30 / fold 60 / cutaway / packed), key clearances, rotor spin sweep, STL audit,
+     (stowed / deployed / fold 30 / fold 60 / cutaway / packed / v2), key clearances, rotor spin sweep, STL audit,
      out/cad/step/ovo_assembly_{stowed,deployed}.step, out/web/ovo.glb + manifest.json,
      viewer fold check, out/cad/checks/assembly.json
   3. renders through the viewer (1600 x 1000): out/renders/{hero_deployed,stowed,packed_kit,cutaway,exploded,side,front}.png

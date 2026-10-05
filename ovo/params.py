@@ -395,7 +395,20 @@ FIN = {'section': 'clarky',
  'end_stop_x': 39.4,
  'clear_floor': 0.05,               # tongue / strip bottom over the floor (the magnet pair pulls it down)
  'retention': 'N52 4 x 2 x 2 block pair (tongue bottom / groove floor), 1.8 mm ahead of the stop',
- 'trim_variant_deg': 1.0}
+ 'trim_variant_deg': 1.0,
+ # Strip outline round (2026-10-05, review V8): the slot mouth reads as a deliberate inlay. The groove's aft
+ # corners (end stop to the walls, the undercut flank included) are rounded slot_corner_r in the floor plane;
+ # the tongue and the strip follow (R - their inset at each height, tangent to the same end stop). The entry
+ # relief is no longer a full-width box with a 1.3 mm step: its +w wall is one straight taper ('ramp') from the
+ # full width to the neck, sized by shells.rail_frame so the undercut lip left beside it stays >= MIN_WALL +
+ # relief_lip_margin; the strip's +w edge follows it. The strip's across-face nail groove is replaced by a
+ # half-round fingernail notch at its aft end (against the end stop).
+ 'slot_corner_r': 2.0,
+ 'relief_shape': 'ramp',            # +w edge: one straight taper from the full width at the entry to the neck at the
+                                    # aft corner ('s': a short S-curve near the entry, read as a boot in review)
+ 'relief_lip_margin': 0.1,          # covers the ruled loft's chord between levels (<= 0.07) and the smooth max
+ 'strip_nail_notch': {'r': 1.5, 'depth': 0.8}}   # half disc on the strip centreline at its aft end, depth
+                                    # below the skin (the nail pulls on its curved forward wall)
 
 GLAND = {'thread': 'M12x1.5',
  'x': 8.75,
@@ -414,22 +427,13 @@ GLAND = {'thread': 'M12x1.5',
  'boss_in_cavity': False,
  'boss_root_fillet_r': 6.0,          # review V2: the seat boss blends into the nose (one smooth bump); R7 fails in OCC
  'tap_drill_d': 10.5,                # M12x1.5 tap drill (bore through block, wall and nose plug)
- 'display': 'blanking plug (GLAND_PLUG); the M12 gland appears only in the cutaway state and the v2 docs'}
-
-# Display-build M12 blanking plug (owner decision 2026-10-05; drivetrain.PLUG): push-in, so the
-# display build does not need the seat tapped. Printed flat face down, no supports.
-GLAND_PLUG = {'base_r': GLAND['seat_d'] / 2,         # 9.0: flush with the seat edge (review V2: the seat has no
-                                                      # chamfer, so boss and plug read as one bump, no groove)
- 'band': 0.4,                        # vertical band above the seat face
- 'dome_r': 6.0,                      # shoulder arc: vertical at the band, dome_end_slope_deg at the flat face
- 'dome_end_slope_deg': 45.0,
- 'spigot_d': 10.0,                   # core in the tap-drill bore (0.25 radial)
- 'spigot_len': 6.0,
- 'spigot_chamfer': 0.5,
- 'rib_r': 0.5,                       # half-round crush ribs
- 'rib_tip_d': 10.6,                  # tap_drill_d - 2 x PRESS_FIT
- 'n_ribs': 3,
- 'slot_l_w_d': [10.0, 1.2, 1.0]}     # coin slot across the flat face
+ # Owner decision 2026-10-05 (nose round): the DISPLAY front shell (front_shell) has a clean egg nose, no seat,
+ # no bore and no plug (the blanking plug part is removed from the build and the BOM). The seat block and the
+ # tap bore above exist only on the v2 front shell (front_shell_v2, role "v2"); the cutaway front shell is cut
+ # from it, so the cutaway and the viewer's v2 mode show the seat with the gland in it.
+ 'display': 'none: clean nose (front_shell); the seat, the bore and the M12 gland are v2 only (front_shell_v2, '
+            'the cutaway and the viewer v2 mode)',
+ 'v2_shell': 'front_shell_v2'}
 
 TOW_EYE = {'hole_d': 8, 'ring_w': 5, 'ring_t': 6, 'plane': 'XZ', 'hole_centre_x': -5,
  # T06: outer profile a teardrop parallel to the hole's (45 deg roof toward -X), so the crown keeps

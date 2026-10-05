@@ -18,7 +18,7 @@ Manifest contract (read by viewer/index.html):
     packed:    optional; false = taken off for packing (fins), true = only in the packed egg
                (blanking strips)
     v2:        optional; true = v2 / cutaway hardware (the M12 cable gland), shown only with
-               cutaway=1 or v2=1; false = its display-build stand-in (the blanking plug), hidden then
+               cutaway=1 or v2=1; false = its display-build counterpart (front_shell, clean nose), hidden then
   }
 
 Mesh quality (recheck finding R1). OCC's mesher leaves thousands of zero-area "cap" slivers on the
