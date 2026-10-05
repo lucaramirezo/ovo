@@ -1,15 +1,16 @@
 # Hardware selection, v2 generator trade study and prior art
 
 Date: 2026-10-03, revision 3 (second fix round after the adversarial review, see section 10). Data: `data/hardware.json`
-(every value with `source_url` and `confidence`), `data/bom.json`. Scripts (re-runnable):
-`out/work/hardware/hw_calc.py` (losses, coupled rotor + generator scan incl. a time-domain bridge model, ratings,
-brake, gland, joint wall, hull fit, prior-art check), `out/work/hardware/bridge_td.py` (bridge-model arbitration),
-`out/work/hardware/gl40_pads.py` (GL40 drawing measured from its vector paths), `out/work/hardware/step_mount.py`
-(community motor-mount STEP measurement), `out/work/hardware/build_outputs.py`, `out/work/hardware/write_notes.py`
-(this file). Numbers below are generated from those outputs. Inputs from the sibling studies: rotor curves from
+(every value with `source_url` and `confidence`) and `data/bom.json` are the record of this study. It is a sourced
+desk study: its working scripts (`hw_calc.py`: losses, the coupled rotor + generator scan incl. a time-domain bridge
+model, ratings, brake, gland, joint wall, hull fit, prior-art check; `bridge_td.py`: bridge-model arbitration;
+`gl40_pads.py`: the GL40 drawing measured from its vector paths; `step_mount.py`: a community motor-mount STEP;
+`build_outputs.py`, `write_notes.py`: this file) ran outside the repository against downloaded vendor datasheets
+and are not published, so the study cannot be re-run from the repository. Where the text below says "computed in
+`hw_calc.py`", the result is recorded in `data/hardware.json`. Inputs from the sibling studies: rotor curves from
 `data/blade_design.json` (sha256 65c3c51185a4, design TSR 4.0, Cp peak at TSR 3.822);
 blade-pocket depth from `data/layout_rotor.json` (sha256 04636f4af337); joint stations and
-groove form from `data/layout_internal.json` (sha256 b346a3455bd4). Re-run the scripts when they change.
+groove form from `data/layout_internal.json` (sha256 b346a3455bd4). The study would need a re-run if they change.
 Confidence: high = manufacturer datasheet or standard; medium = dealer, community or derived; low = inference.
 
 ## 1. Decisions at a glance
@@ -27,7 +28,7 @@ Confidence: high = manufacturer datasheet or standard; medium = dealer, communit
 | Inserts | CNC Kitchen M3 x 5.7 standard | hole 4.0, min wall 1.6 | high |
 | Cable gland (v2) | Hummel HSK-K M12x1.5 + thread O-ring + PA locknut | clamp 3-6.5, GL 8, SW 15, H 21 | high |
 | Tow eye | printed, integral to the nose | DIN 580 eye is 36 mm tall; test >= 211 N | high (DIN data) |
-| Towing state (v2 electronics) | phases open (freewheel 35.2 V at 2.5 m/s, >= 60 V input stage); no continuous phase short | optional DC dump load 10.02 ohm | medium |
+| Towing state (v2 electronics) | OPEN CONFLICT (superseded in part, see section 2.7): phases open was the first recommendation, but the BEM study shows free-wheel cavitation from 1.6 m/s and a capped load line above the GL40 rating from about 2.1 m/s | to be resolved in v2 (see the report's limitations) | medium |
 | Printer | any Bambu A1 / P1S / X1C | 256 x 256 x 256 | high/medium |
 | Material | PETG wetted parts; ASA only on enclosed printers | | high |
 
@@ -321,6 +322,13 @@ Generator bench test before freezing v2 (10 minutes, multimeter + LCR meter + dr
 
 ### 2.7 Freewheel, brake and towing
 
+> **Superseded in part (2026-10-06).** Electrically, the open-circuit freewheel below is safe. Hydrodynamically
+> it is not: the blade study finds that a free-wheeling rotor cavitates from 1.6 m/s, and the layout study that
+> the fins then roll the hull, so v2 must keep the rotor loaded when towed. The 10.02 ohm dump-load point
+> (TSR 7.51 at 2.5 m/s) also lies in the cavitating region, and from about 2.1 m/s the cavitation-capped load
+> line needs more than the GL40's continuous rating. The towing state is an open v2 issue: see the technical
+> report (generator section and limitations).
+
 An unloaded rotor runs to its zero-torque (runaway) speed, so the open-circuit voltage at runaway sizes the
 electronics:
 
@@ -347,7 +355,7 @@ electronics:
 | GB54-2 (out) (KV 26.0, R_ll 15.00) | 48.9 / 67.4 / 86.0 | no (L unpublished) |
 
 GL40: 20.0 / 27.6 / 35.2 V at 1.5 / 2.0 / 2.5 m/s. A 60 V-rated input stage therefore
-tolerates the open-circuit freewheel when towed, and that is the recommended towing state: phases open (or the
+tolerates the open-circuit freewheel when towed, which made phases open the first recommended towing state (superseded in part, see the banner in section 2.7: the free-wheeling rotor cavitates from 1.6 m/s): phases open (or the
 current-limited charger running), with only iron and friction loss in the motor (ASSUMED drag x runaway speed:
 5.8 W at 2.5 m/s). The GM4108H reaches
 69.9-82.8 V towed and needs >= 100 V parts or a clamp.
@@ -681,7 +689,7 @@ Second fix round (response to the second adversarial review):
 2. GL40 stator face: the PCD 40 M2.5 holes are on the same axes as the PCD 24 M3 holes (0/90/180/270), measured from
    the drawing's vector paths; the solder-pad block at 45 deg gets a keep-out and a window in the adapter plate and replica.
 3. Phase-short brake: its winding dissipation is now computed and it is no longer recommended for towing
-   (69.6 W, 5.89x the rated copper loss at 2.5 m/s). Towing state: phases open; optional DC dump load.
+   (69.6 W, 5.89x the rated copper loss at 2.5 m/s). Towing state: open conflict (superseded in part, section 2.7); phases open was the first recommendation, optional DC dump load.
 4. Coupled scan capped at the published continuous rating; the GL40 2.5 m/s row is flagged and a capped value given.
 5. Inductance: a time-domain bridge model (R + L, capacitor link) replaces the "reactance is small" assumption for every
    motor with a published L. GL40 at 1.5 m/s: 7.66 W (block model 7.78 W). The review's 6.9 W treats the overlap

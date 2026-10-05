@@ -1,8 +1,32 @@
 [project]
 name = "ovo"
 version = "0.1.0"
-description = "Parametric, printable folding-blade hydrokinetic charger (build123d)"
+description = "Ovo, a folding hydrokinetic charger: parametric build123d code-CAD of a 3D-printable water turbine with BEM-designed folding blades (display build)"
+readme = "README.md"
+# Code under MIT (LICENSE); CAD models, exports, media and docs under CC BY 4.0 (LICENSE-CC-BY-4.0.txt)
+license = "MIT AND CC-BY-4.0"
+license-files = ["LICENSE", "LICENSE-CC-BY-4.0.txt"]
+authors = [{ name = "Luca Ramírez Olivo" }]
 requires-python = ">=3.12"
+keywords = [
+    "build123d",
+    "code-cad",
+    "cad",
+    "hydrokinetic",
+    "water-turbine",
+    "bem",
+    "blade-element-momentum",
+    "neuralfoil",
+    "3d-printing",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+]
 dependencies = [
     "build123d>=0.13.0",
     "manifold3d>=3.5.4",
@@ -12,8 +36,19 @@ dependencies = [
     "trimesh>=5.1.1",
 ]
 
+[project.urls]
+Homepage = "https://github.com/lucaramirezo/ovo"
+Repository = "https://github.com/lucaramirezo/ovo"
+Documentation = "https://github.com/lucaramirezo/ovo/tree/main/docs"
+
+# The CAD build (`make build`) needs only the dependencies above; the docs group (typst for the
+# report, imageio-ffmpeg for the fold animation) serves `make media`, `make report` and `make site`.
 [dependency-groups]
 docs = [
     "imageio-ffmpeg>=0.6.0",
     "typst>=0.15.0",
 ]
+
+[tool.uv]
+# plain `uv sync` installs the docs group too (without this, `uv sync` would remove it)
+default-groups = ["docs"]

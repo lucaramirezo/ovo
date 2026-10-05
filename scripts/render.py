@@ -29,7 +29,9 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 SESSION = os.environ.get("AGENT_BROWSER_SESSION", "ovo-render")
-AB = shutil.which("agent-browser") or str(Path.home() / ".nvm/versions/node/v24.13.0/bin/agent-browser")
+AB = shutil.which("agent-browser")
+if AB is None:
+    raise SystemExit("agent-browser not on PATH: npm install -g agent-browser && agent-browser install")
 
 
 def ab(*args: str, check: bool = True) -> str:

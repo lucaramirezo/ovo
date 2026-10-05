@@ -1,0 +1,221 @@
+{
+ "generated_by": "scripts/media.py",
+ "source": "out/web/ovo.glb + manifest.json via viewer/index.html",
+ "cad_key": "d821a10403a2",
+ "label_font": "Inter.ttf",
+ "look": {
+  "light": "theme=paper&rig=media",
+  "dark": "theme=ink&rig=media",
+  "lens_deg": 28
+ },
+ "note": "geometry renders of the CAD model; the display build has not been printed or tested in water",
+ "files": {
+  "cutaway.png": {
+   "viewer": "view=-50,28&fold=1&cutaway=1&fit=tight&fill=0.86&shadow=1&theme=paper&rig=media",
+   "render_px": [
+    2400,
+    1500
+   ],
+   "px": [
+    1600,
+    1000
+   ],
+   "bytes": 377572
+  },
+  "details_blade.png": {
+   "viewer": [
+    "view=100,8&fold=1&only=blade_0,blade_magnet_heel_0,blade_magnet_stow_0&fit=tight&fill=0.84&ground=0&theme=paper&rig=media",
+    "view=150,60&fold=1&only=blade_0,blade_magnet_heel_0,blade_magnet_stow_0&fit=tight&fill=0.84&ground=0&theme=paper&rig=media"
+   ],
+   "render_px": [
+    1200,
+    1500
+   ],
+   "px": [
+    1600,
+    1000
+   ],
+   "bytes": 265182
+  },
+  "details_fin_rail.png": {
+   "viewer": "view=-62,16&fold=1&pexp=fin_1:0.35,fin_magnet_1:0.35&fbox=0,-115,-30,70,-15,20&fit=tight&fill=0.9&theme=paper&rig=media",
+   "render_px": [
+    2400,
+    1500
+   ],
+   "px": [
+    1600,
+    1000
+   ],
+   "bytes": 284860
+  },
+  "details_hub.png": {
+   "viewer": "view=40,32&fold=0.55&hide=spinner,spinner_cap,spinner_screw&internals=1&focus=hub&fit=tight&fill=0.62&theme=paper&rig=media",
+   "render_px": [
+    2400,
+    1500
+   ],
+   "px": [
+    1600,
+    1000
+   ],
+   "bytes": 311091
+  },
+  "details_nose.png": {
+   "viewer": [
+    "view=-70,15&fold=1&fbox=-20,-40,-40,25,40,40&fit=tight&fill=0.8&theme=paper&rig=media",
+    "view=-70,15&fold=1&v2=1&fbox=-20,-40,-40,25,40,40&fit=tight&fill=0.8&theme=paper&rig=media"
+   ],
+   "render_px": [
+    1200,
+    1500
+   ],
+   "px": [
+    1600,
+    1000
+   ],
+   "bytes": 303593
+  },
+  "exploded.mp4": {
+   "px": [
+    1280,
+    800
+   ],
+   "fps": 30,
+   "frames": 150,
+   "seconds": 5.0,
+   "codec": "H.264 yuv420p",
+   "crf": 16,
+   "bytes": 635874
+  },
+  "exploded.png": {
+   "viewer": "view=20,18&spin=30&fold=1&explode=1&fit=tight&fill=0.92&ground=0&theme=paper&rig=media",
+   "render_px": [
+    2400,
+    1500
+   ],
+   "px": [
+    1600,
+    1000
+   ],
+   "bytes": 374979
+  },
+  "fold.gif": {
+   "px": [
+    800,
+    500
+   ],
+   "fps": 30,
+   "frames": 159,
+   "colors": 256,
+   "bytes": 5048928,
+   "note": "stowed -> unfold -> spin-up -> cross-fade back to the first frame (seamless loop); spin shown at a presentation speed (90 rpm), not the running speed"
+  },
+  "fold.mp4": {
+   "px": [
+    1280,
+    800
+   ],
+   "fps": 30,
+   "frames": 159,
+   "seconds": 5.3,
+   "codec": "H.264 yuv420p",
+   "crf": 16,
+   "bytes": 786155,
+   "note": "stowed -> unfold -> spin-up -> cross-fade back to the first frame (seamless loop); spin shown at a presentation speed (90 rpm), not the running speed"
+  },
+  "fold_dark.mp4": {
+   "px": [
+    1280,
+    800
+   ],
+   "fps": 30,
+   "frames": 159,
+   "seconds": 5.3,
+   "codec": "H.264 yuv420p",
+   "crf": 16,
+   "bytes": 783953,
+   "note": "stowed -> unfold -> spin-up -> cross-fade back to the first frame (seamless loop); spin shown at a presentation speed (90 rpm), not the running speed"
+  },
+  "hero_dark.png": {
+   "viewer": "view=50,18&fold=1&fit=tight&fill=0.86&shadow=1&theme=ink&rig=media",
+   "render_px": [
+    2400,
+    1500
+   ],
+   "px": [
+    1600,
+    1000
+   ],
+   "bytes": 416891
+  },
+  "hero_light.png": {
+   "viewer": "view=50,18&fold=1&fit=tight&fill=0.86&shadow=1&theme=paper&rig=media",
+   "render_px": [
+    2400,
+    1500
+   ],
+   "px": [
+    1600,
+    1000
+   ],
+   "bytes": 407463
+  },
+  "og_card.png": {
+   "viewer": "view=50,18&fold=1&fit=tight&fill=0.84&shadow=1&theme=paper&rig=media&offset=0.2,0",
+   "render_px": [
+    2400,
+    1260
+   ],
+   "px": [
+    1200,
+    630
+   ],
+   "bytes": 339029,
+   "text": [
+    "Ovo",
+    "A folding hydrokinetic charger, designed end to end in code-CAD."
+   ]
+  },
+  "packed_kit.png": {
+   "viewer": "m=../out/web/packed_kit.json&view=-35,22&fit=tight&fill=0.8&shadow=1&theme=paper&rig=media",
+   "render_px": [
+    2400,
+    1500
+   ],
+   "px": [
+    1600,
+    1000
+   ],
+   "bytes": 420625
+  },
+  "stowed.png": {
+   "viewer": "view=-35,22&fold=0&packed=1&fit=tight&fill=0.8&shadow=1&theme=paper&rig=media",
+   "render_px": [
+    2400,
+    1500
+   ],
+   "px": [
+    1600,
+    1000
+   ],
+   "bytes": 370783
+  },
+  "technical.png": {
+   "viewer": "fold=1&ground=0&ortho=1&fit=tight&theme=paper&rig=media",
+   "px": [
+    1722,
+    1577
+   ],
+   "bytes": 447555,
+   "scale_px_per_mm": 3.0,
+   "dims_mm": {
+    "hull_length": 160.99,
+    "overall_length": 178.1,
+    "hull_d": 75.0,
+    "swept_d": 194.0,
+    "fin_span": 214.1
+   }
+  }
+ }
+}

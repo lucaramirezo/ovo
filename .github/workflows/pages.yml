@@ -1,0 +1,51 @@
+# Publish the project page (site/, committed with its assets; the report PDF, the fold video and the
+# social card are copied in from docs/ at deploy time) to GitHub Pages.
+#
+# One-time setup: Settings > Pages > Build and deployment > Source: "GitHub Actions".
+# Then run it from Actions > pages > Run workflow whenever site/ changes (refresh the assets first
+# with `make site`). The page is then at https://<user>.github.io/<repo>/.
+
+name: pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      # site/ keeps no copies of these in git (they would double the history); copy them from docs/
+      - name: Copy the report and the media into site/
+        run: |
+          set -euo pipefail
+          mkdir -p site/report site/media
+          cp docs/report/ovo-report.pdf site/report/
+          cp docs/media/fold.mp4 docs/media/fold_dark.mp4 docs/media/og_card.png site/media/
+
+      - name: Upload site/
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

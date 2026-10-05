@@ -11,6 +11,9 @@
   /* review V7: mid warm grey for the portfolio renders, so the ivory egg separates from the backdrop */
   body.studio { --bg0: #d9d4cb; --bg1: #b8b2a8; --ink: #1d1d1b; }
   body.flat { background: var(--bg0); }
+  /* docs/media (scripts/media.py): one backdrop pair for every still, animation and card */
+  body.paper { --bg0: #e3dfd8; --bg1: #bdb7ad; --ink: #1d1d1b; }
+  body.ink { --bg0: #33363b; --bg1: #141517; --ink: #ece9e3; }
   canvas { display: block; }
   #ui { position: fixed; left: 12px; bottom: 12px; display: none; gap: 14px; align-items: center; background: color-mix(in srgb, var(--bg0) 85%, transparent); padding: 8px 12px; border-radius: 10px; }
   body.ui #ui { display: flex; flex-wrap: wrap; }
@@ -44,7 +47,22 @@
 //   zoom=<factor>  fit=sphere|tight  fill=<0..1: with fit=tight, the share of the frame the parts span>
 //   shadow=1 (with fit=tight: the key light's ground shadow is framed too, for the level side / front views)
 //   ground=0 (no ground shadow, e.g. for the exploded view, where a cloud of floating parts casts a scattered one)
-//   w,h=<px>  dpr=<n>  theme=light|dark|flat|studio  ui=1  only=<name,name>
+//   w,h=<px>  dpr=<n>  theme=light|dark|flat|studio|paper|ink  ui=1  only=<name,name>
+// Presentation-only params (scripts/media.py; every default leaves the renders above unchanged):
+//   rig=media (the docs/media light rig)  exposure=<x>  env=<x>  key=<x>  rim=<x>  hemi=<x>  bounce=<x>
+//   (light intensities; they override the rig)  soft=<shadow blur radius>  shadowop=<ground shadow opacity>
+//   sbias, snormal (shadow depth and normal bias, mm)  cc=<x> (clearcoat scale)  camlight=1 (the lights turn with the view azimuth,
+//   so every view gets the hero view's lighting; set at each fit, so setCamera orbits keep them still)
+//   fov=<deg> (lens, default 28)  hide=<name,name> (hide these parts, the rest as usual)
+//   focus=<name,name> (fit the camera to these parts only; every visible part is still drawn)
+//   fbox=x0,y0,z0,x1,y1,z1 (CAD mm: fit the camera to the visible geometry inside this box, e.g. the nose)
+//   offset=<dx>,<dy> (shift the subject in the frame, fractions of the frame, + = right / up)
+//   pexp=<name>:<t>,... (per-part explode fraction, overrides explode for those parts)
+//   ortho=1 (orthographic camera fitted like fit=tight, for technical views)
+//   fitspin=<n> (the tight fit also sees the rotor parts turned to n spin angles: frames the swept disc)
+// Read-only helpers for media scripts: window.camInfo(), window.setCamera({c, r, az, el}),
+// window.projectCad([[x, y, z], ...]) (CAD mm -> frame px), window.setLook({shadowop, ground, groundz, exposure}),
+// window.accumFrame([state, ...], cam) (motion blur: the average of the sub-frame states on an overlay).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -59,7 +77,22 @@ const state = {
   stand: q.get('stand') === '1', spin: num('spin', 0),
   view: q.get('view') || 'iso', zoom: num('zoom', 1),
   only: q.get('only') ? q.get('only').split(',') : null,
+  hide: q.get('hide') ? q.get('hide').split(',') : null,
+  focus: q.get('focus') ? q.get('focus').split(',') : null,
+  fbox: q.get('fbox') ? q.get('fbox').split(',').map(Number) : null,
+  offset: q.get('offset') ? q.get('offset').split(',').map(Number) : null,
+  pexp: q.get('pexp') ? Object.fromEntries(q.get('pexp').split(',').map(kv => kv.split(':')).map(([k, v]) => [k, +v])) : null,
+  ortho: q.get('ortho') === '1',
+  fitspin: num('fitspin', 0),
 };
+// light rig: 'default' is the viewer's own look (unchanged); 'media' is the docs/media look: less ambient
+// and environment, a stronger key and a soft fill so the all-ivory egg shows its form
+const RIGS = {
+  default: { exposure: 1.0, env: 0.55, key: 2.2, rim: 0.9, hemi: 0.35, bounce: 0, soft: 6, shadowmap: 2048, sbias: -0.0004, snormal: 0.5, camlight: 0, cc: 1 },
+  media: { exposure: 0.92, env: 0.32, key: 2.9, rim: 1.1, hemi: 0.18, bounce: 0.45, soft: 9, shadowmap: 4096, sbias: -0.0006, snormal: 1.2, camlight: 1, cc: 1 },
+};
+const rig = { ...RIGS.default, ...(RIGS[q.get('rig')] || {}) };
+for (const k of Object.keys(rig)) rig[k] = num(k, rig[k]);
 const W = num('w', innerWidth), H = num('h', innerHeight);
 const theme = q.get('theme') || 'light';
 document.body.classList.add(theme);
@@ -69,7 +102,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserv
 renderer.setPixelRatio(num('dpr', Math.min(devicePixelRatio, 2)));
 renderer.setSize(W, H);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
+renderer.toneMappingExposure = rig.exposure;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 document.body.appendChild(renderer.domElement);
@@ -77,23 +110,29 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-scene.environmentIntensity = 0.55;
+scene.environmentIntensity = rig.env;
 
-const camera = new THREE.PerspectiveCamera(28, W / H, 1, 5000);
-const key = new THREE.DirectionalLight(0xffffff, 2.2);
+const camera = new THREE.PerspectiveCamera(num('fov', 28), W / H, 1, 5000);
+const ocam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 5000);   // ortho=1
+const activeCam = () => (state.ortho ? ocam : camera);
+const key = new THREE.DirectionalLight(0xffffff, rig.key);
 key.castShadow = true;
-key.shadow.mapSize.set(2048, 2048);
-key.shadow.radius = 6;
-key.shadow.bias = -0.0004;
-key.shadow.normalBias = 0.5;   // review V6: offsets the depth test along the normal (mm); removes the self-shadow
+key.shadow.mapSize.set(rig.shadowmap, rig.shadowmap);
+key.shadow.radius = rig.soft;
+key.shadow.bias = rig.sbias;
+key.shadow.normalBias = rig.snormal;   // review V6: offsets the depth test along the normal (mm); removes the self-shadow
                                // stipple on the orange blade faces
 scene.add(key, key.target);
-const rim = new THREE.DirectionalLight(0xdfe8ff, 0.9);
+const rim = new THREE.DirectionalLight(0xdfe8ff, rig.rim);
 scene.add(rim);
-scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b2a6, 0.35));
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b2a6, rig.hemi));
+const fillLight = new THREE.DirectionalLight(0xfff4e8, rig.bounce);   // rig=media: soft fill from the camera side
+fillLight.visible = rig.bounce > 0;
+scene.add(fillLight, fillLight.target);
 
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000),
-  new THREE.ShadowMaterial({ opacity: theme === 'dark' ? 0.35 : theme === 'studio' ? 0.22 : 0.16 }));
+  new THREE.ShadowMaterial({ opacity: num('shadowop', theme === 'dark' ? 0.35 : theme === 'ink' ? 0.42
+    : theme === 'studio' ? 0.22 : theme === 'paper' ? 0.24 : 0.16) }));
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 ground.visible = q.get('ground') !== '0';
@@ -113,7 +152,7 @@ const mats = {};
 for (const [k, m] of Object.entries(manifest.materials)) {
   mats[k] = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(m.color), roughness: m.roughness ?? 0.6, metalness: m.metalness ?? 0,
-    clearcoat: m.clearcoat ?? 0, clearcoatRoughness: 0.4, side: THREE.DoubleSide,
+    clearcoat: (m.clearcoat ?? 0) * rig.cc, clearcoatRoughness: 0.4, side: THREE.DoubleSide,
     transparent: (m.opacity ?? 1) < 1, opacity: m.opacity ?? 1,
   });
 }
@@ -151,6 +190,7 @@ for (const p of manifest.parts) {
 
 function visible(p) {
   if (state.only) return state.only.includes(p.name);
+  if (state.hide && state.hide.includes(p.name)) return false;
   // packed=1: the egg as carried (fins off, blanking strips in); parts flagged packed:true exist only
   // then, parts flagged packed:false (fins) only otherwise
   if (p.packed === true && !state.packed) return false;
@@ -176,7 +216,8 @@ function apply() {
   for (const { p, holder, obj } of parts) {
     holder.visible = visible(p);
     const e = p.explode || [0, 0, 0];
-    holder.position.set(e[0] * state.explode, e[1] * state.explode, e[2] * state.explode);
+    const t = state.pexp && p.name in state.pexp ? state.pexp[p.name] : state.explode;
+    holder.position.set(e[0] * t, e[1] * t, e[2] * t);
     if (p.pivot) {
       obj.quaternion.setFromAxisAngle(obj.userData.axis, THREE.MathUtils.degToRad(obj.userData.deg * state.fold));
     }
@@ -187,40 +228,88 @@ function apply() {
 const presets = { iso: [-35, 22], side: [0, 0], front: [-90, 0], back: [90, 0], top: [0, 89], hero: [-28, 14] };
 let fitted = null;
 const KEY_DIR = new THREE.Vector3(-0.6, 1.4, 0.9);   // key light position relative to the view centre (x r)
-// World positions of (a stride of) the visible vertices, for the tight fit.
-function visiblePoints(maxPts = 60000) {
-  const pts = [], v = new THREE.Vector3();
+// camlight=1: the light directions (designed for the hero azimuth, -40 deg) turn with the view azimuth
+const lightDir = (v) => (rig.camlight ? v.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), fitView[0] - deg(-40)) : v.clone());
+// World positions of (a stride of) the visible vertices, for the tight fit (only the `focus` parts if given).
+function visiblePoints(maxPts = 60000, subset = null) {
+  const pts = [], v = new THREE.Vector3(), use = subset || parts.filter(({ holder }) => holder.visible);
   let total = 0;
-  for (const { holder, mesh } of parts) if (holder.visible) total += mesh.geometry.attributes.position.count;
+  for (const { mesh } of use) total += mesh.geometry.attributes.position.count;
   const stride = Math.max(1, Math.floor(total / maxPts));
-  for (const { holder, mesh } of parts) {
-    if (!holder.visible) continue;
+  for (const { mesh } of use) {
     const pos = mesh.geometry.attributes.position;
     for (let i = 0; i < pos.count; i += stride) pts.push(v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld).clone());
   }
   return pts;
 }
 
+const deg = THREE.MathUtils.degToRad;
+const viewDir = (az, el) => new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
+let fitR = 0, fitView = [0, 0], orthoHalf = 1, lightR = 1;
+// Place the active camera at c + dir * r looking at c (ortho: half = half frame height in mm).
+function place(c, dir, r) {
+  const cam = activeCam();
+  cam.position.copy(c).addScaledVector(dir, r);
+  if (state.ortho) {
+    Object.assign(ocam, { left: -orthoHalf * W / H, right: orthoHalf * W / H, top: orthoHalf, bottom: -orthoHalf,
+      near: Math.max(0.1, r - 4 * lightR), far: r + 4 * lightR });
+  } else {
+    camera.near = r / 50; camera.far = r * 50;
+  }
+  cam.updateProjectionMatrix();
+  cam.lookAt(c);
+  if (state.offset) {   // shift the subject: the view window moves the other way
+    const [dx, dy] = state.offset;
+    cam.setViewOffset(W, H, -dx * W, dy * H, W, H);
+  } else cam.clearViewOffset();
+}
+
 function frame() {
   root.updateMatrixWorld(true);
   const box = new THREE.Box3();
   for (const { holder } of parts) if (holder.visible) box.expandByObject(holder);
-  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+  const s = box.getSize(new THREE.Vector3());
   ground.position.y = box.min.y - 0.5;
-  const [az, el] = (presets[state.view] || state.view.split(',').map(Number)).map(THREE.MathUtils.degToRad);
-  let r = (0.5 * s.length()) / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) / state.zoom * 0.92;
+  lightR = s.length();
+  // focus: the camera fits these (visible) parts only
+  const focus = state.focus ? parts.filter(({ p, holder }) => holder.visible && state.focus.includes(p.name)) : null;
+  const fbox = new THREE.Box3();
+  if (focus && focus.length) for (const { holder } of focus) fbox.expandByObject(holder); else fbox.copy(box);
+  let region = null;   // fbox: the CAD box in world coordinates (root turns it by 90 deg, so it stays axis-aligned)
+  if (state.fbox) {
+    const b = state.fbox;
+    region = new THREE.Box3().setFromPoints([new THREE.Vector3(b[0], b[1], b[2]), new THREE.Vector3(b[3], b[4], b[5])]
+      .map(v => v.applyMatrix4(root.matrixWorld)));
+    fbox.copy(region);
+  }
+  const c = fbox.getCenter(new THREE.Vector3()), fs = fbox.getSize(new THREE.Vector3());
+  const [az, el] = (presets[state.view] || state.view.split(',').map(Number)).map(deg);
+  fitView = [az, el];
+  let r = (0.5 * fs.length()) / Math.sin(deg(camera.fov / 2)) / state.zoom * 0.92;
   // az measured around the vertical axis from the side view (looking at the model's +Y side)
-  const dir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
-  camera.position.copy(c).addScaledVector(dir, r);
-  camera.near = r / 50; camera.far = r * 50; camera.updateProjectionMatrix();
-  camera.lookAt(c);
-  if (state.fit === 'tight') {
+  const dir = viewDir(az, el);
+  const tanV = Math.tan(deg(camera.fov / 2));
+  orthoHalf = r * tanV;
+  const offset = state.offset; state.offset = null;   // fit without the offset, apply it at the end
+  place(c, dir, r);
+  if (state.fit === 'tight' || state.ortho) {
     // project the visible vertices, re-centre the view on their screen box and pull the camera in
     // until that box spans `fill` of the frame (zoom still multiplies); a few passes for perspective
-    const pts = visiblePoints(), p = new THREE.Vector3();
+    // (ortho=1: the same passes scale the frustum instead of the distance)
+    const cam = activeCam();
+    let pts = visiblePoints(region ? 400000 : 60000, focus && focus.length ? focus : null);
+    const p = new THREE.Vector3();
+    if (region) pts = pts.filter(w => region.containsPoint(w));
+    if (state.fitspin > 0) {   // rotor parts at n spin angles about the body axis (world X through the origin)
+      const rot = visiblePoints(30000, parts.filter(({ p, holder }) => p.rotor && holder.visible)), ax = new THREE.Vector3(1, 0, 0);
+      for (let k = 1; k < state.fitspin; k++) {
+        const qk = new THREE.Quaternion().setFromAxisAngle(ax, 2 * Math.PI * k / state.fitspin);
+        for (const w of rot) pts.push(w.clone().applyQuaternion(qk));
+      }
+    }
     if (state.shadow && ground.visible) {
       // the shadow each point casts on the ground along the key light (fixed direction, see below)
-      const d = KEY_DIR.clone().normalize(), n = pts.length;
+      const d = lightDir(KEY_DIR).normalize(), n = pts.length;
       for (let i = 0; i < n; i++) {
         const w = pts[i], t = (w.y - ground.position.y) / d.y;
         if (t > 0) pts.push(w.clone().addScaledVector(d, -t));
@@ -228,31 +317,100 @@ function frame() {
     }
     const right = new THREE.Vector3(), up = new THREE.Vector3();
     for (let pass = 0; pass < 4; pass++) {
-      camera.updateMatrixWorld(true);
+      cam.updateMatrixWorld(true);
       let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-      for (const w of pts) { p.copy(w).project(camera); x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); }
-      const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-      right.setFromMatrixColumn(camera.matrixWorld, 0); up.setFromMatrixColumn(camera.matrixWorld, 1);
-      c.addScaledVector(right, 0.5 * (x0 + x1) * r * tanV * camera.aspect).addScaledVector(up, 0.5 * (y0 + y1) * r * tanV);
-      r *= Math.max((x1 - x0) / 2, (y1 - y0) / 2) / (state.fill * state.zoom);
-      camera.position.copy(c).addScaledVector(dir, r);
-      camera.near = r / 50; camera.far = r * 50; camera.updateProjectionMatrix();
-      camera.lookAt(c);
+      for (const w of pts) { p.copy(w).project(cam); x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); }
+      right.setFromMatrixColumn(cam.matrixWorld, 0); up.setFromMatrixColumn(cam.matrixWorld, 1);
+      const scale = Math.max((x1 - x0) / 2, (y1 - y0) / 2) / (state.fill * state.zoom);
+      if (state.ortho) {
+        c.addScaledVector(right, 0.5 * (x0 + x1) * orthoHalf * W / H).addScaledVector(up, 0.5 * (y0 + y1) * orthoHalf);
+        orthoHalf *= scale;
+      } else {
+        c.addScaledVector(right, 0.5 * (x0 + x1) * r * tanV * camera.aspect).addScaledVector(up, 0.5 * (y0 + y1) * r * tanV);
+        r *= scale;
+      }
+      place(c, dir, r);
     }
   }
-  key.position.copy(c).add(KEY_DIR.clone().multiplyScalar(r));
+  state.offset = offset;
+  place(c, dir, r);
+  // lights keep their world directions; with focus the camera can sit close, so they keep the model's scale
+  const lr = focus || region || state.ortho ? Math.max(r, lightR) : r;
+  key.position.copy(c).add(lightDir(KEY_DIR).multiplyScalar(lr));
   key.target.position.copy(c);
   const ext = s.length();
-  Object.assign(key.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext, near: 1, far: r * 4 });
+  Object.assign(key.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext, near: 1, far: lr * 4 });
   key.shadow.camera.updateProjectionMatrix();
-  rim.position.copy(c).add(new THREE.Vector3(1, 0.6, -1.2).multiplyScalar(r));
+  rim.position.copy(c).add(lightDir(new THREE.Vector3(1, 0.6, -1.2)).multiplyScalar(lr));
+  fillLight.position.copy(c).add(lightDir(new THREE.Vector3(0.9, 0.25, 1.1)).multiplyScalar(lr));
+  fillLight.target.position.copy(c);
+  fitR = r;
   fitted = c;
 }
 
 let controls = null;
-function render() { renderer.render(scene, camera); }
+function render() { renderer.render(scene, activeCam()); }
 window.setState = (patch = {}, refit = true) => {
   Object.assign(state, patch); apply(); if (refit) frame(); if (controls) controls.target.copy(fitted); render();
+  return true;
+};
+// Media helpers (scripts/media.py): read the fitted camera, move it without refitting (lights and
+// ground stay where the last fit put them), map CAD points to frame pixels, change the look per frame.
+window.camInfo = () => ({ c: fitted.toArray(), r: fitR, az: THREE.MathUtils.radToDeg(fitView[0]),
+  el: THREE.MathUtils.radToDeg(fitView[1]), half: orthoHalf });
+window.setCamera = ({ c, r, az, el, half } = {}) => {
+  const cc = c ? new THREE.Vector3(...c) : fitted;
+  if (half) orthoHalf = half;
+  place(cc, viewDir(deg(az ?? THREE.MathUtils.radToDeg(fitView[0])), deg(el ?? THREE.MathUtils.radToDeg(fitView[1]))), r ?? fitR);
+  render();
+  return true;
+};
+window.projectCad = (pts) => {
+  root.updateMatrixWorld(true);
+  const cam = activeCam(); cam.updateMatrixWorld(true);
+  return pts.map(a => { const v = new THREE.Vector3(...a).applyMatrix4(root.matrixWorld).project(cam); return [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H]; });
+};
+// Motion blur for media animations: render each state (sub-frame) of `states`, average the canvas pixels
+// (premultiplied RGBA, so the semi-transparent ground shadow averages right) and show the average on a 2D
+// overlay canvas over the same CSS backdrop; accumFrame(null) removes the overlay.
+window.accumFrame = (states, cam) => {
+  let ov = document.getElementById('accum');
+  if (!states) { if (ov) ov.remove(); renderer.domElement.style.visibility = ''; return true; }
+  if (cam) window.setCamera(cam);
+  const gl = renderer.getContext(), w = gl.drawingBufferWidth, h = gl.drawingBufferHeight, n = states.length;
+  const px = new Uint8Array(w * h * 4), acc = new Float32Array(w * h * 4);
+  for (const st of states) {
+    Object.assign(state, st); apply(); render();
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    for (let i = 0; i < px.length; i++) acc[i] += px[i];
+  }
+  if (!ov) {
+    ov = document.createElement('canvas'); ov.id = 'accum'; ov.width = w; ov.height = h;
+    Object.assign(ov.style, { position: 'fixed', left: '0', top: '0', width: renderer.domElement.style.width,
+      height: renderer.domElement.style.height });
+    document.body.appendChild(ov);
+  }
+  const ctx = ov.getContext('2d'), img = ctx.createImageData(w, h), d = img.data;
+  for (let y = 0; y < h; y++) {            // readPixels rows run bottom-up
+    const src = (h - 1 - y) * w * 4, dst = y * w * 4;
+    for (let x = 0; x < w * 4; x += 4) {
+      const a = acc[src + x + 3] / n;
+      if (a <= 0) { d[dst + x + 3] = 0; continue; }
+      const k = 255 / (a * n);             // average, then un-premultiply for ImageData
+      d[dst + x] = acc[src + x] * k; d[dst + x + 1] = acc[src + x + 1] * k; d[dst + x + 2] = acc[src + x + 2] * k;
+      d[dst + x + 3] = a;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  renderer.domElement.style.visibility = 'hidden';
+  return true;
+};
+window.setLook = ({ shadowop, ground: g, groundz, exposure } = {}) => {
+  if (shadowop !== undefined) ground.material.opacity = shadowop;
+  if (groundz !== undefined) ground.position.y = groundz;   // CAD z of the ground plane (root keeps z as world y)
+  if (g !== undefined) ground.visible = !!g;
+  if (exposure !== undefined) renderer.toneMappingExposure = exposure;
+  render();
   return true;
 };
 window.partsInfo = () => parts.map(({ p, holder }) => ({ name: p.name, visible: holder.visible }));

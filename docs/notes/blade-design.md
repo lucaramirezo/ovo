@@ -345,7 +345,7 @@ Every generator reading at the four evaluation speeds (cavitation margin of the 
   flow at which free-wheeling cavitates), and with the GL40 it costs 10.1 % of net power at 2.2 m/s and 70.6 %
   at 2.5 m/s.
 - **Cross-check of the limit.** An inviscid Hess-Smith panel solution of the tip sections
-  (`out/work/bem/fix/cav_panel.py`, run outside the module) puts the margin-0 limit at TSR 6.05 at 2.5 m/s
+  (a one-off script run outside the module, not published in this repository) puts the margin-0 limit at TSR 6.05 at 2.5 m/s
   and 7.02 at 2.0 m/s, against 6.14 and 7.11 from the NeuralFoil Cp_min. Its margins near the limit are
   0.02 to 0.04 lower, which the 0.05 cap covers.
 

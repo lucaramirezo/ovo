@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ovo hydrokinetic charger</title>
+<meta name="description" content="Ovo is a portable water turbine designed end to end as parametric Python CAD: a 75 mm egg whose three BEM-designed blades fold open into a 194 mm rotor. Display build, not yet water-tested.">
+<meta name="author" content="Luca Ramírez Olivo">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Ovo, a folding hydrokinetic charger">
+<meta property="og:description" content="Parametric build123d code-CAD of a 3D-printable water turbine with folding, BEM-designed blades.">
+<meta property="og:image" content="https://lucaramirezo.github.io/ovo/media/og_card.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#EFEEEB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121315" media="(prefers-color-scheme: dark)">
+<script>try{var t=localStorage.getItem('ovo-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Layout: a hardware product sheet. A wide grotesk name beside a studio stage that holds the live model,
+   mono labels for every measured quantity, sections on a 3 / 9 column grid, an engineering title block at the foot. */
+:root {
+  --bg: #EFEEEB;          /* page: neutral warm grey, the studio floor */
+  --bg-2: #E6E4E0;        /* raised panels, table stripes */
+  --ink: #191A1C;
+  --ink-2: #4E5156;
+  --ink-3: #696C71;       /* captions, axis ticks */
+  --rule: #D3D0CA;
+  --grid: #DCD9D3;        /* chart hairlines */
+  --accent: #D4521C;      /* the blade orange (marks, fills) */
+  --accent-ink: #A9400F;  /* orange as text */
+  --water: #007C9C;       /* second data series */
+  --stage-0: #E3DFD8;     /* stage sweep = the docs/media backdrop */
+  --stage-1: #BDB7AD;
+  --stage-ink: #1D1D1B;
+  --shadow-a: 0.24;
+  --plate: #FFFFFF;       /* paper behind matplotlib figures */
+  --ok: #2F7D4F;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --gutter: clamp(16px, 4vw, 48px);
+  --maxw: 1280px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121315; --bg-2: #1A1C1F; --ink: #ECE9E3; --ink-2: #AEB0B4; --ink-3: #8A8D93; --rule: #2B2E33; --grid: #25282C;
+    --accent: #E06536; --accent-ink: #F08A5D; --water: #2E9BB5;
+    --stage-0: #33363B; --stage-1: #141517; --stage-ink: #ECE9E3; --shadow-a: 0.42; --plate: #E7E5E1; --ok: #6FC08F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121315; --bg-2: #1A1C1F; --ink: #ECE9E3; --ink-2: #AEB0B4; --ink-3: #8A8D93; --rule: #2B2E33; --grid: #25282C;
+  --accent: #E06536; --accent-ink: #F08A5D; --water: #2E9BB5;
+  --stage-0: #33363B; --stage-1: #141517; --stage-ink: #ECE9E3; --shadow-a: 0.42; --plate: #E7E5E1; --ok: #6FC08F;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 17px/1.62 var(--f-body); font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+img, video, canvas, svg { max-width: 100%; display: block; }
+a { color: inherit; text-decoration-color: var(--accent); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+a:hover { color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+[hidden] { display: none !important; }
+.wrap { max-width: var(--maxw); margin-inline: auto; padding-inline: var(--gutter); }
+.mono { font-family: var(--f-mono); }
+.label { font: 500 11.5px/1.3 var(--f-mono); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); }
+.est { display: inline-block; font: 500 10.5px/1 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent-ink);
+  border: 1px solid currentColor; border-radius: 3px; padding: 3px 5px 2px; white-space: nowrap; vertical-align: 1px; margin-block: 2px; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; }
+h2 { font-weight: 620; font-stretch: 112%; font-size: clamp(28px, 3.6vw, 42px); line-height: 1.06; letter-spacing: -0.02em; }
+h3 { font-weight: 620; font-stretch: 100%; font-size: 21px; line-height: 1.2; letter-spacing: -0.005em; }
+p { margin: 0; max-width: 66ch; }
+
+/* ---------- top bar */
+.top { border-bottom: 1px solid var(--rule); }
+.top .wrap { display: flex; align-items: center; gap: 24px; padding-block: 14px; }
+.mark { font: 700 15px/1 var(--f-display); font-stretch: 125%; letter-spacing: .02em; text-decoration: none; display: flex; align-items: baseline; gap: 10px; }
+.mark span { font: 500 11px/1 var(--f-mono); letter-spacing: .08em; color: var(--ink-3); }
+.top nav { display: flex; gap: 22px; margin-left: auto; }
+.top nav a { font: 500 12px/1 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; text-decoration: none; color: var(--ink-2); }
+.top nav a:hover { color: var(--accent-ink); }
+.theme-btn { margin-left: 8px; width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--rule); border-radius: 50%;
+  background: transparent; color: var(--ink); cursor: pointer; }
+.theme-btn:hover { border-color: var(--ink-3); }
+.theme-btn svg { width: 18px; height: 18px; }
+@media (max-width: 760px) { .top nav { display: none; } .theme-btn { margin-left: auto; } }
+
+/* ---------- hero */
+.hero { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(24px, 4vw, 56px); align-items: center;
+  padding-block: clamp(28px, 5vw, 64px) clamp(20px, 3vw, 36px); }
+.hero-text { display: grid; gap: 22px; min-width: 0; }
+.name { font-weight: 640; font-stretch: 125%; font-size: clamp(96px, 13.5vw, 184px); line-height: .8; letter-spacing: -0.055em;
+  margin-left: -0.04em; }
+.tagline { font: 560 clamp(20px, 2.1vw, 26px)/1.2 var(--f-display); font-stretch: 108%; letter-spacing: -0.01em; }
+.lede { font-size: 18.5px; color: var(--ink-2); }
+.status { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 6px;
+  font: 400 13px/1.5 var(--f-mono); color: var(--ink-2); max-width: 60ch; }
+.status b { font-weight: 500; color: var(--ink); }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); margin-top: 5px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 15px; border-radius: 4px; border: 1px solid var(--ink);
+  font: 500 13px/1 var(--f-mono); letter-spacing: .02em; text-decoration: none; color: var(--ink); background: transparent; cursor: pointer; }
+.btn.primary { background: var(--ink); color: var(--bg); }
+.btn:hover { color: var(--bg); background: var(--accent-ink); border-color: var(--accent-ink); }
+.btn svg { width: 14px; height: 14px; flex: none; }
+
+.viewer { min-width: 0; display: grid; gap: 0; }
+.stage { position: relative; aspect-ratio: 4 / 3; width: 100%; border-radius: 8px 8px 0 0; overflow: hidden;
+  background: radial-gradient(120% 95% at 50% 32%, var(--stage-0) 0%, var(--stage-1) 100%); color: var(--stage-ink); }
+.stage .poster, .stage .poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.stage .poster { transition: opacity .5s ease; }
+.stage.live .poster { opacity: 0; pointer-events: none; }
+.canvas-host { position: absolute; inset: 0; }
+.canvas-host canvas { width: 100% !important; height: 100% !important; cursor: grab; }
+.canvas-host canvas:active { cursor: grabbing; }
+.hud { position: absolute; left: 14px; top: 12px; right: 14px; display: flex; justify-content: space-between; gap: 12px; pointer-events: none;
+  font: 500 11.5px/1.4 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; }
+.hud .tag { opacity: .72; }
+.hint { position: absolute; right: 14px; bottom: 10px; margin: 0; font: 400 11.5px/1.3 var(--f-mono); opacity: .7; pointer-events: none; }
+.stage:not(.live) .hint { display: none; }
+.stage-status { position: absolute; left: 14px; bottom: 10px; display: flex; align-items: center; gap: 10px; font: 400 12px/1.3 var(--f-mono); }
+.stage-status button { font: 500 12px/1 var(--f-mono); padding: 8px 12px; border-radius: 4px; border: 1px solid currentColor; background: transparent;
+  color: inherit; cursor: pointer; }
+.stage-status .bar { width: 120px; height: 2px; background: color-mix(in srgb, currentColor 20%, transparent); position: relative; }
+.stage-status .bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--accent); }
+.stage.live .stage-status { display: none; }
+.controls { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 10px 20px; align-items: center;
+  padding: 14px 16px; border: 1px solid var(--rule); border-top: 0; border-radius: 0 0 8px 8px; background: var(--bg-2); }
+.ctl { display: grid; grid-template-columns: 62px minmax(0, 1fr) 46px; align-items: center; gap: 10px; min-width: 0; }
+.ctl label { font: 500 11px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.ctl output { font: 500 12px/1 var(--f-mono); text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+.range { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; font: 400 11px/1 var(--f-mono); color: var(--ink-3); min-width: 0; }
+input[type="range"] { width: 100%; min-width: 0; accent-color: var(--accent); margin: 0; height: 24px; cursor: pointer; }
+.toggles { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.tog { font: 500 12px/1 var(--f-mono); letter-spacing: .02em; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--rule);
+  background: var(--bg); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+.tog::before { content: ""; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--ink-3); }
+.tog[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tog[aria-pressed="true"]::before { background: var(--accent); border-color: var(--accent); }
+.tog.act::before { display: none; }
+.tog:disabled, input:disabled { opacity: .45; cursor: default; }
+.tog:not(:disabled):hover { border-color: var(--ink-3); }
+.viewer-note { margin-top: 10px; font: 400 12px/1.5 var(--f-mono); color: var(--ink-3); max-width: none; }
+
+@media (max-width: 960px) {
+  .hero { grid-template-columns: minmax(0, 1fr); }
+  .controls { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .stage { aspect-ratio: 1 / 1; }
+  .hint { display: none; }
+  .ctl { grid-template-columns: 54px minmax(0, 1fr) 40px; }
+  /* phones: the product first. The hero text and the viewer dissolve into the hero grid, so the first screen
+     reads name, tagline, the model, then the status note; the controls, buttons and the lede follow */
+  .hero { gap: 14px; padding-block: 18px 16px; }
+  .hero-text, .viewer { display: contents; }
+  .hero-text > .label { order: 1; }
+  .hero-text > .name { order: 2; font-size: clamp(72px, 22vw, 104px); }
+  .hero-text > .tagline { order: 3; }
+  .viewer > .stage { order: 4; border-radius: 8px; }
+  .hero-text > .status { order: 5; font-size: 12.5px; padding: 10px 12px; }
+  .viewer > .controls { order: 6; border-top: 1px solid var(--rule); border-radius: 8px; }
+  .viewer > .viewer-note { order: 7; margin-top: -4px; }
+  .hero-text > .actions { order: 8; }
+  .hero-text > .lede { order: 9; }
+}
+
+/* ---------- spec strip */
+.specs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule);
+  margin-block: clamp(28px, 4vw, 48px) 0; padding: 0; list-style: none; }
+.spec { padding: 16px 18px 18px 0; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.spec + .spec { padding-left: 18px; border-left: 1px solid var(--rule); }
+.spec .v { font: 600 clamp(24px, 2.4vw, 30px)/1.05 var(--f-display); font-stretch: 112%; letter-spacing: -0.02em; }
+.spec .n { font: 400 12.5px/1.45 var(--f-mono); color: var(--ink-2); }
+@media (max-width: 960px) {
+  .specs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .spec, .spec + .spec { padding: 14px 14px 16px 0; border-left: 0; border-top: 1px solid var(--rule); }
+  .spec:nth-child(even) { padding-left: 14px; border-left: 1px solid var(--rule); }
+  .spec:nth-child(-n+2) { border-top: 0; }
+  .spec:last-child { grid-column: 1 / -1; padding-left: 0; border-left: 0; }
+}
+
+/* ---------- sections */
+.sec { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 9fr); gap: clamp(20px, 4vw, 56px);
+  padding-block: clamp(56px, 8vw, 104px); border-top: 1px solid var(--rule); }
+.sec:first-of-type { border-top: 0; }
+.sec-head { display: grid; gap: 14px; align-content: start; }
+.sec-head h2 { max-width: 14ch; }
+.sec-body { display: grid; gap: 28px; min-width: 0; }
+.prose { display: grid; gap: 16px; }
+@media (min-width: 961px) { .sec-head { position: sticky; top: 24px; align-self: start; } }
+@media (max-width: 960px) { .sec { grid-template-columns: minmax(0, 1fr); } .sec-head h2 { max-width: 22ch; } }
+
+/* spec sheet (definition list) */
+.sheet { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-top: 1px solid var(--ink); margin: 0; }
+.sheet div { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.sheet div:nth-child(odd) { padding-right: 24px; }
+.sheet dt { font: 500 11px/1.6 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.sheet dd { margin: 0; font-size: 15.5px; line-height: 1.5; }
+@media (max-width: 760px) { .sheet { grid-template-columns: minmax(0, 1fr); } .sheet div:nth-child(odd) { padding-right: 0; } .sheet div { grid-template-columns: 96px minmax(0, 1fr); } }
+
+/* fold */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; gap: 8px; align-content: start; padding-top: 14px; border-top: 1px solid var(--ink); }
+.steps li::before { content: counter(s, decimal-leading-zero); font: 500 12px/1 var(--f-mono); color: var(--accent-ink); letter-spacing: .06em; }
+.steps p { font-size: 16px; color: var(--ink-2); }
+@media (max-width: 760px) { .steps { grid-template-columns: minmax(0, 1fr); } }
+.strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border-radius: 8px; overflow: hidden;
+  background: radial-gradient(140% 120% at 50% 20%, var(--stage-0), var(--stage-1)); color: var(--stage-ink); }
+.strip figure { margin: 0; position: relative; aspect-ratio: 4 / 3; }
+.strip figure + figure { border-left: 1px solid color-mix(in srgb, var(--stage-ink) 14%, transparent); }
+.strip img { width: 100%; height: 100%; object-fit: contain; }
+.strip figcaption { position: absolute; left: 10px; top: 8px; font: 500 11px/1.3 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; }
+@media (max-width: 640px) { .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } .strip figure:nth-child(3) { border-left: 0; }
+  .strip figure:nth-child(n+3) { border-top: 1px solid color-mix(in srgb, var(--stage-ink) 14%, transparent); } }
+.cap { font: 400 13px/1.55 var(--f-mono); color: var(--ink-3); max-width: 90ch; }
+.cap b { color: var(--ink-2); font-weight: 500; }
+.fold-video { margin: 0; display: grid; gap: 10px; }
+.fold-video video { width: 100%; border-radius: 8px; background: var(--stage-1); }
+.fold-video figcaption { font: 400 13px/1.5 var(--f-mono); color: var(--ink-3); }
+.intent { font: italic 400 15.5px/1.55 var(--f-body); color: var(--ink-2); padding-left: 14px; border-left: 2px solid var(--accent); }
+
+/* engineering studies */
+.study { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(20px, 3vw, 40px); padding-top: 22px; border-top: 1px solid var(--ink); }
+.study + .study { margin-top: 28px; }
+.study-text { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.study-text p { font-size: 16px; }
+.src { font: 400 11.5px/1.4 var(--f-mono); color: var(--ink-3); word-break: break-word; }
+.figure { min-width: 0; display: grid; gap: 10px; align-content: start; }
+.callout { display: grid; gap: 4px; padding: 12px 14px; background: var(--bg-2); border-radius: 6px; font: 400 13px/1.5 var(--f-mono); color: var(--ink-2); }
+.callout b { color: var(--ink); font-weight: 500; }
+.study.wide { grid-template-columns: minmax(0, 1fr); }
+.study.wide .study-text { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: clamp(20px, 3vw, 40px); }
+.study.wide .study-text h3, .study.wide .study-text .src { grid-column: 1 / -1; }
+@media (max-width: 960px) { .study, .study.wide .study-text { grid-template-columns: minmax(0, 1fr); } }
+.chart .s-hull { fill: var(--bg-2); stroke: var(--ink-3); stroke-width: 1.25; }
+.chart .s-hub { fill: var(--bg); stroke: var(--ink-3); stroke-width: 1.25; stroke-dasharray: 4 3; }
+.chart .s-blade { fill: var(--accent); stroke: none; }
+.chart .s-stow { fill: var(--accent); fill-opacity: .82; stroke: var(--bg); stroke-width: 1; }
+.chart .s-mid { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-dasharray: 5 3; }
+.chart .s-axis { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 4; }
+.chart .lead { stroke: var(--ink-3); stroke-width: 1; fill: none; }
+.chart .dot-k { fill: var(--ink); stroke: var(--bg); stroke-width: 2; }
+.chart .ring-n { fill: var(--bg); stroke: var(--ink-3); stroke-width: 1.6; }
+.chart .lbl { font-size: 14px; }
+.chart .halo { paint-order: stroke; stroke: var(--bg); stroke-width: 5px; stroke-linejoin: round; }
+.plate { background: var(--plate); border-radius: 6px; padding: 10px; }
+.plate img { width: 100%; height: auto; }
+:root[data-theme="dark"] .plate img { filter: brightness(.94); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .plate img { filter: brightness(.94); } }
+
+/* charts */
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font: 400 12.5px/1.3 var(--f-mono); color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.legend i { width: 18px; height: 2px; border-radius: 1px; background: var(--k); }
+.legend .k-accent { --k: var(--accent); } .legend .k-water { --k: var(--water); } .legend .k-ink3 { --k: var(--ink-3); }
+.btn.fit { width: max-content; }
+.sec-note { font-size: 16px; color: var(--ink-2); }
+.sec-body.tight { gap: 0; }
+figure.flush { margin: 0; }
+table.plates caption { text-align: left; padding-bottom: 10px; }
+.legend i.d { width: 9px; height: 9px; border-radius: 50%; }
+.legend i.d.hollow { background: transparent; border: 2px solid var(--k); }
+.chart .dot-h { fill: var(--bg); stroke: var(--ink-3); stroke-width: 2; }
+.chart { position: relative; width: 100%; min-height: 220px; }
+.chart svg { overflow: visible; }
+.chart text { font-family: var(--f-mono); font-size: 11.5px; fill: var(--ink-3); }
+.chart .t2 { fill: var(--ink-2); }
+.chart .t1 { fill: var(--ink); font-weight: 500; }
+.chart .gridl { stroke: var(--grid); stroke-width: 1; }
+.chart .axis { stroke: var(--ink-3); stroke-width: 1; }
+.chart .ref { stroke: var(--ink-3); stroke-width: 1; }
+.chart .s-final { stroke: var(--accent); stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.chart .s-opt { stroke: var(--water); stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot-a { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
+.chart .dot-w { fill: var(--water); stroke: var(--bg); stroke-width: 2; }
+.chart .dot-n { fill: var(--ink-3); stroke: var(--bg); stroke-width: 2; }
+.chart .rng-n { stroke: var(--ink-3); stroke-width: 2; stroke-linecap: round; }
+.chart .rng-a { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+.chart .xh { stroke: var(--ink-2); stroke-width: 1; }
+.chart .hit { fill: transparent; }
+.chart .rowhl { fill: var(--bg-2); }
+.tip { position: absolute; pointer-events: none; z-index: 2; background: var(--ink); color: var(--bg); font: 400 12px/1.45 var(--f-mono);
+  padding: 8px 10px; border-radius: 4px; max-width: 280px; white-space: normal; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+.tip b { font-weight: 500; }
+details.data { font: 400 12.5px/1.4 var(--f-mono); color: var(--ink-2); }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; max-width: 100%; }
+.tablewrap { overflow-x: auto; margin-top: 10px; }
+table { border-collapse: collapse; width: 100%; font: 400 12.5px/1.4 var(--f-mono); font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 500; font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); border-bottom-color: var(--ink); }
+td.num, th.num { text-align: right; padding-right: 0; padding-left: 10px; white-space: nowrap; }
+td.pl, th.pl { width: 3.5em; font-variant-numeric: tabular-nums; }
+
+/* verification list */
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--rule); }
+.checks li { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--rule); font-size: 15.5px; }
+.pass { font: 500 10.5px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ok); display: inline-flex; gap: 6px; align-items: center; height: 20px; }
+.pass svg { width: 12px; height: 12px; }
+
+/* build */
+.totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--ink); }
+.totals > div { padding: 14px 16px 16px 0; display: grid; gap: 6px; align-content: start; }
+.totals > div + div { padding-left: 16px; border-left: 1px solid var(--rule); }
+.totals .v { font: 600 26px/1.05 var(--f-display); font-stretch: 112%; letter-spacing: -0.02em; }
+.totals .n { font: 400 12.5px/1.45 var(--f-mono); color: var(--ink-2); }
+@media (max-width: 640px) { .totals { grid-template-columns: minmax(0, 1fr); } .totals > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--rule); } }
+table.plates td.parts { color: var(--ink-2); min-width: 240px; }
+@media (max-width: 640px) {
+  table.plates caption { display: block; }
+  table.plates thead { display: none; }
+  table.plates, table.plates tbody { display: block; }
+  table.plates tr { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 3px 10px; padding: 12px 0;
+    border-bottom: 1px solid var(--rule); }
+  table.plates td { display: block; border: 0; padding: 0; text-align: left; white-space: normal; min-width: 0; }
+  table.plates td.pl { grid-column: 1; grid-row: 1 / span 4; width: auto; font: 600 20px/1.1 var(--f-display); color: var(--accent-ink); }
+  table.plates td.job { grid-column: 2 / span 2; grid-row: 1; color: var(--ink); font-weight: 500; }
+  table.plates td.mat { grid-column: 2 / span 2; grid-row: 2; }
+  table.plates td.parts { grid-column: 2 / span 2; grid-row: 3; min-width: 0; }
+  table.plates td.h { grid-column: 2; grid-row: 4; padding-left: 0; color: var(--ink-3); }
+  table.plates td.h::before { content: "max height "; }
+  table.plates td.h::after { content: " mm"; }
+  table.plates td.g { grid-column: 3; grid-row: 4; color: var(--ink-3); }
+  table.plates td.g::after { content: " g est."; }
+}
+table.plates tr.opt td { color: var(--ink-3); }
+table.plates .note { display: block; font-size: 11px; color: var(--ink-3); }
+.files { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.file { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding: 16px 18px; border: 1px solid var(--rule); border-radius: 6px;
+  text-decoration: none; color: var(--ink); background: var(--bg); }
+.file:hover { border-color: var(--ink); color: var(--ink); }
+.file h3 { font-size: 17px; }
+.file p { grid-column: 1; font: 400 13px/1.5 var(--f-mono); color: var(--ink-2); }
+.file .go { grid-row: 1 / span 2; grid-column: 2; align-self: center; font: 500 12px/1 var(--f-mono); color: var(--accent-ink); white-space: nowrap; }
+@media (max-width: 760px) { .files { grid-template-columns: minmax(0, 1fr); } }
+.road { list-style: none; margin: 0; padding: 0; counter-reset: r; display: grid; border-top: 1px solid var(--ink); }
+.road li { counter-increment: r; display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+.road li::before { content: counter(r, decimal-leading-zero); font: 500 13px/1.6 var(--f-mono); color: var(--accent-ink); }
+.road h3 { font-size: 18px; margin-bottom: 4px; }
+.road p { font-size: 15.5px; color: var(--ink-2); }
+
+/* ---------- title block */
+.foot { padding-block: 40px 56px; }
+.titleblock { display: grid; grid-template-columns: 1.3fr 1.6fr 1.4fr 1fr; border: 1.5px solid var(--ink); }
+.titleblock > div { padding: 10px 12px 12px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); display: grid; gap: 4px; min-width: 0; }
+.titleblock > div:nth-child(4n) { border-right: 0; }
+.titleblock > div:nth-last-child(-n+4) { border-bottom: 0; }
+.titleblock .k { font: 500 10px/1 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.titleblock .val { font: 500 14px/1.35 var(--f-mono); word-break: break-word; }
+.titleblock .big { font: 640 34px/1 var(--f-display); font-stretch: 125%; letter-spacing: -0.03em; }
+@media (max-width: 760px) {
+  .titleblock { grid-template-columns: 1fr 1fr; }
+  .titleblock > div:nth-child(4n) { border-right: 1px solid var(--ink); }
+  .titleblock > div:nth-child(2n) { border-right: 0; }
+  .titleblock > div:nth-last-child(-n+4) { border-bottom: 1px solid var(--ink); }
+  .titleblock > div:nth-last-child(-n+2) { border-bottom: 0; }
+}
+.foot p { margin-top: 14px; font: 400 12px/1.5 var(--f-mono); color: var(--ink-3); max-width: none; }
+
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .stage .poster { transition: none; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="#top">OVO <span>v1 / display build</span></a>
+    <nav aria-label="Sections">
+      <a href="#what">What it is</a>
+      <a href="#fold">Folding</a>
+      <a href="#engineering">Engineering</a>
+      <a href="#build">Build it</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#files">Files</a>
+    </nav>
+    <button class="theme-btn" id="theme" type="button" aria-label="Switch to dark theme">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.75a7.25 7.25 0 0 1 0 14.5z" fill="currentColor"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+<div class="wrap">
+  <section class="hero" aria-labelledby="name">
+    <div class="hero-text">
+      <p class="label">Code-CAD portfolio project &middot; build123d &middot; 2026</p>
+      <h1 class="name" id="name">Ovo</h1>
+      <p class="tagline">A folding hydrokinetic charger.</p>
+      <p class="lede">A portable water turbine for streams and towing, designed end to end as parametric Python CAD. Packed, it is a 75&nbsp;mm egg. Deployed, three blades swing open into a 194&nbsp;mm rotor.</p>
+      <div class="status" role="note">
+        <span class="dot" aria-hidden="true"></span>
+        <span><b>Display build.</b> Real bearings and folding blades, no electronics. Not yet printed or tested in water, so every performance figure on this page is a model estimate.</span>
+      </div>
+      <div class="actions">
+        <a class="btn primary" href="report/ovo-report.pdf">
+          <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5h5l3 3v8H3z M8 1.5v3h3" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+          Report (PDF)</a>
+        <a class="btn" href="https://github.com/lucaramirezo/ovo">
+          <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M5 3.5 1.5 7 5 10.5M9 3.5 12.5 7 9 10.5" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+          GitHub</a>
+        <a class="btn" href="https://github.com/lucaramirezo/ovo/releases/latest">
+          <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1.5v8M3.5 6 7 9.5 10.5 6M2 12.5h10" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+          STL / STEP files</a>
+      </div>
+    </div>
+
+    <div class="viewer">
+      <div class="stage" id="stage">
+        <picture class="poster" id="poster">
+          <source media="(max-width: 640px)" srcset="assets/poster-square.webp">
+          <img src="assets/poster-wide.webp" width="1600" height="1200" alt="Ovo deployed: an ivory egg-shaped hull with two side fins and three orange blades open at its tail">
+        </picture>
+        <div class="canvas-host" id="stage-canvas"></div>
+        <div class="hud" aria-live="polite"><span id="hud-state">Deployed &middot; &Oslash;194 mm rotor</span><span class="tag" id="hud-tag">CAD model</span></div>
+        <div class="stage-status" id="stage-status">
+          <button type="button" id="load3d">Load the 3D model (1.6 MB)</button>
+        </div>
+        <p class="hint" id="hint">Drag to orbit &middot; Ctrl + scroll to zoom</p>
+      </div>
+      <div class="controls" role="group" aria-label="3D model controls">
+        <div class="ctl">
+          <label for="c-fold">Blades</label>
+          <span class="range"><span aria-hidden="true">stowed</span><input type="range" id="c-fold" min="0" max="1" step="0.005" value="1" disabled aria-valuetext="deployed"><span aria-hidden="true">open</span></span>
+          <output id="o-fold" for="c-fold">0&deg;</output>
+        </div>
+        <div class="ctl">
+          <label for="c-explode">Explode</label>
+          <span class="range"><span aria-hidden="true"></span><input type="range" id="c-explode" min="0" max="1" step="0.005" value="0" disabled><span aria-hidden="true"></span></span>
+          <output id="o-explode" for="c-explode">0 %</output>
+        </div>
+        <div class="toggles">
+          <button type="button" class="tog act" id="c-play" disabled>Play fold</button>
+          <button type="button" class="tog" id="c-spin" aria-pressed="false" disabled>Spin</button>
+          <button type="button" class="tog" id="c-cut" aria-pressed="false" disabled>Cutaway</button>
+          <button type="button" class="tog" id="c-fins" aria-pressed="true" disabled>Fins</button>
+          <button type="button" class="tog act" id="c-reset" disabled>Reset view</button>
+        </div>
+      </div>
+      <p class="viewer-note">The full CAD assembly, compressed for the web. Fold angle 0&deg; is deployed, 90&deg; stowed. Spin turns the rotor only when the blades are open; it stops at the angle where they fold home. The cutaway shows the v2 front shell with its cable gland.</p>
+    </div>
+  </section>
+
+  <ul class="specs">
+    <li class="spec"><span class="label">Packed</span><span class="v">&Oslash;75 &times; 161 mm</span><span class="n">egg, L/D 2.15</span></li>
+    <li class="spec"><span class="label">Deployed</span><span class="v">&Oslash;194 mm</span><span class="n">3 blades, fold 90&deg; forward</span></li>
+    <li class="spec"><span class="label">Blade</span><span class="v">Cp 0.367</span><span class="n">at TSR 3.8, 1.5 m/s <span class="est">BEM estimate</span></span></li>
+    <li class="spec"><span class="label">Output, v2</span><span class="v">&asymp;7.7 W</span><span class="n">DC through a diode bridge, 1.5 m/s, GL40 <span class="est">model estimate</span></span></li>
+    <li class="spec"><span class="label">Print</span><span class="v">235 g</span><span class="n">18 printed parts, PLA + PETG, 256 mm bed</span></li>
+  </ul>
+
+  <!-- ===================================================================== what it is -->
+  <section class="sec" id="what" aria-labelledby="h-what">
+    <div class="sec-head">
+      <p class="label">What it is</p>
+      <h2 id="h-what">A turbine that packs into an egg</h2>
+    </div>
+    <div class="sec-body">
+      <div class="prose">
+        <p>Ovo is a generic portable hydrokinetic charger: an axial turbine you tether in a stream or tow behind a boat. The hull is a Myring body of revolution shaped like an egg. The rotor sits downstream at the tail, and its three blades fold forward into shallow pockets, so the packed product is a clean egg with three orange stripes.</p>
+        <p>This first version is a display build with real mechanics. The rotor turns on two ball bearings and the blades really fold, held by magnets at both ends of their travel. The generator bay carries a printed replica of the motor chosen for v2, with its real envelope and bolt patterns. The shaft seal pocket, the O-ring gland at the equator and the cable gland seat are modelled too, so v2 can add electronics without a redesign.</p>
+        <p>Every dimension lives in one Python file, <code class="mono">ovo/params.py</code>. The design studies write JSON that the CAD reads, and one command rebuilds every part, runs the checks and exports the STL and STEP files and the model at the top of this page.</p>
+      </div>
+      <dl class="sheet">
+        <div><dt>Hull</dt><dd>Myring profile, &Oslash;75 mm, built length 161 mm, L/D 2.15, 2.4 mm wall</dd></div>
+        <div><dt>Rotor</dt><dd>3 blades, &Oslash;194 mm, downstream, tangential hinge pins at r 14 mm</dd></div>
+        <div><dt>Blades</dt><dd>NACA 44xx, t/c 18 to 12 %, chord 25.1 mm to 14 mm, twist 17.2&deg; to 5.2&deg;, 0.6 mm trailing edge</dd></div>
+        <div><dt>Design point</dt><dd>1.5 m/s current at TSR 4; towing at 2 to 2.5 m/s</dd></div>
+        <div><dt>Drivetrain</dt><dd>8 mm stainless shaft on 608-2RS and 688-2RS bearings, thrust collar, dog coupling, lip seal pocket for v2</dd></div>
+        <div><dt>Joint</dt><dd>Split at the equator: 3-lug bayonet with click tines, AS568-141 O-ring gland for v2</dd></div>
+        <div><dt>Roll fins</dt><dd>2 slide-in Clark Y fins, 30 &times; 70 mm, 12.5&deg; incidence, on recessed rails with flush blanking strips</dd></div>
+        <div><dt>Generator</dt><dd>Bay for a CubeMars GL40 KV70 in v2; a printed replica in v1</dd></div>
+        <div><dt>Printer</dt><dd>Bambu Lab A1, P1S or X1 (256 mm bed), PLA and PETG, one material per plate</dd></div>
+        <div><dt>CAD</dt><dd>build123d (Python, OpenCascade), one module per subassembly</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ===================================================================== folding -->
+  <section class="sec" id="fold" aria-labelledby="h-fold">
+    <div class="sec-head">
+      <p class="label">Folding</p>
+      <h2 id="h-fold">Blades that fold forward into the hull</h2>
+      <button type="button" class="btn fit" id="fold-try">Fold it in 3D</button>
+    </div>
+    <div class="sec-body">
+      <ol class="steps">
+        <li><h3>Stowed</h3><p>Each blade lies in its own shallow pocket in the static tail, held by a magnet pair (about 2.3 N, estimate). The pockets line up at one rotor angle in every 120&deg;, so they also lock the rotor while it is packed.</p></li>
+        <li><h3>Released</h3><p>The rotor sits downstream, so a folded blade points upstream along the hull. The current drags its tip aft and swings it open, 90&deg; about a 3 mm pin on a tangential axis.</p></li>
+        <li><h3>Running</h3><p>Thrust presses each blade heel onto its stop on the hub, where a second magnet pair holds it. The aft pre-cone that makes a folded blade hug the hull gives the running rotor mild downstream coning.</p></li>
+      </ol>
+      <p class="intent">This opening sequence is the design intent of the layout study. It has not been tested in water yet.</p>
+      <!-- ovo:fold-media -->
+<figure class="fold-video">
+  <video id="fold-video" src="media/fold.mp4" data-light="media/fold.mp4" data-dark="media/fold_dark.mp4" muted loop playsinline preload="metadata" aria-describedby="fold-video-cap"></video>
+  <figcaption id="fold-video-cap">Animation rendered from the CAD assembly: the stowed egg unfolds its three blades and the rotor spins.</figcaption>
+</figure>
+<!-- /ovo:fold-media -->
+      <div class="figure">
+        <div class="strip" role="group" aria-label="The rotor at four fold angles">
+          <figure><img src="assets/fold-90.webp" alt="Fold 90 degrees: blades stowed flush in the hull" width="720" height="540"><figcaption>90&deg; stowed</figcaption></figure>
+          <figure><img src="assets/fold-60.webp" alt="Fold 60 degrees: blades lifting out of their pockets" width="720" height="540"><figcaption>60&deg;</figcaption></figure>
+          <figure><img src="assets/fold-30.webp" alt="Fold 30 degrees: blades nearly radial" width="720" height="540"><figcaption>30&deg;</figcaption></figure>
+          <figure><img src="assets/fold-0.webp" alt="Fold 0 degrees: rotor deployed" width="720" height="540"><figcaption>0&deg; deployed</figcaption></figure>
+        </div>
+        <p class="cap">Four poses from the CAD assembly. The interference matrix runs on fine meshes of the CAD solids at exactly these poses and finds <b>0 defects</b>. Stowed gaps include <b>0.171 mm</b> from the blade to its detent boss, <b>0.337 mm</b> from the blade span to the pocket floor (target 0.3) and <b>0.899 mm</b> from the blade root to the static tail (target 0.8).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== engineering -->
+  <section class="sec" id="engineering" aria-labelledby="h-eng">
+    <div class="sec-head">
+      <p class="label">Engineering</p>
+      <h2 id="h-eng">Four studies, one source of truth</h2>
+      <p class="sec-note">Each study is a Python module that writes JSON. The CAD reads those files, so a change in a study reaches every part on the next build. The derivations are in the report.</p>
+    </div>
+    <div class="sec-body tight">
+
+      <article class="study" aria-labelledby="h-bem">
+        <div class="study-text">
+          <h3 id="h-bem">Blade: constraint-aware BEM</h3>
+          <p>Blade element momentum theory with Prandtl tip and hub losses and Buhl's high-induction correction, 24 elements, and section polars from NeuralFoil (a network trained on XFOIL) at Reynolds numbers of 55k to 83k. The solver reproduces the Glauert ideal rotor (Cp 0.5185 against 0.5185 from theory).</p>
+          <p>The unconstrained optimum is then made printable: straight chord and twist laws, a 14 mm minimum chord and a 0.6 mm blunt trailing edge. Together these constraints cost 2.4 % of Cp at the design point, from 0.376 to 0.367.</p>
+          <div class="callout"><span><b>Cp 0.367 at TSR 3.8</b>, 1.5 m/s</span><span>18.3 W shaft power at 564 rpm <span class="est">estimate</span></span></div>
+          <p class="src">ovo/bem.py &rarr; data/blade_design.json</p>
+        </div>
+        <div class="figure">
+          <div class="legend" aria-hidden="true"><span><i class="k-accent"></i>Printable blade, as built</span><span><i class="k-water"></i>Unconstrained BEM optimum</span></div>
+          <div class="chart" id="chart-cp" role="img" aria-label="Line chart of power coefficient against tip speed ratio at 1.5 metres per second. The printable blade peaks at Cp 0.367 at TSR 3.8; the unconstrained optimum peaks slightly higher. The GL40 generator with a diode bridge runs the rotor at TSR 6.05."></div>
+          <p class="cap">Power coefficient against tip speed ratio at 1.5 m/s, BEM model. The generator runs the rotor faster than its Cp peak because the motor loses less in its windings at lower torque: TSR 6.05 with a diode bridge (5.79 with active rectification).</p>
+          <details class="data"><summary>Data table</summary><div class="tablewrap" id="table-cp"></div></details>
+        </div>
+      </article>
+
+      <article class="study wide" aria-labelledby="h-kin">
+        <div class="study-text">
+          <h3 id="h-kin">Fold kinematics and layout</h3>
+          <p>The hinge pins are tangential, at r 14 mm and 116 mm behind the nose. Folding a blade 90&deg; about such a pin maps the aft direction to the outward one, so a blade built with an aft pre-cone that copies the hull curve lands flat on the convex tail.</p>
+          <p>The layout study solved that curved pitch axis, swept the hinge position for root clearance and cut the pockets: about 3 mm deep at the equator and under 7 mm along the blade span. Neighbouring blades stay at least 3 mm apart at every fold angle, and 5.6 mm clear of the fins.</p>
+          <p class="src">ovo/layout.py, ovo/layout_internal.py &rarr; data/layout*.json; chart traced from out/web/ovo.glb</p>
+        </div>
+        <figure class="figure flush">
+          <div class="chart" id="chart-fold" role="img" aria-label="Side view of one blade in its own plane, traced from the CAD model as built: deployed, the blade stands behind the hull, leaning slightly aft; dashed outlines show it at 30 and 60 degrees; stowed, it lies flush along the tail in its pocket. The hinge pin sits at x 116 mm, r 14 mm."></div>
+          <figcaption class="cap">One blade in its own plane at fold 0, 30, 60 and 90&deg;, traced from the CAD model as built. Millimetres, flow left to right.</figcaption>
+        </figure>
+      </article>
+
+      <article class="study" aria-labelledby="h-gen">
+        <div class="study-text">
+          <h3 id="h-gen">Generator trade study</h3>
+          <p>12 off-the-shelf motors (gimbal outrunners, drone motors, a frameless torque motor and an industrial flat motor) were coupled to the BEM rotor and scanned for their best electrical operating point, with copper, diode and iron losses. The stronger candidates that fit the hull land within a few watts of each other, so the choice came down to data quality.</p>
+          <p>The CubeMars GL40 KV70 has a complete, self-consistent datasheet and a drawing of both mounting faces. Towed at 2.5 m/s it freewheels at only 35.2 V, so open phases are electrically safe for a 60 V input stage; hydrodynamically the rotor must stay loaded, because a free-wheeling rotor cavitates from 1.6 m/s and the fins would roll the hull.</p>
+          <p>One conflict is still open: from about 2.1 m/s, keeping the blade tips free of cavitation needs more torque than the GL40's continuous rating allows (3.4 times its rated copper loss at 2.5 m/s, estimate). Towing faster than that needs a decision in v2.</p>
+          <div class="callout"><span><b>GL40 at 1.5 m/s</b> <span class="est">estimate</span></span><span>7.66 W DC through a diode bridge, 7.96 V, 0.96 A, TSR 6.05 (time-domain model with its 1.8 mH inductance)</span><span>8.92 W with active rectification</span></div>
+          <p class="src">docs/notes/hardware-and-prior-art.md &rarr; data/hardware.json</p>
+        </div>
+        <div class="figure">
+          <div class="legend" aria-hidden="true"><span><i class="d k-accent"></i>Chosen: CubeMars GL40 KV70</span><span><i class="d k-ink3"></i>Datasheet self-consistent</span><span><i class="d hollow k-ink3"></i>Datasheet contradicts itself (one dot per reading)</span></div>
+          <div class="chart" id="chart-gen" role="img" aria-label="Dot plot of electrical power at 1.5 metres per second for ten motors: eight confirmed inside the D56 by L35 study envelope and two with unpublished dimensions, from about 3 to 11 watts. The chosen GL40 gives 7.78 watts in this block model. Four candidates reach higher, but their datasheets contradict themselves, so their readings span a range."></div>
+          <p class="cap">DC power at 1.5 m/s through a passive diode bridge (block model), each motor at its best rotor speed. Hollow dots: the datasheet allows several readings of KV or resistance, one dot per reading. The GL40 is not the highest dot; it was chosen because its datasheet is complete and self-consistent. Model estimates; iron loss assumed where unpublished.</p>
+          <details class="data"><summary>Data table</summary><div class="tablewrap" id="table-gen"></div></details>
+        </div>
+      </article>
+
+      <article class="study" aria-labelledby="h-ver">
+        <div class="study-text">
+          <h3 id="h-ver">Verification</h3>
+          <p>The integration step checks the CAD on every build: a validity audit of the B-rep solids, then interference, clearances and spin on fine meshes of them (0.02 mm chord). It writes the results to a JSON file, which the design notes and this page quote.</p>
+          <p class="src">ovo/cad/assembly.py &rarr; out/cad/checks/assembly.json</p>
+        </div>
+        <ul class="checks">
+          <li><span class="pass"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5 5 9.5 10 3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Pass</span><span>Interference matrix in 7 states (stowed, 60&deg;, 30&deg;, deployed, cutaway, packed, v2): 0 defects. The only overlaps are intended press fits and threads.</span></li>
+          <li><span class="pass"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5 5 9.5 10 3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Pass</span><span>Spin sweep in 10&deg; steps over 23 rotor and static part pairs: nothing rubs.</span></li>
+          <li><span class="pass"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5 5 9.5 10 3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Pass</span><span>25 key clearances against their limits, for example the 0.600 mm hub running gap and the 0.337 mm stowed blade to pocket floor.</span></li>
+          <li><span class="pass"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5 5 9.5 10 3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Pass</span><span>25 print STLs (the three blades share one file): watertight, consistent winding, each in print orientation on a 256 mm bed.</span></li>
+          <li><span class="pass"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5 5 9.5 10 3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Pass</span><span>The fold you drive on this page uses the CAD's own pivots: a browser check lands the blades on the CAD solids within 0.011 mm.</span></li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===================================================================== build -->
+  <section class="sec" id="build" aria-labelledby="h-build">
+    <div class="sec-head">
+      <p class="label">Build it</p>
+      <h2 id="h-build">Printable on one 256 mm bed</h2>
+    </div>
+    <div class="sec-body">
+      <div class="prose">
+        <p>18 printed parts plus three sacrificial blade cradles: PLA for the shells and the rotor, PETG for the parts that see torque, sliding or a press fit. There are no slicer supports. Each blade prints standing on its own cradle, and the shells print on their equator and tail faces without supports. Print the tolerance coupons first and tune the press fits to your printer.</p>
+      </div>
+      <div class="totals">
+        <div><span class="label">Filament</span><span class="v">235 g</span><span class="n">PLA 204 g, PETG 31 g, one display build, plus brims and coupons</span></div>
+        <div><span class="label">Bought parts</span><span class="v">&euro;35.48</span><span class="n">priced lines of the hardware study's list, bought in pack sizes (&euro;15.28 pro rata); the as-built list's priced lines: &euro;11.88 pro rata</span></div>
+        <div><span class="label">v2 adds</span><span class="v">&euro;74.42</span><span class="n">priced lines: the GL40 motor and the cable gland (seal and O-ring not priced yet)</span></div>
+      </div>
+      <div class="tablewrap">
+        <table class="plates">
+          <caption class="label">Print plates, from the print plan</caption>
+          <thead><tr><th class="pl">Plate</th><th>Job</th><th>Material</th><th>Parts</th><th class="num">Height mm</th><th class="num">g est.</th></tr></thead>
+          <tbody>
+<!-- ovo:plates -->
+<tr><td class="pl">0</td><td class="job">tolerance coupon</td><td class="mat">PLA; print a PETG copy too</td><td class="parts">tolerance_coupon, tolerance_coupon_b and 3 fit keys</td><td class="num h">22.0</td><td class="num g">34.2</td></tr>
+<tr><td class="pl">1</td><td class="job">shells and strips</td><td class="mat">ivory PLA</td><td class="parts">front_shell, aft_shell, fin_blank_0, fin_blank_1</td><td class="num h">74.6</td><td class="num g">127.5</td></tr>
+<tr><td class="pl">2</td><td class="job">rotor</td><td class="mat">PLA, each blade on its cradle</td><td class="parts">spinner, hub, blade_0, blade_1, blade_2, spinner_cap</td><td class="num h">42.9</td><td class="num g">51.1</td></tr>
+<tr><td class="pl">3</td><td class="job">drivetrain + fins</td><td class="mat">PETG</td><td class="parts">fin_0, fin_1, motor_carrier, adapter_spacer, claw_a, claw_b</td><td class="num h">73.7</td><td class="num g">31.1</td></tr>
+<tr class="opt"><td class="pl">4</td><td class="job">cutaway shells</td><td class="mat">PLA, optional display variant</td><td class="parts">front_shell_cutaway, aft_shell_cutaway</td><td class="num h">74.6</td><td class="num g">100.7</td></tr>
+<tr><td class="pl">5</td><td class="job">generator replica</td><td class="mat">blue PLA</td><td class="parts">generator_bell, generator_stator</td><td class="num h">20.0</td><td class="num g">24.5</td></tr>
+<tr class="opt"><td class="pl">6</td><td class="job">v2 front shell</td><td class="mat">PETG, v2 wet build only: replaces front_shell</td><td class="parts">front_shell_v2</td><td class="num h">74.6</td><td class="num g">57.8</td></tr>
+<!-- /ovo:plates -->
+          </tbody>
+        </table>
+      </div>
+      <p class="cap">Prices come from the hardware study's bill of materials, drawn up before the CAD; 11 lines, among them the shaft, pins, collar and screws, are not priced yet, and the CAD's final magnet set (18 magnets in three sizes) differs from that list, so treat the totals as indicative. The report covers the bill of materials, and the assembly order (12 steps) is in <a href="https://github.com/lucaramirezo/ovo/blob/main/docs/notes/cad.md#assembly-order">docs/notes/cad.md</a>.</p>
+    </div>
+  </section>
+
+  <!-- ===================================================================== roadmap -->
+  <section class="sec" id="roadmap" aria-labelledby="h-road">
+    <div class="sec-head">
+      <p class="label">Roadmap</p>
+      <h2 id="h-road">From display model to charger</h2>
+    </div>
+    <div class="sec-body">
+      <ol class="road">
+        <li><div><h3>Print and assemble the display build</h3><p>Tune the fits with the tolerance coupons, then check the fold detents, the bayonet click and the spin on real parts.</p></div></li>
+        <li><div><h3>Bench-test the real generator</h3><p>Measure the GL40's resistance, KV, inductance and no-load loss. Its iron and friction drag is an assumption today.</p></div></li>
+        <li><div><h3>Electronics</h3><p>A three-phase rectifier and a buck-boost stage to 5 V USB, with a current limit at the motor's rating and a load line capped against tip cavitation above 2.2 m/s. Open: the current limit and the cavitation cap conflict above about 2.1 m/s (a bigger generator, a short-time overload, a brake, or towing at most about 2.1 m/s).</p></div></li>
+        <li><div><h3>Wet build</h3><p>Shells, hub and spinner in PETG; the v2 front shell with the M12 cable gland; the O-ring at the equator and the lip seal on the shaft.</p></div></li>
+        <li><div><h3>Water test</h3><p>Run it in a stream or under tow at 1 to 2.5 m/s and compare measured power, speed and thrust with the BEM curve.</p></div></li>
+        <li><div><h3>Design follow-ups</h3><p>Re-run the blade loads on the as-built hinge, a tow bridle or swivel for roll, crush ribs to locate the fins (their play spreads the anti-roll couple), and buoyancy trim for the wet build.</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ===================================================================== files -->
+  <section class="sec" id="files" aria-labelledby="h-files">
+    <div class="sec-head">
+      <p class="label">Files</p>
+      <h2 id="h-files">Source, report and print files</h2>
+    </div>
+    <div class="sec-body">
+      <div class="files">
+        <a class="file" href="https://github.com/lucaramirezo/ovo"><h3>GitHub repository</h3><p>Python package, design studies, notes, build pipeline and CI.</p><span class="go">github.com &rarr;</span></a>
+        <a class="file" href="report/ovo-report.pdf"><h3>Technical report</h3><p>Requirements, BEM, fold kinematics, drivetrain, verification, print plan and BOM.</p><span class="go">PDF &rarr;</span></a>
+        <a class="file" href="https://github.com/lucaramirezo/ovo/releases/latest"><h3>STL and STEP</h3><p>25 print STLs in print orientation and the stowed and deployed STEP assemblies, 56 named parts each. STEP files of every modelled part come with each CI build.</p><span class="go">Release &rarr;</span></a>
+        <a class="file" href="assets/ovo.glb"><h3>Web model</h3><p>The model at the top of this page: glTF binary, meshopt-compressed, with part names.</p><span class="go">GLB &rarr;</span></a>
+      </div>
+    </div>
+  </section>
+</div>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="titleblock" role="group" aria-label="Title block">
+      <div><span class="k">Project</span><span class="big">Ovo</span></div>
+      <div><span class="k">Title</span><span class="val">Folding hydrokinetic charger</span></div>
+      <div><span class="k">Designed by</span><span class="val">Luca Ram&iacute;rez Olivo</span></div>
+      <div><span class="k">Rev</span><span class="val">v1, display build</span></div>
+      <div><span class="k">CAD</span><span class="val">build123d, Python</span></div>
+      <div><span class="k">Status</span><span class="val">Not yet printed or water-tested</span></div>
+      <div><span class="k">Licence</span><span class="val">MIT code, CC BY 4.0 models and docs</span></div>
+      <div><span class="k">Units</span><span class="val">mm, SI</span></div>
+    </div>
+    <p>Final-year Computer Engineering portfolio project. Performance figures are model estimates from the BEM and hardware studies.</p>
+  </div>
+</footer>
+
+<!-- ovo:data -->
+<script type="application/json" id="ovo-data">{"source":"data/blade_design.json (cp_tsr, performance.mppt), data/hardware.json (generator.candidates)","cp":{"flow":1.5,"tsr":[1.5,1.75,2.0,2.25,2.5,2.75,3.0,3.25,3.5,3.75,4.0,4.25,4.5,4.75,5.0,5.25,5.5,5.75,6.0,6.25,6.5,6.75,7.0,7.25,7.5,7.75,8.0,8.25,8.5,8.75,9.0,9.25,9.5,9.75,10.0,10.25,10.5,10.75,11.0],"final":[0.1251,0.144,0.1906,0.2521,0.3107,0.3425,0.3555,0.3619,0.3655,0.367,0.3666,0.3646,0.3611,0.3561,0.3495,0.3408,0.3293,0.3144,0.2961,0.2762,0.2551,0.2324,0.208,0.1818,0.1536,0.1232,0.0904,0.0552,0.0174,-0.0231,-0.0664,-0.1125,-0.1615,-0.2135,-0.2686,-0.3269,-0.3885,-0.4534,-0.5218],"optimum":[0.1122,0.1243,0.1519,0.2419,0.3069,0.3421,0.3566,0.365,0.3705,0.3739,0.3757,0.3756,0.3734,0.3692,0.3627,0.3543,0.3442,0.3318,0.317,0.2999,0.281,0.2604,0.2379,0.2133,0.1863,0.157,0.1252,0.0909,0.0542,0.0149,-0.0269,-0.0714,-0.1185,-0.1682,-0.2206,-0.2755,-0.3331,-0.3935,-0.4566],"peak":{"tsr":3.822,"cp":0.367},"gen_tsr":6.05,"design_tsr":4.0},"gen":[{"name":"iPower GM4108H-120T","cls":"gimbal outrunner","envelope":true,"readings":[{"kv":27.0,"r":11.1,"p":11.23,"v":20.86,"i":0.538,"tsr":5.29,"rpm":781},{"kv":27.0,"r":22.2,"p":8.67,"v":19.95,"i":0.434,"tsr":5.82,"rpm":859},{"kv":32.0,"r":11.1,"p":9.97,"v":17.41,"i":0.573,"tsr":5.58,"rpm":823},{"kv":32.0,"r":22.2,"p":7.26,"v":17.59,"i":0.413,"tsr":6.25,"rpm":923}]},{"name":"Rctimer GBM4114HS 100T","cls":"gimbal outrunner","envelope":true,"readings":[{"kv":32.0,"r":15.2,"p":8.76,"v":17.24,"i":0.508,"tsr":5.85,"rpm":863},{"kv":32.0,"r":30.4,"p":6.07,"v":17.7,"i":0.343,"tsr":6.56,"rpm":969}]},{"name":"CubeMars GL40 KV70","cls":"gimbal outrunner","envelope":true,"readings":[{"kv":63.5,"r":4.5,"p":7.78,"v":8.56,"i":0.909,"tsr":6.06,"rpm":894}]},{"name":"CubeMars GL40 II KV82.5","cls":"gimbal outrunner (integrated driver)","envelope":true,"readings":[{"kv":82.5,"r":3.0,"p":7.13,"v":6.53,"i":1.092,"tsr":6.21,"rpm":916},{"kv":86.81,"r":3.0,"p":6.72,"v":6.0,"i":1.12,"tsr":6.25,"rpm":923}]},{"name":"T-motor GB4106 KV53","cls":"gimbal outrunner","envelope":true,"readings":[{"kv":53.0,"r":15.3,"p":4.8,"v":10.29,"i":0.466,"tsr":6.85,"rpm":1011}]},{"name":"EMAX GB4008 66KV","cls":"gimbal outrunner","envelope":null,"readings":[{"kv":66.0,"r":7.5,"p":5.61,"v":8.48,"i":0.662,"tsr":6.67,"rpm":984}]},{"name":"CubeMars RI50 KV100","cls":"frameless inrunner torque motor","envelope":true,"readings":[{"kv":100.0,"r":1.42,"p":8.24,"v":5.24,"i":1.573,"tsr":5.87,"rpm":866},{"kv":79.58,"r":1.42,"p":10.08,"v":6.72,"i":1.498,"tsr":5.45,"rpm":804}]},{"name":"T-motor MN5008 KV170","cls":"low-KV drone outrunner","envelope":true,"readings":[{"kv":170.0,"r":0.27,"p":9.24,"v":2.9,"i":3.188,"tsr":5.49,"rpm":811}]},{"name":"T-motor MN4006 KV380","cls":"low-KV drone outrunner","envelope":true,"readings":[{"kv":380.0,"r":0.194,"p":4.01,"v":1.14,"i":3.513,"tsr":7.07,"rpm":1043}]},{"name":"maxon EC 45 flat 70 W 36 V","cls":"industrial flat outrunner","envelope":null,"readings":[{"kv":179.0,"r":1.74,"p":3.31,"v":2.73,"i":1.213,"tsr":7.15,"rpm":1056}]}],"gl40":{"td_W":7.66,"td_V":7.96,"td_A":0.962,"td_tsr":6.05,"active_W":8.92,"active_tsr":5.79},"chain":[{"key":"optimum","label":"BEM optimum (sharp TE, no cone)","cp":0.375673},{"key":"te","label":"+ blunt TE 0.6 mm (re-optimised)","cp":0.369516},{"key":"linear","label":"+ linear chord and twist (best linear law, no bounds)","cp":0.366453},{"key":"chord","label":"+ chord in [14, 28] mm (re-optimised)","cp":0.366127},{"key":"twist","label":"+ root twist <= 25 deg (re-optimised)","cp":0.366127},{"key":"final","label":"+ 12 deg aft cone = final blade (re-optimised, rounded)","cp":0.366589}],"fold":{"source":"out/web/ovo.glb (blade_0 and its pivot), ovo/profile.py (hull), ovo/params.py","hull":[[0.0,0.0],[0.06,1.68],[0.22,3.36],[0.5,5.03],[0.88,6.7],[1.38,8.34],[1.98,9.98],[2.69,11.59],[3.51,13.18],[4.43,14.74],[5.45,16.27],[6.57,17.77],[7.79,19.23],[9.1,20.66],[10.5,22.04],[12.0,23.38],[13.58,24.67],[15.25,25.91],[16.99,27.1],[18.81,28.24],[20.71,29.32],[22.67,30.34],[24.7,31.3],[26.79,32.19],[28.94,33.02],[31.14,33.79],[33.38,34.48],[35.67,35.11],[38.0,35.66],[40.37,36.15],[42.76,36.56],[45.18,36.9],[47.62,37.16],[50.07,37.35],[52.53,37.46],[55.0,37.5],[55.77,37.5],[56.54,37.5],[57.3,37.5],[58.07,37.5],[58.84,37.5],[59.61,37.5],[60.38,37.5],[61.14,37.49],[61.91,37.48],[62.68,37.46],[63.45,37.43],[64.22,37.4],[64.99,37.36],[65.75,37.31],[66.52,37.26],[67.29,37.2],[68.06,37.14],[68.83,37.07],[69.59,36.99],[70.36,36.91],[71.13,36.82],[71.9,36.72],[72.67,36.62],[73.43,36.51],[74.2,36.4],[74.97,36.28],[75.74,36.16],[76.51,36.03],[77.28,35.9],[78.04,35.76],[78.81,35.61],[79.58,35.46],[80.35,35.3],[81.12,35.14],[81.88,34.98],[82.65,34.8],[83.42,34.63],[84.19,34.45],[84.96,34.26],[85.72,34.07],[86.49,33.87],[87.26,33.67],[88.03,33.47],[88.8,33.26],[89.57,33.04],[90.33,32.83],[91.1,32.6],[91.87,32.37],[92.64,32.14],[93.41,31.91],[94.17,31.67],[94.94,31.42],[95.71,31.18],[96.48,30.92],[97.25,30.67],[98.01,30.41],[98.78,30.14],[99.55,29.88],[100.32,29.61],[101.09,29.33],[101.86,29.05],[102.62,28.77],[103.39,28.49],[104.16,28.2],[104.93,27.91],[105.7,27.61],[106.46,27.31],[107.23,27.01],[108.0,26.71]],"hub":[[108.0,26.71],[109.36,26.16],[110.72,25.61],[112.08,25.05],[113.43,24.48],[114.79,23.9],[116.15,23.31],[117.51,22.72],[118.87,22.12],[120.23,21.51],[121.59,20.9],[122.95,20.28],[124.3,19.65],[125.66,19.02],[127.02,18.38],[128.38,17.74],[129.74,17.1],[131.1,16.45],[132.46,15.8],[133.82,15.15],[135.17,14.49],[136.53,13.83],[137.89,13.16],[139.25,12.5],[140.61,11.83],[141.97,11.17],[143.33,10.5],[144.69,9.83],[146.04,9.16],[147.4,8.49],[148.76,7.82],[150.12,7.16],[151.48,6.49],[152.84,5.83],[154.2,5.16],[155.56,4.5],[156.91,3.85],[158.27,3.19],[159.63,2.54],[160.99,1.89]],"blades":{"0":[[[113.3,6.0],[118.0,5.9],[118.5,6.6],[118.5,10.6],[119.4,11.9],[121.0,12.7],[122.5,14.0],[122.5,14.2],[124.3,16.0],[124.5,16.6],[125.5,17.8],[127.9,23.2],[128.7,24.4],[129.7,25.4],[129.7,25.8],[130.3,26.8],[130.3,27.2],[130.5,27.4],[130.7,28.4],[131.1,29.0],[131.7,31.2],[132.3,32.2],[133.1,35.2],[133.5,35.8],[133.7,37.0],[134.1,37.6],[134.1,38.2],[134.7,39.6],[134.9,41.0],[135.7,43.0],[135.7,43.6],[135.9,43.8],[135.9,44.6],[136.3,45.6],[136.7,48.4],[136.9,48.6],[137.1,50.2],[137.5,51.2],[137.5,52.0],[137.9,53.0],[138.3,57.4],[138.7,58.4],[138.9,63.2],[139.1,63.4],[139.1,65.0],[139.3,65.2],[139.3,79.0],[139.1,79.2],[139.1,82.4],[138.9,82.6],[138.9,84.2],[138.7,84.4],[138.5,87.4],[138.3,87.6],[138.3,88.8],[138.1,89.0],[137.9,90.8],[137.7,91.0],[137.7,92.0],[137.3,92.8],[136.9,94.8],[136.7,95.0],[136.7,95.8],[136.0,97.3],[135.0,97.3],[134.5,96.8],[134.5,95.6],[134.7,95.4],[134.7,90.8],[134.9,90.6],[135.1,87.4],[135.3,87.2],[135.3,84.8],[135.5,84.6],[135.5,75.8],[135.3,75.6],[135.3,72.6],[135.1,72.4],[135.1,70.4],[134.9,70.2],[134.9,68.6],[134.7,68.4],[134.7,67.2],[134.5,67.0],[134.5,65.4],[134.3,65.2],[134.3,64.2],[134.1,64.0],[134.1,63.0],[133.9,62.8],[133.7,60.8],[133.3,59.8],[133.3,59.0],[133.1,58.8],[133.1,57.8],[132.7,56.8],[132.5,55.4],[132.1,54.6],[131.9,53.2],[131.7,53.0],[131.7,52.2],[131.1,51.0],[131.1,50.4],[130.7,49.8],[130.1,47.4],[129.3,45.8],[129.1,44.6],[128.5,43.6],[127.9,41.6],[126.9,39.8],[126.9,39.4],[125.9,37.6],[125.5,36.2],[124.1,33.6],[124.1,33.2],[123.7,32.8],[122.7,30.8],[122.7,30.4],[122.3,30.0],[121.5,28.4],[121.3,27.4],[121.1,27.2],[121.1,26.4],[120.9,26.2],[120.7,24.8],[119.5,22.8],[118.1,21.6],[116.7,20.0],[116.7,19.8],[115.7,19.0],[115.1,18.0],[113.8,17.5],[112.9,16.8],[111.9,15.0],[111.9,12.8],[112.5,11.6],[113.3,10.6]],[[115.6,12.3],[114.5,13.2],[114.3,14.2],[115.2,15.3],[116.2,15.5],[117.3,14.6],[117.5,13.6],[116.6,12.5]]],"30":[[[117.5,5.8],[118.0,5.7],[118.6,6.3],[121.7,8.0],[121.7,9.0],[119.7,12.6],[119.9,12.8],[119.9,14.0],[120.9,15.4],[121.3,16.4],[121.5,17.8],[121.7,18.0],[121.7,18.8],[122.1,19.8],[122.1,24.0],[121.9,24.2],[121.9,26.4],[121.7,26.6],[121.9,32.0],[121.5,32.8],[121.3,35.6],[120.9,36.6],[120.9,37.8],[120.7,38.0],[120.7,38.8],[120.5,39.0],[120.5,39.8],[120.3,40.0],[120.3,40.8],[120.1,41.0],[120.1,41.8],[119.9,42.0],[119.9,43.0],[119.3,44.6],[119.3,45.4],[118.9,46.4],[118.9,47.2],[118.5,48.2],[118.5,48.8],[118.1,49.6],[118.1,50.2],[117.7,51.0],[117.7,51.6],[116.9,53.6],[116.9,54.0],[116.5,54.6],[114.7,60.4],[114.1,61.4],[114.1,61.8],[113.1,63.8],[113.1,64.2],[112.3,65.6],[111.9,67.0],[109.5,71.8],[109.1,72.2],[107.3,75.8],[106.9,76.2],[106.1,78.0],[104.1,80.8],[103.7,81.8],[102.9,82.6],[101.9,84.4],[100.1,86.6],[99.7,87.4],[98.7,88.4],[98.3,89.2],[96.9,90.8],[96.9,91.0],[91.8,96.1],[91.4,96.1],[90.7,95.4],[90.9,94.4],[92.3,92.4],[92.9,91.0],[95.5,87.8],[95.7,87.2],[96.9,85.8],[97.5,84.6],[98.3,83.6],[99.1,82.0],[100.1,80.6],[100.7,79.2],[101.1,78.8],[103.7,73.6],[103.7,73.2],[104.3,72.4],[104.3,72.0],[104.9,71.0],[104.9,70.6],[105.7,69.2],[106.1,67.6],[106.9,66.2],[106.9,65.6],[107.5,64.6],[107.5,64.0],[108.5,61.4],[108.5,60.8],[109.1,59.6],[109.1,58.8],[109.5,58.0],[109.5,57.4],[109.9,56.6],[110.1,55.2],[110.5,54.2],[110.5,53.4],[110.9,52.4],[110.9,51.6],[111.3,50.6],[111.3,49.6],[111.5,49.4],[111.5,48.6],[111.7,48.4],[111.7,47.6],[111.9,47.4],[111.9,46.0],[112.1,45.8],[112.1,44.6],[112.3,44.4],[112.3,43.2],[112.5,43.0],[112.5,41.6],[112.7,41.4],[112.7,39.6],[112.9,39.4],[112.9,37.0],[113.1,36.8],[113.1,34.8],[113.3,34.6],[113.3,30.8],[113.5,30.6],[113.5,29.0],[113.7,28.8],[113.7,28.2],[114.5,26.0],[114.5,25.4],[114.7,25.2],[114.7,24.8],[114.5,24.6],[114.5,23.6],[114.3,23.4],[114.3,22.4],[113.9,21.6],[113.9,20.6],[113.5,19.6],[113.3,18.0],[113.1,17.8],[113.1,16.8],[112.5,16.4],[112.1,15.6],[111.7,13.8],[111.9,13.6],[111.9,12.6],[112.7,11.2],[114.0,10.1],[115.3,9.8],[115.7,8.8],[116.7,7.4]],[[115.6,12.3],[114.7,12.8],[114.3,13.6],[114.3,14.2],[115.2,15.3],[116.0,15.5],[116.2,15.3],[116.6,15.3],[117.3,14.6],[117.5,13.8],[117.3,13.6],[117.3,13.2],[116.6,12.5]]],"60":[[[121.1,7.8],[121.6,7.7],[121.9,8.0],[122.7,9.6],[123.5,10.6],[123.9,11.4],[123.9,11.8],[123.2,12.7],[121.0,13.9],[119.9,14.8],[119.5,15.8],[119.5,18.2],[119.3,18.4],[119.1,20.0],[118.7,20.6],[118.5,21.8],[117.5,23.8],[117.1,24.2],[116.9,24.8],[115.7,26.6],[113.7,29.2],[113.3,30.6],[112.7,31.8],[110.5,34.2],[110.5,34.4],[108.7,36.4],[108.7,36.6],[104.5,41.2],[104.5,41.4],[100.2,45.9],[100.0,45.9],[97.8,48.1],[97.6,48.1],[95.0,50.7],[94.8,50.7],[92.4,52.9],[90.6,54.1],[89.6,55.1],[88.8,55.5],[86.6,57.3],[83.2,59.5],[82.6,60.1],[82.0,60.3],[79.8,61.9],[79.4,61.9],[78.2,62.9],[77.8,62.9],[77.4,63.3],[76.0,63.9],[73.6,65.5],[73.2,65.5],[72.0,66.3],[71.6,66.3],[70.6,67.1],[70.2,67.1],[69.2,67.7],[68.8,67.7],[68.4,68.1],[67.0,68.5],[66.6,68.9],[66.2,68.9],[65.2,69.5],[63.8,69.9],[62.8,70.5],[62.2,70.5],[61.8,70.9],[61.4,70.9],[60.8,71.3],[60.2,71.3],[58.8,71.9],[58.2,71.9],[57.4,72.3],[56.6,72.3],[56.0,72.7],[55.2,72.7],[55.0,72.9],[53.8,72.9],[53.5,72.6],[53.5,71.4],[54.2,71.1],[54.6,70.7],[55.0,70.7],[56.2,69.9],[59.0,68.5],[60.0,68.3],[62.6,66.9],[63.0,66.9],[64.6,66.1],[65.0,65.7],[67.2,64.7],[68.2,63.9],[69.4,63.5],[70.2,62.7],[70.8,62.5],[71.2,62.1],[71.6,62.1],[73.4,60.7],[74.0,60.5],[75.8,59.1],[76.4,58.9],[77.2,58.1],[77.8,57.9],[78.0,57.5],[78.6,57.3],[80.6,55.5],[80.8,55.5],[83.6,53.1],[83.8,53.1],[84.0,52.7],[84.2,52.7],[85.6,51.3],[85.8,51.3],[88.8,48.3],[89.0,48.3],[89.3,47.8],[89.8,47.5],[92.7,44.4],[92.7,44.2],[94.1,42.8],[94.9,41.6],[95.5,41.2],[95.7,40.6],[98.5,37.4],[98.7,36.8],[99.5,36.0],[101.3,33.2],[102.5,31.8],[103.1,30.6],[103.7,30.0],[103.9,29.4],[106.3,25.8],[109.3,23.0],[110.7,19.2],[110.7,18.6],[110.9,18.4],[110.9,17.8],[111.1,17.6],[111.3,16.6],[112.1,15.2],[111.9,14.8],[111.9,12.8],[113.1,10.8],[114.4,9.9],[115.0,9.9],[115.2,9.7],[116.4,9.7],[116.6,9.9],[117.6,10.1]],[[115.6,12.3],[114.5,13.2],[114.3,14.0],[114.7,14.8],[115.2,15.3],[116.0,15.5],[117.1,15.0],[117.5,14.2],[117.5,13.6],[117.0,12.7],[116.2,12.3]]],"90":[[[114.4,10.0],[117.3,9.9],[117.7,10.3],[118.3,10.5],[119.1,11.3],[123.9,11.3],[124.0,15.8],[123.3,16.5],[119.1,16.5],[117.6,17.8],[116.8,19.4],[114.7,21.5],[114.5,21.5],[112.7,23.1],[111.7,23.7],[111.3,23.7],[110.9,24.1],[109.7,24.7],[109.3,24.7],[108.7,25.1],[108.3,25.1],[107.7,25.5],[106.9,25.7],[105.7,26.5],[104.7,27.5],[103.1,28.3],[101.5,28.7],[100.9,29.1],[100.3,29.1],[99.7,29.5],[98.7,29.7],[97.7,30.3],[97.1,30.3],[95.9,30.9],[95.3,30.9],[95.1,31.1],[92.9,31.7],[92.3,32.1],[90.3,32.5],[89.7,32.9],[88.9,32.9],[86.3,33.9],[85.3,33.9],[84.5,34.3],[83.7,34.3],[82.7,34.7],[81.3,34.7],[80.9,35.1],[79.5,35.1],[79.1,35.5],[78.3,35.5],[78.1,35.7],[76.5,35.9],[76.3,36.1],[72.7,36.3],[71.7,36.7],[69.5,36.7],[69.3,36.9],[67.5,36.9],[67.3,37.1],[65.7,37.1],[65.5,37.3],[50.1,37.3],[49.9,37.1],[44.9,36.9],[44.7,36.7],[43.1,36.7],[42.1,36.3],[39.7,36.1],[38.7,35.7],[37.1,35.5],[36.9,35.3],[36.1,35.3],[35.3,34.9],[33.9,34.7],[33.3,34.3],[32.9,34.3],[32.6,34.0],[32.6,33.2],[33.1,32.5],[34.3,32.5],[34.5,32.7],[38.9,32.7],[39.1,32.9],[40.9,32.9],[41.1,33.1],[42.5,33.1],[42.7,33.3],[45.3,33.3],[45.5,33.5],[53.9,33.5],[54.1,33.3],[57.1,33.3],[57.3,33.1],[59.1,33.1],[59.3,32.9],[61.3,32.9],[61.5,32.7],[62.5,32.7],[62.7,32.5],[64.3,32.5],[64.5,32.3],[65.5,32.3],[65.7,32.1],[66.9,32.1],[67.1,31.9],[67.9,31.9],[68.1,31.7],[69.7,31.5],[69.9,31.3],[70.7,31.3],[70.9,31.1],[71.9,31.1],[72.1,30.9],[73.7,30.7],[74.5,30.3],[75.9,30.1],[76.5,29.7],[77.3,29.7],[77.9,29.3],[78.7,29.3],[79.9,28.7],[80.5,28.7],[81.3,28.3],[82.3,28.1],[82.9,27.7],[83.5,27.7],[85.1,26.9],[85.7,26.9],[87.1,26.1],[88.1,25.9],[88.9,25.3],[89.5,25.3],[90.5,24.7],[90.9,24.7],[92.3,23.9],[92.7,23.9],[93.5,23.5],[93.9,23.1],[94.3,23.1],[94.7,22.7],[96.1,22.3],[96.9,21.7],[99.3,20.5],[99.7,20.5],[100.1,20.1],[101.3,19.5],[101.9,19.5],[102.5,19.1],[104.3,18.9],[106.1,18.1],[111.3,13.3],[111.5,13.3],[112.0,12.8],[112.4,11.6],[112.9,11.3],[113.5,10.5]],[[115.7,12.3],[115.5,12.5],[115.1,12.5],[114.6,13.0],[114.4,13.4],[114.4,14.4],[115.1,15.3],[116.1,15.5],[116.3,15.3],[116.7,15.3],[117.2,14.8],[117.4,14.4],[117.4,13.4],[116.7,12.5]]]},"tips":{"0":[136.0,97.3],"30":[91.4,96.1],"60":[53.5,72.6],"90":[32.6,34.0]},"hinge":[116.0,14.0],"static_tail":108.0,"x_tip":160.99}}</script>
+<!-- /ovo:data -->
+
+<script type="module">
+const $ = (s, r = document) => r.querySelector(s);
+const root = document.documentElement;
+const DATA = JSON.parse($('#ovo-data')?.textContent || 'null');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ------------------------------------------------------------------ theme */
+const darkMQ = matchMedia('(prefers-color-scheme: dark)');
+const isDark = () => (root.dataset.theme ? root.dataset.theme === 'dark' : darkMQ.matches);
+const themeBtn = $('#theme');
+const themeListeners = [];
+function syncTheme() {
+  themeBtn.setAttribute('aria-label', isDark() ? 'Switch to light theme' : 'Switch to dark theme');
+  for (const f of themeListeners) f();
+}
+themeBtn.addEventListener('click', () => {
+  const next = isDark() ? 'light' : 'dark';
+  root.dataset.theme = next;
+  try { localStorage.setItem('ovo-theme', next); } catch (e) { /* storage blocked: the choice lasts for this visit */ }
+  syncTheme();
+});
+darkMQ.addEventListener('change', syncTheme);
+syncTheme();
+
+/* ------------------------------------------------------------------ charts */
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function txt(parent, x, y, s, attrs = {}) { const t = el('text', { x, y, ...attrs }, parent); t.textContent = s; return t; }
+function tipFor(host) {
+  let t = host.querySelector('.tip');
+  if (!t) { t = document.createElement('div'); t.className = 'tip'; t.hidden = true; host.appendChild(t); }
+  return t;
+}
+function placeTip(host, tip, x, y) {
+  const W = host.clientWidth, tw = tip.offsetWidth, th = tip.offsetHeight;
+  let left = x + 14; if (left + tw > W) left = x - tw - 14; if (left < 0) left = 0;
+  tip.style.left = left + 'px'; tip.style.top = Math.max(0, y - th - 10) + 'px';
+}
+const f2 = v => v.toFixed(2), f3 = v => v.toFixed(3);
+
+function drawCp() {
+  const host = $('#chart-cp'); if (!host || !DATA) return;
+  const d = DATA.cp, W = host.clientWidth; if (!W) return;
+  const H = Math.round(Math.max(250, Math.min(340, W * 0.6)));
+  host.querySelector('svg')?.remove();
+  const svg = el('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}` });
+  host.prepend(svg);
+  const m = { l: 42, r: 14, t: 28, b: 38 }, x0 = 1.5, x1 = 10, y1 = 0.4;
+  const X = t => m.l + (t - x0) / (x1 - x0) * (W - m.l - m.r);
+  const Y = c => H - m.b - c / y1 * (H - m.t - m.b);
+  for (let c = 0; c <= y1 + 1e-9; c += 0.1) {
+    el('line', { x1: m.l, x2: W - m.r, y1: Y(c), y2: Y(c), class: c === 0 ? 'axis' : 'gridl' }, svg);
+    txt(svg, m.l - 8, Y(c) + 4, c.toFixed(1), { 'text-anchor': 'end' });
+  }
+  for (let t = 2; t <= 10; t += 2) txt(svg, X(t), H - m.b + 18, String(t), { 'text-anchor': 'middle' });
+  txt(svg, W - m.r, H - 4, 'tip speed ratio', { 'text-anchor': 'end' });
+  txt(svg, m.l - 8, 12, 'Cp', { 'text-anchor': 'end', class: 't2' });
+  const series = (arr) => { const p = []; for (let i = 0; i < d.tsr.length; i++) { if (d.tsr[i] > x1 || arr[i] < 0) break; p.push([d.tsr[i], arr[i]]); } return p; };
+  const sFinal = series(d.final), sOpt = series(d.optimum);
+  const path = p => p.map(([t, c], i) => `${i ? 'L' : 'M'}${X(t).toFixed(1)},${Y(c).toFixed(1)}`).join('');
+  el('path', { d: path(sOpt), class: 's-opt' }, svg);
+  el('path', { d: path(sFinal), class: 's-final' }, svg);
+  // generator operating TSR (reference line) and the Cp peak
+  const interp = (p, t) => { for (let i = 1; i < p.length; i++) if (p[i][0] >= t) { const [ta, ca] = p[i - 1], [tb, cb] = p[i]; return ca + (cb - ca) * (t - ta) / (tb - ta); } return 0; };
+  const gx = X(d.gen_tsr), gc = interp(sFinal, d.gen_tsr);
+  el('line', { x1: gx, x2: gx, y1: Y(0), y2: m.t + 8, class: 'ref' }, svg);
+  const narrow = W < 460;
+  txt(svg, gx + 6, m.t + 16, narrow ? `GL40 + bridge` : `GL40 + diode bridge`, { class: 't2' });
+  txt(svg, gx + 6, m.t + 31, `TSR ${d.gen_tsr.toFixed(2)}`, { class: 't2' });
+  el('circle', { cx: gx, cy: Y(gc), r: 4.5, class: 'dot-a' }, svg);
+  const px = X(d.peak.tsr), py = Y(d.peak.cp);
+  const ly = Y(0.2);
+  el('line', { x1: px, x2: px, y1: py + 6, y2: ly - 16, class: 'ref' }, svg);
+  el('circle', { cx: px, cy: py, r: 5, class: 'dot-a' }, svg);
+  txt(svg, px + 6, ly - 2, `peak Cp ${d.peak.cp.toFixed(3)}`, { class: 't1' });
+  txt(svg, px + 6, ly + 13, `at TSR ${d.peak.tsr.toFixed(2)}`, { class: 't2' });
+  // hover: crosshair + both values
+  const xh = el('line', { y1: m.t, y2: Y(0), class: 'xh', visibility: 'hidden' }, svg);
+  const dF = el('circle', { r: 4.5, class: 'dot-a', visibility: 'hidden' }, svg);
+  const dO = el('circle', { r: 4.5, class: 'dot-w', visibility: 'hidden' }, svg);
+  const hit = el('rect', { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, class: 'hit' }, svg);
+  const tip = tipFor(host);
+  const move = (ev) => {
+    const r = svg.getBoundingClientRect(), mx = ev.clientX - r.left;
+    const t = x0 + (mx - m.l) / (W - m.l - m.r) * (x1 - x0);
+    let best = 0; for (let i = 0; i < sFinal.length; i++) if (Math.abs(sFinal[i][0] - t) < Math.abs(sFinal[best][0] - t)) best = i;
+    const [bt, bc] = sFinal[best], oc = sOpt[best] ? sOpt[best][1] : null;
+    for (const e of [xh, dF, dO]) e.setAttribute('visibility', 'visible');
+    xh.setAttribute('x1', X(bt)); xh.setAttribute('x2', X(bt));
+    dF.setAttribute('cx', X(bt)); dF.setAttribute('cy', Y(bc));
+    if (oc !== null) { dO.setAttribute('cx', X(bt)); dO.setAttribute('cy', Y(oc)); } else dO.setAttribute('visibility', 'hidden');
+    tip.innerHTML = `<b>TSR ${bt.toFixed(2)}</b><br>printable blade Cp ${f3(bc)}` + (oc !== null ? `<br>BEM optimum Cp ${f3(oc)}` : '');
+    tip.hidden = false; placeTip(host, tip, X(bt), Y(Math.max(bc, oc ?? 0)));
+  };
+  hit.addEventListener('pointermove', move);
+  hit.addEventListener('pointerdown', move);
+  hit.addEventListener('pointerleave', () => { tip.hidden = true; for (const e of [xh, dF, dO]) e.setAttribute('visibility', 'hidden'); });
+}
+
+function genRows() {
+  return DATA.gen.map(g => {
+    const p = g.readings.map(r => r.p);
+    return { ...g, min: Math.min(...p), max: Math.max(...p), chosen: g.name === 'CubeMars GL40 KV70' };
+  }).sort((a, b) => b.max - a.max);
+}
+function drawGen() {
+  const host = $('#chart-gen'); if (!host || !DATA) return;
+  const W = host.clientWidth; if (!W) return;
+  host.querySelector('svg')?.remove();
+  const rows = genRows(), lab = Math.round(Math.min(178, Math.max(100, W * 0.27))), narrow = lab < 170;
+  const val = W < 420 ? 76 : 92, rowH = 30, noteH = 18, maxChars = Math.floor(lab / 7.4) - 1;
+  // the chosen motor's row is taller: a note under its dot says why it was chosen though four dots sit higher
+  const tops = []; let y = 8;
+  for (const r of rows) { tops.push(y); y += rowH + (r.chosen ? noteH : 0); }
+  const m = { t: 8, b: 34 }, H = y + m.b, xmax = 12;
+  const X = w => lab + w / xmax * (W - lab - val);
+  const svg = el('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}` });
+  host.prepend(svg);
+  const g0 = el('g', {}, svg);
+  for (let w = 0; w <= xmax; w += 2) {
+    el('line', { x1: X(w), x2: X(w), y1: m.t, y2: H - m.b, class: w === 0 ? 'axis' : 'gridl' }, g0);
+    txt(svg, X(w), H - m.b + 17, String(w), { 'text-anchor': 'middle' });
+  }
+  txt(svg, X(xmax), H - 3, 'W DC at 1.5 m/s', { 'text-anchor': 'end' });
+  const tip = tipFor(host);
+  rows.forEach((r, i) => {
+    const h = rowH + (r.chosen ? noteH : 0), cy = tops[i] + rowH / 2;
+    const hl = el('rect', { x: 0, y: tops[i], width: W, height: h, class: 'rowhl', visibility: 'hidden' }, g0);
+    let name = r.name.replace(/ 70 W 36 V/, '');
+    if (narrow) name = name.replace(/^(CubeMars|iPower|Rctimer|T-motor|EMAX|maxon) /, '');
+    if (name.length > maxChars) name = name.slice(0, maxChars - 1) + '…';
+    txt(svg, 0, cy + 4, name, { class: r.chosen ? 't1' : 't2' });
+    if (r.max > r.min) el('line', { x1: X(r.min), x2: X(r.max), y1: cy, y2: cy, class: r.chosen ? 'rng-a' : 'rng-n' }, svg);
+    const multi = r.readings.length > 1;
+    for (const rd of r.readings) el('circle', { cx: X(rd.p), cy, r: 4.5, class: r.chosen ? 'dot-a' : multi ? 'dot-h' : 'dot-n' }, svg);
+    if (r.chosen) txt(svg, Math.min(X(r.max), W - val - 4), cy + 21,
+      narrow ? 'chosen: self-consistent datasheet' : 'chosen: its datasheet is complete and self-consistent',
+      { 'text-anchor': 'end', class: 't1 halo' });
+    const vtxt = r.max > r.min ? `${r.min.toFixed(1)} to ${r.max.toFixed(1)}` : `${r.max.toFixed(2)} W`;
+    txt(svg, W, cy + 4, vtxt, { 'text-anchor': 'end', class: r.chosen ? 't1' : 't2' });
+    const hit = el('rect', { x: 0, y: tops[i], width: W, height: h, class: 'hit' }, svg);
+    const show = () => {
+      hl.setAttribute('visibility', 'visible');
+      tip.innerHTML = `<b>${r.name}</b>${r.envelope === null ? ' (fit in the hull unconfirmed)' : ''}${r.readings.length > 1 ? '<br>datasheet contradicts itself: one dot per reading' : ''}<br>` + r.readings.map(rd =>
+        `KV ${rd.kv}, R ${rd.r} &Omega;: ${rd.p.toFixed(2)} W at ${rd.v.toFixed(1)} V, TSR ${rd.tsr.toFixed(2)}`).join('<br>');
+      tip.hidden = false;
+      placeTip(host, tip, Math.min(X(r.max), W - 40), tops[i]);
+    };
+    hit.addEventListener('pointermove', show); hit.addEventListener('pointerdown', show);
+    hit.addEventListener('pointerleave', () => { hl.setAttribute('visibility', 'hidden'); tip.hidden = true; });
+  });
+}
+
+function drawFold() {
+  const host = $('#chart-fold'); if (!host || !DATA || !DATA.fold) return;
+  const F = DATA.fold, W = host.clientWidth; if (!W) return;
+  host.querySelector('svg')?.remove();
+  const narrow = W < 560, fs = narrow ? 12 : 14;
+  const x0 = -6, x1 = 170, r0 = -7, r1 = 103;
+  const k = (W - 4) / (x1 - x0), H = Math.round((r1 - r0) * k) + 6;
+  const X = x => 2 + (x - x0) * k, Y = r => 3 + (r1 - r) * k;
+  const svg = el('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}` });
+  host.prepend(svg);
+  const poly = ps => ps.map(p => p.map(([x, r], i) => `${i ? 'L' : 'M'}${X(x).toFixed(1)},${Y(r).toFixed(1)}`).join('') + 'Z').join('');
+  const area = pts => `M${X(pts[0][0]).toFixed(1)},${Y(0).toFixed(1)}` + pts.map(([x, r]) => `L${X(x).toFixed(1)},${Y(r).toFixed(1)}`).join('')
+    + `L${X(pts[pts.length - 1][0]).toFixed(1)},${Y(0).toFixed(1)}Z`;
+  const label = (x, y, s, anchor = 'start', cls = 't1') => txt(svg, x, y, s, { 'text-anchor': anchor, class: `${cls} lbl`, style: `font-size:${fs}px` });
+  const lead = (xa, ya, xb, yb) => el('path', { d: `M${xa},${ya}L${xb},${yb}`, class: 'lead' }, svg);
+  el('line', { x1: X(x0), x2: X(x1), y1: Y(0), y2: Y(0), class: 's-axis' }, svg);
+  el('path', { d: area(F.hull), class: 's-hull' }, svg);
+  el('path', { d: area(F.hub), class: 's-hub' }, svg);
+  el('path', { d: poly(F.blades['90']), class: 's-stow', 'fill-rule': 'evenodd' }, svg);
+  for (const a of ['60', '30']) el('path', { d: poly(F.blades[a]), class: 's-mid', 'fill-rule': 'evenodd' }, svg);
+  el('path', { d: poly(F.blades['0']), class: 's-blade', 'fill-rule': 'evenodd' }, svg);
+  const [hx, hr] = F.hinge;
+  el('circle', { cx: X(hx), cy: Y(hr), r: Math.max(2.5, 1.5 * k), class: 'ring-n' }, svg);
+  el('circle', { cx: X(hx), cy: Y(hr), r: 2.5, class: 'dot-k' }, svg);
+  // labels: fold angles at the blade tips, the stowed blade, the hinge, the flow
+  const t = F.tips;
+  label(X(t['0'][0]) + 10, Y(t['0'][1]) + 12, narrow ? '0°' : 'deployed, 0°');
+  label(X(t['30'][0]) - 8, Y(t['30'][1]) + 4, '30°', 'end', 't2');
+  label(X(t['60'][0]) - 8, Y(t['60'][1]) + 4, '60°', 'end', 't2');
+  const sx = 26, sr = 48;
+  lead(X(sx + 14), Y(sr) + 5, X(sx + 18), Y(37.2));
+  label(X(sx), Y(sr), narrow ? 'stowed, 90°' : 'stowed, 90°: flush in its pocket');
+  const lx = X(hx - 13), ly = Y(hr - 7);
+  lead(X(hx) - 3, Y(hr) + 3, lx + 3, ly - fs * 0.35);
+  label(lx, ly, narrow ? 'hinge pin' : `hinge pin, x ${hx.toFixed(0)}, r ${hr.toFixed(0)}`, 'end', 't2');
+  const fy = Y(58);
+  el('path', { d: `M${X(-4)},${fy}L${X(16)},${fy}`, class: 'lead' }, svg);
+  el('path', { d: `M${X(16) - 6},${fy - 4}L${X(16)},${fy}L${X(16) - 6},${fy + 4}`, class: 'lead' }, svg);
+  label(X(-4), fy - 8, 'flow', 'start', 't2');
+  if (!narrow) {
+    txt(svg, X(54), Y(0) + 15, 'static hull: two printed shells', { 'text-anchor': 'middle' });
+    txt(svg, X(134), Y(0) + 15, 'hub and spinner turn', { 'text-anchor': 'middle' });
+  }
+  // 20 mm scale bar, top left
+  const sb = Y(r1 - 4);
+  el('path', { d: `M${X(0)},${sb}L${X(20)},${sb}M${X(0)},${sb - 4}L${X(0)},${sb + 4}M${X(20)},${sb - 4}L${X(20)},${sb + 4}`, class: 'lead' }, svg);
+  txt(svg, X(10), sb + 16, '20 mm', { 'text-anchor': 'middle' });
+}
+
+function tables() {
+  if (!DATA) return;
+  const d = DATA.cp; let h = '<table><thead><tr><th class="num">TSR</th><th class="num">Cp printable</th><th class="num">Cp optimum</th></tr></thead><tbody>';
+  for (let i = 0; i < d.tsr.length; i++) { if (d.tsr[i] > 10) break; h += `<tr><td class="num">${d.tsr[i].toFixed(2)}</td><td class="num">${f3(d.final[i])}</td><td class="num">${f3(d.optimum[i])}</td></tr>`; }
+  $('#table-cp').innerHTML = h + '</tbody></table>';
+  let g = '<table><thead><tr><th>Motor</th><th class="num">KV</th><th class="num">R ll &Omega;</th><th class="num">W DC</th><th class="num">V DC</th><th class="num">A</th><th class="num">TSR</th></tr></thead><tbody>';
+  for (const r of genRows()) for (const rd of r.readings) g += `<tr><td>${r.name}</td><td class="num">${rd.kv}</td><td class="num">${rd.r}</td><td class="num">${f2(rd.p)}</td><td class="num">${rd.v.toFixed(2)}</td><td class="num">${rd.i.toFixed(3)}</td><td class="num">${rd.tsr.toFixed(2)}</td></tr>`;
+  $('#table-gen').innerHTML = g + '</tbody></table>';
+}
+function drawCharts() { drawCp(); drawGen(); }
+tables(); drawCharts(); drawFold();
+let chartW = 0, foldW = 0;
+new ResizeObserver(() => { const w = $('#chart-cp')?.clientWidth; if (w && w !== chartW) { chartW = w; drawCharts(); } }).observe($('#chart-cp'));
+new ResizeObserver(() => { const w = $('#chart-fold')?.clientWidth; if (w && w !== foldW) { foldW = w; drawFold(); } }).observe($('#chart-fold'));
+
+/* ------------------------------------------------------------------ fold video */
+const vid = $('#fold-video');
+if (vid) {
+  // the dark theme gets the same animation on a dark backdrop (docs/media/fold_dark.mp4)
+  const pickVideo = () => {
+    const want = isDark() && vid.dataset.dark ? vid.dataset.dark : vid.dataset.light;
+    if (want && vid.getAttribute('src') !== want) { const play = !vid.paused; vid.src = want; if (play) vid.play().catch(() => {}); }
+  };
+  themeListeners.push(pickVideo); pickVideo();
+  if (reduceMotion) vid.controls = true;
+  else new IntersectionObserver(([e]) => { if (e.isIntersecting) vid.play().catch(() => { vid.controls = true; }); else vid.pause(); }, { threshold: 0.25 }).observe(vid);
+}
+
+/* ------------------------------------------------------------------ 3D viewer */
+const stage = $('#stage'), host3d = $('#stage-canvas'), statusEl = $('#stage-status');
+const ctl = { fold: $('#c-fold'), explode: $('#c-explode'), play: $('#c-play'), spin: $('#c-spin'), cut: $('#c-cut'), fins: $('#c-fins'), reset: $('#c-reset') };
+const coarse = matchMedia('(pointer: coarse)').matches;
+if (coarse) $('#hint').textContent = 'Swipe sideways to orbit · pinch to zoom';
+function setStatus(html, progress) {
+  statusEl.innerHTML = html + (progress != null ? `<span class="bar"><i style="width:${Math.round(progress * 100)}%"></i></span>` : '');
+}
+let booting = null;
+function boot() {
+  if (!booting) {
+    booting = loadViewer().catch(err => {
+      console.error(err);
+      setStatus('3D view unavailable in this browser. The image shows the deployed model.');
+    });
+  }
+  return booting;
+}
+window.__ovoBoot = boot;
+$('#load3d').addEventListener('click', boot);
+const saveData = navigator.connection && navigator.connection.saveData;
+if (!saveData) {
+  const start = () => new IntersectionObserver((es, o) => { if (es.some(e => e.isIntersecting)) { o.disconnect(); boot(); } }, { rootMargin: '200px' }).observe(stage);
+  if (document.readyState === 'complete') start(); else addEventListener('load', start, { once: true });
+}
+$('#fold-try').addEventListener('click', async () => {
+  stage.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+  await boot();
+  await new Promise(r => setTimeout(r, reduceMotion ? 0 : 500));   // let the scroll land first
+  window.__ovo?.play();
+});
+
+async function fetchProgress(url, onp) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+  const total = +res.headers.get('content-length') || 0;
+  if (!res.body || !total) return res.arrayBuffer();
+  const reader = res.body.getReader(), chunks = []; let got = 0;
+  for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); got += value.length; onp(Math.min(1, got / total)); }
+  const buf = new Uint8Array(got); let o = 0; for (const c of chunks) { buf.set(c, o); o += c.length; }
+  return buf.buffer;
+}
+
+async function loadViewer() {
+  setStatus('Loading the 3D viewer', 0);
+  const [THREE, { GLTFLoader }, { MeshoptDecoder }, { RoomEnvironment }, { OrbitControls }] = await Promise.all([
+    import('three'), import('three/addons/loaders/GLTFLoader.js'), import('three/addons/libs/meshopt_decoder.module.js'),
+    import('three/addons/environments/RoomEnvironment.js'), import('three/addons/controls/OrbitControls.js')]);
+  const manifest = await (await fetch('assets/manifest.json')).json();
+  let gltf;
+  try {
+    const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+    await MeshoptDecoder.ready;
+    const buf = await fetchProgress('assets/' + manifest.glb, p => setStatus(`Loading the model ${Math.round(p * 100)} %`, p));
+    gltf = await loader.parseAsync(buf, 'assets/');
+  } catch (err) {
+    // e.g. a host whose content policy refuses WebAssembly: a quantize-only copy needs no decoder. Only the
+    // Artifact copy (scripts/site.py --artifact) carries assets/ovo-q.glb.gz; elsewhere the fetch fails and the
+    // original error stands, so the page keeps its poster.
+    console.warn('meshopt path failed, trying assets/ovo-q.glb.gz', err);
+    const res = await fetch('assets/ovo-q.glb.gz');
+    if (!res.ok || typeof DecompressionStream === 'undefined') throw err;
+    setStatus('Loading the model (fallback)', 0.5);
+    const buf = await new Response(res.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+    gltf = await new GLTFLoader().parseAsync(buf, 'assets/');
+  }
+
+  /* renderer, scene, lights: the docs/media light rig, so the page matches the renders */
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.92;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  host3d.appendChild(renderer.domElement);
+  renderer.domElement.setAttribute('aria-label', 'Interactive 3D model of Ovo');
+  renderer.domElement.setAttribute('role', 'img');
+  const scene = new THREE.Scene();
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.32;
+  const camera = new THREE.PerspectiveCamera(28, 4 / 3, 1, 5000);
+  const key = new THREE.DirectionalLight(0xffffff, 2.9);
+  key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 9;
+  key.shadow.bias = -0.0004; key.shadow.normalBias = 0.5;
+  const rim = new THREE.DirectionalLight(0xdfe8ff, 1.1);
+  const fill = new THREE.DirectionalLight(0xfff4e8, 0.45);
+  scene.add(key, key.target, rim, fill, fill.target, new THREE.HemisphereLight(0xffffff, 0xb9b2a6, 0.18));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.ShadowMaterial({ opacity: 0.24 }));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+  const shadowFromTheme = () => { ground.material.opacity = parseFloat(getComputedStyle(root).getPropertyValue('--shadow-a')) || 0.24; dirty = true; };
+
+  /* model: CAD frame is Z-up with the flow along +X; three.js is Y-up */
+  const model = new THREE.Group(); model.rotation.x = -Math.PI / 2; scene.add(model);
+  const rotorSpin = new THREE.Group(); model.add(rotorSpin);
+  const mats = {};
+  for (const [k, m] of Object.entries(manifest.materials)) {
+    mats[k] = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(m.color), roughness: m.roughness ?? 0.6, metalness: m.metalness ?? 0,
+      clearcoat: m.clearcoat ?? 0, clearcoatRoughness: 0.4, side: THREE.DoubleSide, transparent: (m.opacity ?? 1) < 1, opacity: m.opacity ?? 1 });
+  }
+  const byName = {}; gltf.scene.traverse(o => { if (o.isMesh) byName[o.name] = o; });
+  const parts = [];
+  for (const p of manifest.parts) {
+    const src = byName[p.name]; if (!src) { console.warn('missing mesh', p.name); continue; }
+    if (!src.geometry.attributes.normal) src.geometry.computeVertexNormals();
+    const mesh = new THREE.Mesh(src.geometry, mats[p.material] || mats.default);
+    // the node transform carries the quantization scale and offset: keep it on the mesh
+    mesh.position.copy(src.position); mesh.quaternion.copy(src.quaternion); mesh.scale.copy(src.scale);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    const holder = new THREE.Group();   // explode offset
+    let obj = mesh;
+    if (p.pivot) {                     // blade pivots: origin + axis in the CAD frame, stowed pose exported
+      const piv = new THREE.Group(), o = new THREE.Vector3(...p.pivot.origin), off = new THREE.Group();
+      piv.position.copy(o); off.position.copy(o).negate(); off.add(mesh); piv.add(off);
+      piv.userData.axis = new THREE.Vector3(...p.pivot.axis).normalize(); piv.userData.deg = p.pivot.deployed_deg;
+      obj = piv;
+    }
+    holder.add(obj); (p.rotor ? rotorSpin : model).add(holder);
+    parts.push({ p, holder, obj, mesh });
+  }
+
+  /* state (fold: 0 stowed .. 1 deployed, as viewer/index.html) */
+  const state = { fold: 1, explode: 0, cutaway: false, packed: false, spin: 0 };
+  let dirty = true;
+  function visible(p) {
+    if (p.packed === true && !state.packed) return false;
+    if (p.packed === false && state.packed) return false;
+    const v2 = state.cutaway;
+    if (p.v2 === true && !v2) return false;
+    if (p.v2 === false && v2) return false;
+    const internals = state.cutaway || state.explode > 0.01;
+    switch (p.role) {
+      case 'shell': return !state.cutaway;
+      case 'v2': return false;
+      case 'shell_cutaway': return state.cutaway;
+      case 'internal': return internals;
+      case 'stand': case 'hidden': return false;
+      default: return true;
+    }
+  }
+  function apply() {
+    for (const { p, holder, obj } of parts) {
+      holder.visible = visible(p);
+      const e = p.explode || [0, 0, 0];
+      holder.position.set(e[0] * state.explode, e[1] * state.explode, e[2] * state.explode);
+      if (p.pivot) obj.quaternion.setFromAxisAngle(obj.userData.axis, THREE.MathUtils.degToRad(obj.userData.deg * state.fold));
+    }
+    rotorSpin.rotation.x = THREE.MathUtils.degToRad(state.spin);
+    dirty = true;
+  }
+
+  /* framing: a tight fit of the projected vertices, as the viewer's fit=tight */
+  const deg = THREE.MathUtils.degToRad;
+  const VIEWS = { hero: [50, 18], strip: [-16, 9] };   // hero = docs/media hero_light (view=50,18)
+  const viewDir = ([az, el]) => new THREE.Vector3(Math.sin(deg(az)) * Math.cos(deg(el)), Math.sin(deg(el)), Math.cos(deg(az)) * Math.cos(deg(el)));
+  function points(maxPts = 24000) {
+    const pts = [], v = new THREE.Vector3(); let total = 0;
+    for (const { holder, mesh } of parts) if (holder.visible) total += mesh.geometry.attributes.position.count;
+    const stride = Math.max(1, Math.floor(total / maxPts));
+    for (const { holder, mesh } of parts) {
+      if (!holder.visible) continue;
+      const pos = mesh.geometry.attributes.position;
+      for (let i = 0; i < pos.count; i += stride) pts.push(v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld).clone());
+    }
+    return pts;
+  }
+  const tmpCam = new THREE.PerspectiveCamera(28, 1, 1, 5000);
+  function fitFor(st, view, aspect, fillFrac = 0.82) {
+    const saved = { ...state }; Object.assign(state, st); apply(); scene.updateMatrixWorld(true);
+    const pts = points(), dir = viewDir(VIEWS[view] || view);
+    const box = new THREE.Box3().setFromPoints(pts);
+    const c = box.getCenter(new THREE.Vector3());
+    let r = 0.5 * box.getSize(new THREE.Vector3()).length() / Math.sin(deg(14));
+    tmpCam.aspect = aspect;
+    const tanV = Math.tan(deg(14)), right = new THREE.Vector3(), up = new THREE.Vector3(), p = new THREE.Vector3();
+    const place = () => { tmpCam.position.copy(c).addScaledVector(dir, r); tmpCam.near = r / 50; tmpCam.far = r * 50; tmpCam.updateProjectionMatrix(); tmpCam.lookAt(c); tmpCam.updateMatrixWorld(true); };
+    place();
+    for (let pass = 0; pass < 4; pass++) {
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (const w of pts) { p.copy(w).project(tmpCam); x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); }
+      right.setFromMatrixColumn(tmpCam.matrixWorld, 0); up.setFromMatrixColumn(tmpCam.matrixWorld, 1);
+      c.addScaledVector(right, 0.5 * (x0 + x1) * r * tanV * aspect).addScaledVector(up, 0.5 * (y0 + y1) * r * tanV);
+      r *= Math.max((x1 - x0) / 2, (y1 - y0) / 2) / fillFrac;
+      place();
+    }
+    Object.assign(state, saved); apply();
+    return { c, d: r, dir };
+  }
+  // ground: below the full sweep of the deployed rotor, so a spinning blade never cuts it
+  Object.assign(state, { fold: 1 }); apply(); scene.updateMatrixWorld(true);
+  let rMax = 0, yMin = Infinity;
+  for (const w of points(40000)) { rMax = Math.max(rMax, Math.hypot(w.y, w.z)); yMin = Math.min(yMin, w.y); }
+  ground.position.y = Math.min(yMin, -rMax) - 2;
+  function placeLights(c, R) {
+    key.position.copy(c).add(new THREE.Vector3(-0.6, 1.4, 0.9).multiplyScalar(R)); key.target.position.copy(c);
+    const ext = 300; Object.assign(key.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext, near: 1, far: R * 4 });
+    key.shadow.camera.updateProjectionMatrix();
+    rim.position.copy(c).add(new THREE.Vector3(1, 0.6, -1.2).multiplyScalar(R));
+    fill.position.copy(c).add(new THREE.Vector3(0.9, 0.25, 1.1).multiplyScalar(R)); fill.target.position.copy(c);
+  }
+
+  /* camera + orbit */
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08; controls.enablePan = false;
+  controls.rotateSpeed = 0.7; controls.zoomSpeed = 0.8;
+  controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+  renderer.domElement.style.touchAction = 'pan-y';   // vertical swipes scroll the page, sideways ones orbit
+  // plain wheel scrolls the page; Ctrl / Cmd + wheel (and trackpad pinch) zooms
+  host3d.addEventListener('wheel', e => { if (!e.ctrlKey && !e.metaKey) e.stopImmediatePropagation(); }, { capture: true });
+  let fitA = null, fitB = null, zoomK = 1, lastE = 0, aspect = 4 / 3;
+  const lerp = THREE.MathUtils.lerp;
+  const base = e => ({ c: fitA.c.clone().lerp(fitB.c, e), d: lerp(fitA.d, fitB.d, e) });
+  function refit() {
+    const w = host3d.clientWidth || 800, h = host3d.clientHeight || 600;
+    aspect = w / h; renderer.setSize(w, h, false); camera.aspect = aspect;
+    fitA = fitFor({ fold: 1, explode: 0, cutaway: false, packed: false }, 'hero', aspect);
+    fitB = fitFor({ fold: 1, explode: 1, cutaway: true, packed: false }, 'hero', aspect, 0.84);
+    placeLights(fitA.c, fitA.d);
+    controls.minDistance = fitA.d * 0.3; controls.maxDistance = fitB.d * 1.8;
+    if (camera.position.lengthSq() > 0) renderer.render(scene, camera);
+  }
+  function placeCamera(dir) {
+    const b = base(state.explode);
+    const d = dir || camera.position.clone().sub(controls.target).normalize();
+    controls.target.copy(b.c);
+    camera.position.copy(b.c).addScaledVector(d, b.d * zoomK);
+    camera.near = b.d / 40; camera.far = b.d * 40; camera.updateProjectionMatrix();
+    lastE = state.explode; dirty = true;
+  }
+  function onExplodeChange() {
+    zoomK = camera.position.distanceTo(controls.target) / base(lastE).d;
+    placeCamera();
+  }
+  refit(); zoomK = 1; placeCamera(fitA.dir); controls.update();
+  controls.addEventListener('change', () => { dirty = true; });
+
+  /* tweens, spin */
+  const tweens = new Map();
+  const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  function tween(key, from, to, ms, set, done) { tweens.set(key, { from, to, ms: Math.max(1, ms), t0: performance.now(), set, done }); }
+  let spinning = false, pendingSpin = false;
+  function settleSpin(ms = 600) {
+    const s = state.spin, target = Math.ceil((s - 1e-6) / 120) * 120;
+    if (Math.abs(target - s) < 1e-6) return;
+    tween('spin', s, target, ms * (target - s) / 120 + 150, v => { state.spin = v; apply(); }, () => { state.spin = state.spin % 360; apply(); });
+  }
+  function setSpin(on) {
+    spinning = false; pendingSpin = false; ctl.spin.setAttribute('aria-pressed', String(on));
+    if (on) {
+      tweens.delete('spin');
+      if (state.fold < 0.999) { pendingSpin = true; animateFold(1); } else spinning = true;
+    } else settleSpin();
+    hud();
+  }
+  function animateFold(to) {
+    if (spinning || tweens.has('spin')) { spinning = false; settleSpin(250); }
+    const from = state.fold;
+    tween('fold', from, to, 2200 * Math.abs(to - from) + 1, v => { state.fold = v; syncFold(); apply(); },
+      () => { if (pendingSpin && to >= 0.999) { pendingSpin = false; spinning = true; } });
+  }
+  function syncFold() { ctl.fold.value = state.fold; const a = Math.round(90 * (1 - state.fold)); $('#o-fold').textContent = a + '°';
+    ctl.fold.setAttribute('aria-valuetext', a === 0 ? 'deployed' : a === 90 ? 'stowed' : `blades at ${a} degrees`); hud(); }
+  function hud() {
+    const a = Math.round(90 * (1 - state.fold));
+    let s = a === 0 ? 'Deployed · Ø194 mm rotor' : a === 90 ? (state.packed ? 'Packed · Ø75 × 161 mm egg' : 'Stowed · fins still fitted') : `Folding · blades at ${a}°`;
+    if (state.explode > 0.01) s = `Exploded · ${Math.round(state.explode * 100)} %`;
+    $('#hud-state').textContent = s;
+    $('#hud-tag').textContent = state.cutaway ? 'Cutaway · v2 gland shown' : spinning ? 'Spinning' : 'CAD model';
+  }
+
+  /* render loop, paused off screen */
+  let last = performance.now(), onScreen = true;
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    for (const [k, tw] of tweens) {
+      const t = Math.min(1, (now - tw.t0) / tw.ms); tw.set(tw.from + (tw.to - tw.from) * ease(t));
+      if (t >= 1) { tweens.delete(k); tw.done && tw.done(); }
+    }
+    if (spinning) { state.spin += 150 * dt; apply(); }
+    if (controls.update()) dirty = true;
+    if (dirty) { renderer.render(scene, camera); dirty = false; }
+  }
+  new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; renderer.setAnimationLoop(onScreen ? frame : null); last = performance.now(); }).observe(stage);
+  let lastWH = '';
+  new ResizeObserver(() => {
+    const w = host3d.clientWidth, h = host3d.clientHeight, wh = `${w}x${h}`;
+    if (!w || !h || wh === lastWH) return;
+    lastWH = wh;
+    const k = camera.position.distanceTo(controls.target) / base(state.explode).d; refit(); zoomK = k; placeCamera();
+    renderer.render(scene, camera);
+  }).observe(host3d);
+  themeListeners.push(shadowFromTheme); shadowFromTheme();
+
+  /* controls */
+  ctl.fold.addEventListener('input', () => {
+    tweens.delete('fold'); pendingSpin = false;
+    if (spinning || state.spin % 120 !== 0) { spinning = false; ctl.spin.setAttribute('aria-pressed', 'false'); settleSpin(200); }
+    state.fold = +ctl.fold.value; syncFold(); apply();
+  });
+  ctl.explode.addEventListener('input', () => { state.explode = +ctl.explode.value; $('#o-explode').textContent = Math.round(state.explode * 100) + ' %'; apply(); onExplodeChange(); hud(); });
+  ctl.play.addEventListener('click', () => { pendingSpin = false; ctl.spin.setAttribute('aria-pressed', 'false'); animateFold(state.fold > 0.5 ? 0 : 1); });
+  ctl.spin.addEventListener('click', () => setSpin(ctl.spin.getAttribute('aria-pressed') !== 'true'));
+  ctl.cut.addEventListener('click', () => { state.cutaway = !state.cutaway; ctl.cut.setAttribute('aria-pressed', String(state.cutaway)); apply(); hud(); });
+  ctl.fins.addEventListener('click', () => { state.packed = !state.packed; ctl.fins.setAttribute('aria-pressed', String(!state.packed)); apply(); hud(); });
+  ctl.reset.addEventListener('click', () => { zoomK = 1; placeCamera(fitA.dir); });
+  for (const c of Object.values(ctl)) c.disabled = false;
+  syncFold(); apply(); renderer.render(scene, camera);
+  stage.classList.add('live');
+
+  /* hooks for scripts/site.py (stills) and for headless tests */
+  window.__ovo = {
+    ready: true,
+    state: () => ({ ...state, spinning }),
+    set(patch) { Object.assign(state, patch); if ('fold' in patch) syncFold(); if ('explode' in patch) { ctl.explode.value = state.explode; onExplodeChange(); }
+      ctl.cut.setAttribute('aria-pressed', String(state.cutaway)); ctl.fins.setAttribute('aria-pressed', String(!state.packed)); apply(); hud(); renderer.render(scene, camera); return true; },
+    play() { animateFold(state.fold > 0.5 ? 0 : 1); },
+    capture({ w, h, state: st, fit, view = 'hero', fill: fr = 0.82, ground: gr = true }) {
+      const prev = { w: renderer.domElement.width, h: renderer.domElement.height, pr: renderer.getPixelRatio() }, saved = { ...state };
+      const f = fitFor({ fold: 1, explode: 0, cutaway: false, packed: false, ...(fit || st) }, view, w / h, fr);
+      ground.visible = gr;
+      Object.assign(state, st); apply(); scene.updateMatrixWorld(true);
+      renderer.setPixelRatio(1); renderer.setSize(w, h, false);
+      const cam = camera.clone(); cam.aspect = w / h; cam.position.copy(f.c).addScaledVector(f.dir, f.d);
+      cam.near = f.d / 40; cam.far = f.d * 40; cam.updateProjectionMatrix(); cam.lookAt(f.c);
+      renderer.render(scene, cam);
+      const url = renderer.domElement.toDataURL('image/png');
+      renderer.setPixelRatio(prev.pr); renderer.setSize(host3d.clientWidth, host3d.clientHeight, false);
+      ground.visible = true; Object.assign(state, saved); apply(); renderer.render(scene, camera);
+      return url;
+    },
+    boxes(names) {
+      model.updateMatrixWorld(true);
+      const inv = model.matrixWorld.clone().invert(), m4 = new THREE.Matrix4(), v = new THREE.Vector3();
+      return parts.filter(({ p }) => !names || names.includes(p.name)).map(({ p, holder, mesh }) => {
+        m4.multiplyMatrices(inv, mesh.matrixWorld); const pos = mesh.geometry.attributes.position, b = new THREE.Box3();
+        for (let i = 0; i < pos.count; i++) b.expandByPoint(v.fromBufferAttribute(pos, i).applyMatrix4(m4));
+        return { name: p.name, visible: holder.visible, min: b.min.toArray(), max: b.max.toArray() };
+      });
+    },
+  };
+}
+</script>
+<noscript><p class="wrap cap">The interactive model and the charts need JavaScript; the report and the files below work without it.</p></noscript>
+</body>
+</html>

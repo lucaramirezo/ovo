@@ -111,7 +111,7 @@ def summary(timing: list | None = None) -> None:
     print()
     krows = [["PASS" if k["ok"] else "FAIL", k["check"][:78], str(k["value"])[:60],
               "" if k.get("layout") is None else k["layout"]] for k in A["key_clearances"]]
-    print(table(krows, ["", "key clearance (real solids)", "measured", "layout"]))
+    print(table(krows, ["", "key clearance (CAD meshes)", "measured", "layout"]))
     sp = A["spin_sweep"]
     print(f"\nrotor spin sweep: {len(sp['pairs'])} rotor/static pairs within 3 mm, {len(sp['rubbing'])} rubbing")
     vf = A.get("viewer_fold_check")

@@ -1,0 +1,170 @@
+# Rebuild every Ovo CAD output from source and publish the print files (the media, report and
+# site are made locally: make media report site).
+#
+#   Manual run: Actions > build > Run workflow (artifacts only).
+#   Tag v*:     the same build, plus a zip of the STLs and the STEP assemblies attached to the
+#               GitHub release of that tag (the release is created if it does not exist yet).
+#
+# scripts/build.py --fresh runs the six part modules, the assembly checks (interference matrix,
+# key clearances, spin sweep, STL audit, viewer fold check in headless Chrome) and the renders.
+# It takes about 34 min on a laptop; hosted runners are slower, hence the 120 min timeout.
+
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the release and upload its asset (tag runs only)
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      # scripts/render.py drives headless Chrome through agent-browser (viewer fold check + renders).
+      # A hosted runner has no GPU: WebGL goes through SwiftShader; Ubuntu 24.04 needs --no-sandbox.
+      AGENT_BROWSER_SESSION: ovo-ci
+      AGENT_BROWSER_ARGS: "--no-sandbox,--enable-unsafe-swiftshader,--use-angle=swiftshader"
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Python environment (.venv from uv.lock, Python from .python-version)
+        run: uv sync --locked
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Headless Chrome for the viewer check and the renders
+        run: |
+          npm install -g agent-browser@0.27.1
+          agent-browser install --with-deps
+
+      - name: Build (scripts/build.py --fresh)
+        run: .venv/bin/python scripts/build.py --fresh
+
+      - name: Gate on the assembly checks
+        run: |
+          {
+            echo '### Ovo build summary'
+            echo '```'
+            .venv/bin/python scripts/build.py --summary
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          .venv/bin/python - <<'EOF'
+          import json, sys
+          A = json.load(open("out/cad/checks/assembly.json"))
+          fails = []
+          fails += [f"invalid part {p['name']}" for p in A["parts"] if not p["valid"]]
+          fails += [f"{st}: {len(r['defects'])} interference defect(s)" for st, r in A["interference"].items() if r["defects"]]
+          fails += [f"key clearance off design: {k['check']}" for k in A["key_clearances"] if not k["ok"]]
+          fails += [f"rotor rubs: {r}" for r in A["spin_sweep"]["rubbing"]]
+          stl_keys = ("watertight", "winding_consistent", "on_bed", "fits_bed", "volume_match")
+          for s in A["stl"]:
+              bad = [k for k in stl_keys if not s.get(k)]
+              if s.get("folded_pairs_gt170", 1) != 0:
+                  bad.append(f"{s.get('folded_pairs_gt170')} folded pairs")
+              if bad:
+                  fails.append(f"STL audit {s['name']}: {', '.join(bad)}")
+          vf = A.get("viewer_fold_check")
+          if not vf or not vf["ok"]:
+              fails.append("viewer fold check missing or off")
+
+          # every module check file: any "ok": false anywhere fails the build
+          def walk(node, path):
+              if isinstance(node, dict):
+                  if node.get("ok") is False:
+                      yield path + ": " + str(node.get("check") or node.get("name") or node.get("what") or "")[:100]
+                  for k, v in node.items():
+                      yield from walk(v, f"{path}.{k}")
+              elif isinstance(node, list):
+                  for i, v in enumerate(node):
+                      yield from walk(v, f"{path}[{i}]")
+          n_ok = 0
+          for m in ("blade", "coupon", "drivetrain", "fins", "rotor", "shells"):
+              M = json.load(open(f"out/cad/checks/{m}.json"))
+              fails += [f"module check off: {x}" for x in walk(M, m)]
+              n_ok += json.dumps(M).count('"ok": true')
+          print(f"module checks: {n_ok} ok flags read")
+          print("\n".join(fails) or "all assembly and module checks pass")
+          sys.exit(1 if fails else 0)
+          EOF
+
+      - name: Upload STL print files
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovo-stl
+          path: out/cad/stl
+          if-no-files-found: error
+
+      - name: Upload STEP files
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovo-step
+          path: out/cad/step
+          if-no-files-found: error
+
+      - name: Upload web scene (GLB + manifest)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovo-web
+          path: out/web
+          if-no-files-found: error
+
+      - name: Upload checks and renders
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovo-checks-renders
+          path: |
+            out/cad/checks
+            out/renders
+          if-no-files-found: warn
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovo-build-logs
+          path: out/work/build/*.log
+          if-no-files-found: ignore
+
+      - name: Zip STLs and STEP assemblies (tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          name="ovo-${GITHUB_REF_NAME}-print-files"
+          mkdir -p "dist/$name/stl" "dist/$name/step"
+          cp out/cad/stl/*.stl "dist/$name/stl/"
+          cp out/cad/step/ovo_assembly_stowed.step out/cad/step/ovo_assembly_deployed.step "dist/$name/step/"
+          cp docs/notes/print-plan.md "dist/$name/PRINT-PLAN.md"
+          cp LICENSE-CC-BY-4.0.txt "dist/$name/"
+          (cd dist && zip -r -9 -q "$name.zip" "$name")
+          ls -l "dist/$name.zip"
+
+      - name: Attach the zip to the GitHub release (tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          if ! gh release view "$tag" > /dev/null 2>&1; then
+            gh release create "$tag" --verify-tag --title "Ovo $tag" \
+              --notes "Print files (STL, in print orientation) and the STEP assemblies (stowed and deployed), rebuilt from source by the build workflow. Display build: not yet printed or tested in water; see the README and docs/notes/print-plan.md."
+          fi
+          gh release upload "$tag" "dist/ovo-${tag}-print-files.zip" --clobber

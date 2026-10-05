@@ -1,5 +1,34 @@
+# Python environment and caches
 .venv/
-out/
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Generated outputs: STL / STEP / GLB / renders / checks / scratch (CI rebuilds and publishes them)
+out/
+
+# Node and browser tooling
+node_modules/
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
 .DS_Store
+Thumbs.db
+
+# Release packaging (CI zips the print files here)
+dist/
+
+# Private notes (CV wording, interview prep): kept out of the published repository
+private/
+
+# Copies of docs/ files made by scripts/site.py for local preview; the pages workflow copies them at deploy
+site/report/
+site/media/fold.mp4
+site/media/fold_dark.mp4
+site/media/og_card.png
