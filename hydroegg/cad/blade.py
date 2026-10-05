@@ -40,11 +40,14 @@ Parts of the blade (blade frame):
   +n root filleted 0.6 mm into the knuckle; the stop face, its perimeter and its
   junction with the knuckle stay sharp (the hub stop block sits there). OCC propagates
   fillets along tangent chains, so the fillet order is fixed and asserted.
-* magnet seats (4 x 2 N52, D 4.1 glue / light press, depth MAGNET H + 0.1 so a seated
-  magnet sits 0.1 below its face): deployed seat on the DETENTS axis in the heel stop
-  face; stowed seat where the DETENTS axis meets the shank's inner face but along the
-  face NORMAL (that face is inclined ~51 deg to the radial DETENTS axis, so a radial seat
-  cannot be flush), with a 0.2 mm mouth chamfer.
+* magnet seats: deployed (heel stop face) a glued 6.1 x 2.1 slot for an N52 block 6 x 2 x 2
+  (common.DEP_MAGNET, finding T03: the D4 disc left 0.39 mm to the heel tip; the block leaves
+  1.15 mm to the tip and 1.95 to the flanks), its face 0.2 below the stop face (pair gap 0.4);
+  stowed: a D4.1 seat for a 4 x 2 disc where the DETENTS axis meets the shank's inner face but
+  along the face NORMAL (that face is inclined ~51 deg to the radial DETENTS axis, so a radial
+  seat cannot be flush), magnet face 0.1 below that mouth point (T15), 0.2 mm mouth chamfer.
+* healing (T14): faces above 200 mm2 are split and ShapeFix'd, so OCC classifies far points OUT
+  in every pose (the single big B-spline skin made BRepClass3d report the far point IN).
 
 parts(): blade_0..2 in the WORLD STOWED pose (fold FOLD_DEG) with a pivot such that
 rotating the stowed shape by deployed_deg about the axis through the hinge point gives
@@ -119,8 +122,16 @@ BORE_CHAMFER = 0.3
 MAG_D, MAG_H = float(P.MAGNET["D"]), float(P.MAGNET["H"])
 MAG_SEAT_D = MAG_D + 0.1  # glue / light press (printed holes close up ~0.1)
 MAG_SEAT_DEPTH = MAG_H + 0.1
-MAG_MOUTH_CHAMFER = 0.2   # stowed seat only (see HEEL_SEAT_CHAMFER)
-HEEL_SEAT_CHAMFER = 0.0   # heel seat: no chamfer, its rim is only 0.39 mm from the heel tip
+MAG_MOUTH_CHAMFER = 0.2   # stowed seat mouth
+# Deployed (heel) seat, finding T03: the D4 disc left 0.39 mm to the heel tip. Block 6 x 2 x 2
+# (C.DEP_MAGNET): 6 along the pin (c), 2 along the span (s), magnetised along n; glued seat 6.1 x 2.1
+# centred at s = r_e - HINGE_R, its face C.DEP_MAGNET recess below the stop face (pair gap 0.4).
+DEP = C.DEP_MAGNET
+DEP_S = DEP["r_e"] - P.HINGE_R                   # -5.8
+# Stowed seat, finding T15: the magnet face sits STOW_BLADE_BELOW_MOUTH below the seat mouth on the
+# DETENTS axis (was 0.1 below the lowest rim point, 0.295 below the mouth).
+STOW_BELOW_MOUTH = C.STOW_BLADE_BELOW_MOUTH
+HEAL_MAX_FACE_AREA = 200.0  # finding T14: split faces above this area (see _heal)
 HEEL_TIP_FILLET = 1.0     # heel tip, +n edge and the two planform corners
 HEEL_SIDE_FILLET = 0.0    # heel long edges stay sharp: a fillet there chains into the root fillet
 HEEL_ROOT_FILLET = 0.6    # heel +n face to knuckle (never the stop-face side)
@@ -412,7 +423,7 @@ def knuckle_heel() -> Solid:
     # OCC propagates a fillet along tangent edge chains, so the order matters: the +n root
     # fillet goes first (its ends meet the heel flanks at sharp corners and stop there),
     # then the +n long edges; the -n stop-face perimeter and its knuckle junction stay sharp
-    # (flat stop on the hub block, magnet seat rim 0.39 mm from the heel tip)
+    # (flat stop on the hub block; the heel magnet slot sits in the stop face)
     s_j = -math.sqrt(R**2 - (t / 2) ** 2)
     root = [ed for ed in kh.edges() if ed.geom_type == GeomType.LINE
             and abs(ed.center().X - s_j) < 1e-3 and ed.center().Z > 0]
@@ -503,7 +514,9 @@ def stowed_seat_geometry(sol: Solid) -> dict:
     """Stowed magnet seat. The DETENTS centre lies on a RADIAL axis, but there the shank's
     inner face is inclined ~50 deg to the radial direction, so a radial 4 mm seat cannot be
     flush. The seat is centred where the DETENTS axis meets the blade's inner face and runs
-    along the face normal; its face sits 0.1 below the lowest rim point."""
+    along the face normal; the magnet face sits STOW_BELOW_MOUTH below that mouth point (the
+    curved face's rim dips up to ~0.2 below the mouth, so one edge of the magnet stands up to
+    ~0.1 proud of the rim there: still 0.1 mm off the boss face, see shells.STOW_DETENT)."""
     c = np.asarray(P.DETENTS["stowed_blade_magnet_blade_frame"], float)
     a = np.asarray(stowed_axis_detents(), float)
     p = _crossing(sol, c - 2 * a, c + 4 * a)
@@ -519,7 +532,7 @@ def stowed_seat_geometry(sol: Solid) -> dict:
         q = (MAG_SEAT_D / 2) * (math.cos(ang) * e1 + math.sin(ang) * e2)
         t_rim.append(float(np.dot(_crossing(sol, p + q - 1.5 * n, p + q + 1.5 * n) - p, n)))
     t_rim = np.array(t_rim)
-    t_face = float(t_rim.min()) - (MAG_SEAT_DEPTH - MAG_H)
+    t_face = -STOW_BELOW_MOUTH
     seated = p + (t_face - MAG_H / 2) * n
     return {"mouth_blade_frame_mm": p.tolist(), "axis_out_blade_frame": n.tolist(),
             "detents_axis_t_at_face_mm": t_axis,
@@ -547,11 +560,15 @@ def _build() -> tuple[Solid, dict]:
             "overlap_span_knuckle_mm3": round(volume(span) + volume(kh) - volume(body), 1)}
     body = body.cut(_end_chamfer_cutter())
     body = body.cut(_bore_cutter())
-    # deployed seat: heel stop face is the plane n = -HEEL_T/2, axis -n
-    cd = np.asarray(P.DETENTS["deployed_blade_magnet_blade_frame"], float)
+    # deployed seat: heel stop face is the plane n = -HEEL_T/2; block seat, magnet face DEP recess below it
+    ts, tc = DEP["seat_tau_re"][1], DEP["seat_tau_re"][0]
+    hx = DEP["size_tau_re_x"][2]
+    n_face = -P.HEEL_T / 2 + DEP["recess"]                       # -2.3
+    cd = np.array([DEP_S, 0.0, n_face + hx / 2])                 # seated block centre (s, c, n)
     ad = np.array([0.0, 0.0, -1.0])
-    t_face_d = (P.HEEL_T / 2 + cd[2]) - (MAG_SEAT_DEPTH - MAG_H)   # face plane at t = 2.5 - 1.3 = 1.2
-    body = body.cut(_seat_cutter(cd, ad, t_face_d, HEEL_SEAT_CHAMFER))
+    seat = Solid.make_box(ts, tc, hx + DEP["recess"] + 2.0, Plane(origin=(DEP_S - ts / 2, -tc / 2,
+                                                                         n_face + hx - (hx + DEP["recess"] + 2.0))))
+    body = body.cut(seat)
     sg = stowed_seat_geometry(body)
     body = body.cut(_seat_cutter(sg["mouth_blade_frame_mm"], sg["axis_out_blade_frame"], sg["t_face_mm"],
                                  MAG_MOUTH_CHAMFER))
@@ -560,10 +577,45 @@ def _build() -> tuple[Solid, dict]:
     sols = body.solids()
     if len(sols) == 1:
         body = sols[0]
-    info.update(deployed_seat={"centre_detents": cd.tolist(), "axis": ad.tolist(), "t_face_mm": t_face_d},
+    body = _heal(body)
+    info.update(deployed_seat={"shape": "block", "centre": cd.tolist(), "centre_detents": cd.tolist(),
+                               "size_s_c_n": [DEP["size_tau_re_x"][1], DEP["size_tau_re_x"][0], hx],
+                               "seat_s_c": [ts, tc], "axis": ad.tolist(), "t_face_mm": float(cd[2] - n_face),
+                               "face_n_mm": n_face, "heel_tip_wall_mm": P.HEEL_REACH + DEP_S - ts / 2,
+                               "flank_wall_mm": P.HEEL_W / 2 - tc / 2},
                 stowed_seat={"centre_detents": cs.tolist(), "axis_detents": stowed_axis_detents().tolist(), **sg},
                 t_build_s=round(time.time() - t0, 1))
     return body, info
+
+
+def _heal(sol: Solid) -> Solid:
+    """Finding T14: OCC's point classifier (BRepClass3d, used by distance and boolean inner-solution
+    tests) called the far point (200, 200, 200) IN for the stowed and deployed blades. The big
+    B-spline skin face is the cause (orientation fixes and sewing did not change it); splitting faces
+    above HEAL_MAX_FACE_AREA (ShapeUpgrade_ShapeDivideArea) and a ShapeFix pass do, with the same
+    volume. checks() asserts the far-point classification in the print, stowed and deployed poses."""
+    from OCP.ShapeFix import ShapeFix_Shape
+    from OCP.ShapeUpgrade import ShapeUpgrade_ShapeDivideArea
+    from OCP.TopoDS import TopoDS
+    d = ShapeUpgrade_ShapeDivideArea(sol.wrapped)
+    d.MaxArea = HEAL_MAX_FACE_AREA
+    d.Perform()
+    fx = ShapeFix_Shape(d.Result())
+    fx.Perform()
+    out = Solid(TopoDS.Solid(fx.Shape()))
+    assert out.is_valid and abs(volume(out) - volume(sol)) < 0.05, "blade heal changed the solid"
+    return out
+
+
+def classify_far(sol: Shape, pts=((200.0, 200.0, 200.0), (-200.0, 50.0, 30.0), (0.0, 0.0, 300.0))) -> list:
+    """BRepClass3d state of far points (must all be OUT)."""
+    from OCP.BRepClass3d import BRepClass3d_SolidClassifier
+    from OCP.TopAbs import TopAbs_IN, TopAbs_ON, TopAbs_OUT
+    out = []
+    for p in pts:
+        c = BRepClass3d_SolidClassifier(sol.wrapped, gp_Pnt(*p), 1e-6)
+        out.append({TopAbs_IN: "IN", TopAbs_OUT: "OUT", TopAbs_ON: "ON"}.get(c.State(), str(c.State())))
+    return out
 
 
 def blade_frame_solid() -> Solid:
@@ -610,9 +662,10 @@ PRINT_NOTE = ("Print chord-vertical: trailing-edge side down, the knuckle's TE-s
               "pin bore vertical (round, no teardrop), layers in the span/thickness plane so flapwise "
               "bending, the knuckle lug and the heel stop load all run inside the layers. Supports: tree, "
               "build plate only, under the trailing edge (it floats {te_lo:.1f} to {te_hi:.1f} mm above the "
-              "bed), the heel underside and the shank's TE ramp; nothing else overhangs > 45 deg. Magnet seats "
-              "print as horizontal 4.1 mm holes (bridged). PLA or PETG, 0.2 mm layers, 4 walls, 40 % gyroid, "
-              "brim on the knuckle.")
+              "bed), the heel underside and the shank's TE ramp; nothing else overhangs > 45 deg. Tree support "
+              "settings: top Z distance 0.2 mm, dense interface (3 layers), 5 mm brim on the knuckle. Magnet "
+              "seats print horizontal: the heel slot 6.1 x 2.1 (its 2.1 mm ceiling bridges), the shank hole "
+              "D4.1 (bridged). PLA or PETG, 0.2 mm layers, 4 walls, 40 % gyroid.")
 
 
 def parts() -> list[dict]:
@@ -675,10 +728,10 @@ def preview_print() -> list[dict]:
 @lru_cache(maxsize=1)
 def _print_te_range() -> dict:
     """Height of the trailing edge above the bed in the print orientation."""
-    G = section_grid()["G"]
-    te = np.vstack([G[:, 0], G[:, -1]])
-    zmin = -P.KNUCKLE_L / 2
-    z = te[:, 1] - zmin
+    sg = section_grid()
+    G = sg["G"][sg["zone"] != "shank"]                     # aero span and tip (the shank TE is a ramp)
+    te = np.minimum(G[:, 0, 1], G[:, -1, 1])               # lower of the two TE corners, chord coord c
+    z = te + P.KNUCKLE_L / 2                               # print z = c + 7 (knuckle end face on the bed)
     return {"te_lo": float(z.min()), "te_hi": float(z.max())}
 
 
@@ -760,6 +813,31 @@ def _seat_measure(sol: Solid, centre, axis) -> dict:
             "seat_bottom_t_mm": t_bot, "seated_magnet_centre_blade_frame_mm": seated.tolist(),
             "seated_vs_detents_mm": float(np.linalg.norm(seated - c)),
             "seated_vs_detents_along_axis_mm": float(t_bot + MAG_H / 2)}
+
+
+def _block_seat_measure(sol: Solid, dsi: dict) -> dict:
+    """The deployed block seat measured on the solid with OCC line crossings from its centre: seat
+    floor and mouth along n, seat walls along s and c, and the material left to the heel tip (-s),
+    the heel flanks (+-c) and the knuckle (+s)."""
+    from OCP.gp import gp_Dir, gp_Lin
+    from OCP.IntCurvesFace import IntCurvesFace_ShapeIntersector
+    it = IntCurvesFace_ShapeIntersector()
+    it.Load(sol.wrapped, 1e-7)
+
+    def hits(o, d):
+        it.Perform(gp_Lin(gp_Pnt(*map(float, o)), gp_Dir(*map(float, d))), 0.0, 100.0)
+        return sorted(it.WParameter(i) for i in range(1, it.NbPnt() + 1))
+    c = np.asarray(dsi["centre"], float)
+    out = {}
+    hn = hits(c, (0, 0, 1))
+    out["seat_floor_n_mm"] = float(c[2] + hn[0]) if hn else None
+    hm = hits(c, (0, 0, -1))
+    out["seat_mouth_n_mm"] = float(c[2] - hm[0]) if hm else None
+    for nm, d in (("tip", (-1, 0, 0)), ("knuckle", (1, 0, 0)), ("flank_plus", (0, 1, 0)), ("flank_minus", (0, -1, 0))):
+        h = hits(c, d)
+        out[f"seat_wall_{nm}_mm"] = float(h[1] - h[0]) if len(h) >= 2 else None
+        out[f"seat_half_{nm}_mm"] = float(h[0]) if h else None
+    return out
 
 
 def checks(write: bool = True) -> dict:
@@ -877,17 +955,21 @@ def checks(write: bool = True) -> dict:
         "knuckle_od_mm": P.KNUCKLE_D, "knuckle_len_mm": P.KNUCKLE_L,
         "wall_around_bore_mm": P.KNUCKLE_D / 2 - BORE_D / 2}
     # ---- magnet seats
+    dsi = info["deployed_seat"]
     res["magnet_seats"] = {
-        "seat_d_mm": MAG_SEAT_D, "seat_depth_mm": MAG_SEAT_DEPTH,
-        "deployed": _seat_measure(sol, P.DETENTS["deployed_blade_magnet_blade_frame"], [0, 0, -1]),
+        "deployed": {**_block_seat_measure(sol, dsi), **{k: v for k, v in dsi.items() if k != "centre_detents"}},
         "stowed": {**_seat_measure(sol, info["stowed_seat"]["seated_magnet_centre_blade_frame_mm"],
                                    info["stowed_seat"]["axis_out_blade_frame"]),
                    **{k: v for k, v in info["stowed_seat"].items() if k not in ("centre_detents",)}},
-        "heel_tip_wall_mm": float(P.HEEL_REACH - (-P.DETENTS["deployed_blade_magnet_blade_frame"][0])
-                                  - MAG_SEAT_D / 2),
-        "note": ("seat depth MAGNET H + 0.1 from the contact face (the lowest rim point on the curved "
-                 "stowed face), so a seated magnet sits 0.1 below its face; layout magnet_recess is 0.2, "
-                 "so the seated centre is 0.1 nearer the face than the DETENTS centre")}
+        "stowed_seat_d_mm": MAG_SEAT_D, "stowed_magnet_face_below_mouth_mm": STOW_BELOW_MOUTH,
+        "note": ("deployed: N52 block 6 x 2 x 2 in a glued 6.1 x 2.1 seat, face %.1f below the heel stop face "
+                 "(T03, DETENTS proposal); stowed: D4 x 2 disc on the face normal, face %.1f below the mouth "
+                 "on the DETENTS axis (T15)" % (DEP["recess"], STOW_BELOW_MOUTH))}
+    res["classification"] = {k: classify_far(v) for k, v in (
+        ("blade_frame", sol), ("print", print_solid()), ("stowed_0", blade_world(0, P.FOLD_DEG)),
+        ("deployed_0", blade_world(0, 0.0)))}
+    res["classification"]["pass"] = bool(all(all(x == "OUT" for x in v) for v in res["classification"].values()
+                                              if isinstance(v, list)))
     # ---- mass (adaptive volume integration) and where it differs from the layout estimate
     from build123d import Keep
     vol = volume(sol)
@@ -959,7 +1041,7 @@ def checks(write: bool = True) -> dict:
     mag_w = LY.apply(T0, np.asarray(ss["seated_magnet_centre_blade_frame_mm"]))
     ax_w = T0[:3, :3] @ np.asarray(ss["axis_out_blade_frame"])
     stat_w = np.array([xb, 0, 0]) + float(P.DETENTS["stowed_static_magnet_r"]) * e_rb
-    gap_pair = (MAG_SEAT_DEPTH - MAG_H) + float(json.loads(LY.DATA_JSON.read_text())["chosen"]["magnet_recess_mm"])
+    gap_pair = STOW_BELOW_MOUTH + C.STOW_BOSS_RECESS
     res["stowed_detent_interface"] = {
         "proposed_static_magnet_centre_world_psi0_mm": (mag_w + (MAG_H + gap_pair) * ax_w).tolist(),
         "proposed_static_magnet_axis_world_psi0": ax_w.tolist(),

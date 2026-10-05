@@ -77,6 +77,7 @@ DESIGN = dict(
     root_gap=P.CLEAR_SLIDE,        # fin body above the pad top
     tongue_clear=P.CLEAR_SLIDE,    # tongue inset from the groove on every face
     tongue_lead=0.6,               # 45 deg lead-in on the tongue's front end
+    tongue_bed_chamfer=0.3,        # 45 deg chamfer on the tongue's flat-wall bed edge (finding T18)
     tip_corner_r=(8.0, 3.0),       # planform rounding at the LE-tip / TE-tip corners
     tip_edge_fillet=1.2,           # rounding of the tip edge (tried, then smaller radii)
     root_flare=1.1,                # dz/dw of the root flare beside the tongue neck: >= 1.036 keeps it
@@ -231,7 +232,8 @@ def tongue_section(R: dict | None = None) -> list[tuple[float, float]]:
     z_n = fz0 + (w_hi - fw0 - delta) / slope
     w_b = fw0 + (z_bot - fz0) * slope + delta
     top = DESIGN["root_gap"]                           # coplanar with the fin root face (clean fuse)
-    return [(w_lo, top), (w_hi, top), (w_hi, z_n), (w_b, z_bot), (w_lo, z_bot)]
+    ch = DESIGN["tongue_bed_chamfer"]                  # finding T18: the 90 deg bed edge (flat wall side)
+    return [(w_lo, top), (w_hi, top), (w_hi, z_n), (w_b, z_bot), (w_lo + ch, z_bot), (w_lo, z_bot + ch)]
 
 
 def section_face() -> tuple[Face, dict]:
@@ -319,7 +321,80 @@ def fin_local() -> tuple[Solid, dict]:
     fin = fin - hole.fuse(sq)
     info.update(tongue_section_wz=[(round(a, 4), round(b, 4)) for a, b in t_sec], rail_source=R["source"],
                 u_end=u_end, pin=(R["pin_u"], R["pin_depth"], R["tongue_pin_hole_d"]))
+    v0 = _gprop_volumes(fin)
+    fin = _heal(fin)
+    info["gprop_volume_mm3_before_heal"] = {"default": round(v0[0], 2), "adaptive": round(v0[1], 2)}
     return fin, info
+
+
+HEAL_MAX_FACE_AREA = 100.0       # finding T19: split faces above this area (see _heal)
+
+
+def _gprop_volumes(s: Solid) -> tuple[float, float]:
+    """(default Gauss rule, adaptive 1e-6) B-rep volumes."""
+    from OCP.BRepGProp import BRepGProp
+    from OCP.GProp import GProp_GProps
+    g = GProp_GProps()
+    BRepGProp.VolumeProperties_s(s.wrapped, g)
+    g2 = GProp_GProps()
+    BRepGProp.VolumeProperties_s(s.wrapped, g2, 1e-6, False)
+    return float(g.Mass()), float(g2.Mass())
+
+
+def _heal(s: Solid) -> Solid:
+    """Finding T19: OCC's volume integration of the fin read 8.8 cm3 (default) or 16.2 cm3 (adaptive)
+    against a 9.6 cm3 mesh; the big linear-extrusion skin face is to blame (NURBS conversion alone
+    did not fix it). Splitting faces above HEAL_MAX_FACE_AREA plus a ShapeFix pass makes both rules
+    agree with the mesh; checks() asserts it within 0.5 %."""
+    from OCP.ShapeFix import ShapeFix_Shape
+    from OCP.ShapeUpgrade import ShapeUpgrade_ShapeDivideArea
+    from OCP.TopoDS import TopoDS
+    d = ShapeUpgrade_ShapeDivideArea(s.wrapped)
+    d.MaxArea = HEAL_MAX_FACE_AREA
+    d.Perform()
+    fx = ShapeFix_Shape(d.Result())
+    fx.Perform()
+    out = Solid(TopoDS.Solid(fx.Shape()))
+    assert out.is_valid
+    return out
+
+
+def blank_local() -> Solid:
+    """Blanking strip (finding T07 / T08): fills the pad's dovetail groove when the fins are packed.
+    The tongue section (CLEAR_SLIDE in the groove) from the pad front to the end stop, its top flush
+    with the pad top, the same cross-pin hole (teardrop toward the top face, which is up when it
+    prints bottom down), a 0.6 mm lead-in at the front."""
+    fr = frame()
+    R = rail()
+    sec = [(w, (0.0 if abs(z - DESIGN["root_gap"]) < 1e-9 else z)) for w, z in tongue_section(R)]
+    st = _rail_prism(sec, 0.0, R["end_stop_u"])
+    front = [e for e in st.edges() if abs(e.center().X) < 1e-6 and abs(e.tangent_at(0.5).Z) < 0.9
+             and e.center().Z < fr["a_root"](0) - 1e-3]
+    try:
+        st = st.chamfer(DESIGN["tongue_lead"], None, front)
+    except Exception:  # noqa: BLE001
+        pass
+    rp = R["tongue_pin_hole_d"] / 2
+    phi = math.atan(fr["k"] * fr["ci"])
+    up_p = Vector(-math.sin(phi), 0, math.cos(phi))           # toward the top face (up in print)
+    e_r = Vector(math.cos(phi), 0, math.sin(phi))
+    cpt = Vector(R["pin_u"], 10.0, fr["a_root"](R["pin_u"]) - R["pin_depth"])
+    hole = Solid.make_cylinder(rp, 20.0, Plane(origin=cpt, x_dir=e_r, z_dir=(0, -1, 0)))
+    sq = Solid.make_box(rp, rp, 20.0, Plane(origin=cpt, x_dir=(up_p + e_r).normalized(), z_dir=(0, -1, 0)))
+    out = st - hole.fuse(sq)
+    sols = out.solids()
+    out = sols[0] if len(sols) == 1 else out
+    assert out.is_valid
+    return out
+
+
+def blank_print(bl: Solid) -> Solid:
+    """Bottom down, top face up (support-free: the 45 deg flank narrows going up)."""
+    fr = frame()
+    phi = math.degrees(math.atan(fr["k"] * fr["ci"]))
+    s = bl.rotate(Axis.Y, phi)                                # root line horizontal, strip bottom on the bed
+    bb = s.bounding_box()
+    return s.moved(Location((-(bb.min.X + bb.max.X) / 2, -(bb.min.Y + bb.max.Y) / 2, -bb.min.Z)))
 
 
 _CACHE: dict = {}
@@ -357,14 +432,27 @@ def parts() -> list[dict]:
             name=f"fin_{k}", shape=fin_solid(th), print=pp, material="fin", role="body", rotor=False, qty=1,
             bought=False, explode=[-12.0, er[1], er[2]], theta_deg=th,
             notes="PETG. Identical part x 2 (theta 93 and 273). Prints ROOT DOWN: the tongue's bottom on the "
-                  "bed, span up (leans 15 deg in its own plane), no supports, brim 5 mm recommended; the "
+                  "bed, span up (leans 15 deg in its own plane), no supports; use brim ears at the two root ends "
+                  "(not a full brim: the brim would bond to the tongue's sliding faces); the "
                   "perimeters trace the Clark Y (no stair steps across the chord). Slide aft onto the rail "
                   "to the end stop, then the 2 mm cross pin (ISO 8734 2 x 10) through the pad and the tongue."))
+    for p_ in out:
+        p_["packed"] = False                                   # removed for packing (assembly PACKED state)
+    bl = blank_local()
+    bp = blank_print(bl)
+    for k, th in enumerate(F["theta_deg"]):
+        out.append(dict(
+            name=f"fin_blank_{k}", shape=bl.moved(plane(th).location), print=bp, material="shell", role="body",
+            rotor=False, qty=1, bought=False, explode=[-12.0, 0.0, 0.0], theta_deg=th, packed=True,
+            notes="Blanking strip for the packed egg (fins off): slides into the pad's dovetail groove like the "
+                  "fin tongue, top flush with the pad, held by the same 2 mm cross pin. PLA/PETG in the shell "
+                  "colour; prints bottom down (top face up), no supports."))
     pin_parts = cross_pins()
     out.append(dict(name="fin_cross_pins", shape=pin_parts, print=None, material="steel", role="body", rotor=False,
                     qty=2, bought=True, explode=[-12.0, 0.0, 0.0],
                     notes="2 x ISO 8734 2 x 10 stainless dowel (one per fin) through the pad and the fin tongue "
-                          "(shells.FIN_RAIL); a 1.75 mm filament stub works for display."))
+                          "(shells.FIN_RAIL), or through the blanking strip when the fins are packed; a 1.75 mm "
+                          "filament stub works for display."))
     _CACHE["parts"] = out
     return out
 
@@ -518,8 +606,24 @@ def checks() -> dict:
         cp = cross_pins()
         v2 = interference(cp, fin_solid(F["theta_deg"][0])) + interference(cp, fin_solid(F["theta_deg"][1]))
         add("cross pins vs fins overlap (mm3, pin D 2.0 in the 2.3 tongue hole)", round(v2, 4), v2 < 1e-3)
+        bl0 = blank_local().moved(plane(0.0).location)
+        vb = interference(bl0, pad_cut)
+        add("blanking strip vs shell pad (with its groove) overlap (mm3)", round(vb, 4), vb < 1e-3)
+        outside_b = bl0.volume - interference(bl0, g)
+        add("blanking strip lies inside the groove (volume outside, mm3)", round(outside_b, 4), outside_b < 1e-3)
+        R_ = rail()
+        lig_pad = R_["pin_depth"] - R_["pin_hole_d"] / 2
+        lig_tg = (R_["groove_depth"] - DESIGN["tongue_clear"]) - (R_["pin_depth"] + R_["tongue_pin_hole_d"] / 2)
+        add("cross-pin ligaments: pad over the D2.0 hole / tongue under the D2.3 hole (mm, T18)",
+            [round(lig_pad, 3), round(lig_tg, 3)], min(lig_pad, lig_tg) >= P.MIN_WALL - 0.06,
+            note="groove depth %.1f, pin depth %.1f (PROPOSED FIN.groove_depth)" % (R_["groove_depth"], R_["pin_depth"]))
     except Exception as ex:  # noqa: BLE001
         add("rail check against shells._pad_local / _groove_local", f"not run: {ex}", False)
+    gd, ga = _gprop_volumes(loc)
+    mv = float(_mesh(loc, 0.01).volume)
+    add("fin B-rep volume: default / adaptive GProp / 0.01 mm mesh (mm3), agree within 0.5 % (T19)",
+        [round(gd, 1), round(ga, 1), round(mv, 1)], abs(gd - ga) <= 0.005 * ga and abs(ga - mv) <= 0.005 * mv,
+        before_heal=info.get("gprop_volume_mm3_before_heal"))
     # fin pair: second fin = first turned 180 deg about X
     f0, f1 = fin_solid(F["theta_deg"][0]), fin_solid(F["theta_deg"][1])
     f0r = f0.rotate(Axis.X, -180.0)

@@ -33,7 +33,7 @@
 // Reads out/web/manifest.json (written by hydroegg/export_web.py) and the GLB it names.
 // CAD frame is Z-up with the flow along +X; three.js is Y-up, so the model root is
 // rotated -90 deg about X. URL params (all optional):
-//   m=<manifest url>  fold=0..1 (0 stowed, 1 deployed)  explode=0..1  cutaway=0|1
+//   m=<manifest url>  fold=0..1 (0 stowed, 1 deployed)  explode=0..1  cutaway=0|1  packed=0|1
 //   internals=0|1  stand=0|1  spin=<deg>  view=<az>,<el> | iso|side|front|back|top
 //   zoom=<factor>  w,h=<px>  dpr=<n>  theme=light|dark|flat  ui=1  only=<name,name>
 import * as THREE from 'three';
@@ -44,7 +44,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 const q = new URLSearchParams(location.search);
 const num = (k, d) => (q.has(k) ? parseFloat(q.get(k)) : d);
 const state = {
-  fold: num('fold', 1), explode: num('explode', 0), cutaway: q.get('cutaway') === '1',
+  fold: num('fold', 1), explode: num('explode', 0), cutaway: q.get('cutaway') === '1', packed: q.get('packed') === '1',
   internals: q.has('internals') ? q.get('internals') === '1' : null,
   stand: q.get('stand') === '1', spin: num('spin', 0),
   view: q.get('view') || 'iso', zoom: num('zoom', 1),
@@ -138,6 +138,10 @@ for (const p of manifest.parts) {
 
 function visible(p) {
   if (state.only) return state.only.includes(p.name);
+  // packed=1: the egg as carried (fins off, blanking strips in); parts flagged packed:true exist only
+  // then, parts flagged packed:false (fins) only otherwise
+  if (p.packed === true && !state.packed) return false;
+  if (p.packed === false && state.packed) return false;
   const internals = state.internals ?? (state.cutaway || state.explode > 0.01);
   switch (p.role) {
     case 'shell': return !state.cutaway;
@@ -192,6 +196,18 @@ window.setState = (patch = {}, refit = true) => {
   return true;
 };
 window.partsInfo = () => parts.map(({ p, holder }) => ({ name: p.name, visible: holder.visible }));
+// Debug: exact CAD-frame bounding box of each part's posed vertices (fold, explode, spin applied),
+// used by hydroegg/cad/assembly.py to check that fold=1 lands the blades on the deployed solids.
+window.partBoxes = (names) => {
+  root.updateMatrixWorld(true);
+  const inv = root.matrixWorld.clone().invert(), m = new THREE.Matrix4(), v = new THREE.Vector3();
+  return parts.filter(({ p }) => !names || names.includes(p.name)).map(({ p, holder, mesh }) => {
+    m.multiplyMatrices(inv, mesh.matrixWorld);
+    const pos = mesh.geometry.attributes.position, b = new THREE.Box3();
+    for (let i = 0; i < pos.count; i++) b.expandByPoint(v.fromBufferAttribute(pos, i).applyMatrix4(m));
+    return { name: p.name, visible: holder.visible, min: b.min.toArray(), max: b.max.toArray() };
+  });
+};
 
 apply(); frame();
 if (q.get('ui') === '1') {

@@ -213,6 +213,66 @@ def coupon_block(labels: bool = True) -> Solid:
     return out
 
 
+# --------------------------------------------------------------------------
+# Coupon B (finding T26): the fits coupon A does not calibrate, on a second 60 x 34 block
+# --------------------------------------------------------------------------
+CB_W, CB_D, CB_H = 60.0, 34.0, 10.0
+DBORES = [(-21.0, 8.0, 8.10), (-9.0, 8.0, 8.15), (3.0, 8.0, 8.25)]       # hub D-bore, 0.5 flat, vertical
+DBORE_FLAT = P.ROTOR_HUB["d_flat_depth"]
+VSEATS = [(-21.5, -4.0, (6.0, 2.0)), (-13.0, -4.0, (6.1, 2.1)), (-4.5, -4.0, (6.2, 2.2))]   # hub block seat
+VDISCS = [(5.0, -4.0, 4.0), (12.0, -4.0, 4.1), (19.0, -4.0, 4.2)]      # disc seats, vertical
+SEAT_DEPTH = 2.2
+HSEATS = [(-22.0, (6.0, 2.0)), (-15.0, (6.1, 2.1)), (-8.0, (6.2, 2.2))]   # blade heel slot, in the -Y face
+HDISCS = [(2.0, 4.0), (9.0, 4.1), (16.0, 4.2)]                             # blade shank seat, -Y face
+EAR = dict(x0=12.0, x1=28.0, y=8.0, h=12.0, holes=((15.5, 2.9), (20.0, 3.0), (24.5, 3.1)))  # hub ear (3.7 thick)
+
+
+def coupon_b(labels: bool = True) -> Solid:
+    """Second tolerance block: hub D-bore D8.10 / 8.15 / 8.25 with the 0.5 flat (vertical, as the hub
+    prints), the deployed-magnet block seats 6.0 x 2.0 / 6.1 x 2.1 / 6.2 x 2.2 and disc seats D4.0 / 4.1
+    / 4.2 both vertical (hub, tail boss) and horizontal in the -Y face (blade heel and shank seats, as
+    the blade prints), and a 3.7 mm upright ear with horizontal press holes D2.9 / 3.0 / 3.1 (the hub
+    ears print with horizontal holes)."""
+    from build123d import Box
+    blk = extrude(RectangleRounded(CB_W, CB_D, 2.0), CB_H)
+    blk = blk.chamfer(0.4, None, blk.edges().group_by(Axis.Z)[0])
+    t = P.HUB_EAR_T
+    ear = Box(EAR["x1"] - EAR["x0"], t, EAR["h"]).moved(
+        Location(((EAR["x0"] + EAR["x1"]) / 2, EAR["y"], CB_H + EAR["h"] / 2 - 0.01)))
+    blk = blk.fuse(ear).clean()
+    cuts = []
+    for x, y, d in DBORES:
+        hole = _zcyl(x, y, d / 2, -1.0, CB_H + 1.0)
+        flat_r = d / 2 - DBORE_FLAT
+        seg = Box(d, d, CB_H + 4.0).moved(Location((x, y + flat_r + d / 2, CB_H / 2)))
+        cuts += [hole - seg, _cone(x, y, d / 2 + 1.0, d / 2, -1.0, 0.0)]
+    for x, y, (a, b) in VSEATS:
+        cuts.append(Box(a, b, SEAT_DEPTH + 1.0).moved(Location((x, y, CB_H - SEAT_DEPTH + (SEAT_DEPTH + 1.0) / 2))))
+    for x, y, d in VDISCS:
+        cuts.append(_zcyl(x, y, d / 2, CB_H - SEAT_DEPTH, CB_H + 1.0))
+    y_face = -CB_D / 2
+    for x, (a, b) in HSEATS:                       # 6.x along z, 2.x along x, depth along +y
+        cuts.append(Box(b, SEAT_DEPTH + 1.0, a).moved(Location((x, y_face + (SEAT_DEPTH - 1.0) / 2, CB_H / 2))))
+    for x, d in HDISCS:
+        cuts.append(Solid.make_cylinder(d / 2, SEAT_DEPTH + 1.0, Plane(origin=(x, y_face - 1.0, CB_H / 2),
+                                                                     z_dir=(0, 1, 0))))
+    for x, d in EAR["holes"]:
+        cuts.append(Solid.make_cylinder(d / 2, t + 2.0, Plane(origin=(x, EAR["y"] - t / 2 - 1.0, CB_H + 6.0),
+                                                            z_dir=(0, 1, 0))))
+    lab = [("8.10", -21.0, 14.0), ("8.15", -9.0, 14.0), ("8.25", 3.0, 14.0),
+           ("6.0", -21.5, 0.6), ("6.1", -13.0, 0.6), ("6.2", -4.5, 0.6),
+           ("4.0", 5.0, 0.6), ("4.1", 12.0, 0.6), ("4.2", 19.0, 0.6),
+           ("H6.0", -22.0, -12.5), ("H6.1", -15.0, -12.5), ("H6.2", -8.0, -12.5),
+           ("H4.0", 2.0, -12.5), ("H4.1", 9.0, -12.5), ("H4.2", 16.0, -12.5), ("EAR", 20.0, 13.5)]
+    for txt, lx, ly in (lab if labels else []):
+        tt = Text(txt, 2.0, font=FONT, font_style=FontStyle.BOLD).moved(Location((lx, ly, CB_H)))
+        cuts.append(extrude(tt, -0.5))
+    out = blk
+    for c in cuts:
+        out = out - c
+    return out
+
+
 def key_lug() -> Solid:
     """Spigot plate with one lug, in the coupon frame at its locked position (lug in the channel at
     the lock azimuth, aft face BAY_AX_CLEAR above the lip cone)."""
@@ -283,6 +343,13 @@ def parts() -> list[dict]:
              rotor=False, qty=1, bought=False, explode=[0, 0, 0],
              notes="prints in the coupon window, tongue bottom down (as the fin)."),
     ]
+    cb = coupon_b()
+    out.append(dict(name="tolerance_coupon_b", shape=cb.moved(Location((0, 230.0, 0))), print=cb, material="stand",
+                    role="hidden", rotor=False, qty=1, bought=False, explode=[0, 0, 0],
+                    notes="Print with coupon A (flat as modelled, no supports): hub D-bore on a shaft offcut, the "
+                          "6 x 2 x 2 block and 4 x 2 disc magnet seats vertical (hub, tail boss) and horizontal in the "
+                          "-Y face (blade heel and shank), and a 3.7 mm upright ear with horizontal D2.9 / 3.0 / 3.1 "
+                          "press holes like the hub ears."))
     _CACHE["parts"] = out
     return out
 
@@ -318,7 +385,8 @@ def _hole_d(solid: Solid, x: float, y: float, z: float, d: float) -> dict:
 def checks() -> dict:
     import trimesh
     ps = parts()
-    blk, kl, kt = (p["print"] for p in ps)
+    blk, kl, kt = (p["print"] for p in ps[:3])
+    cb = ps[3]["print"]
     res = dict(parts=[], features=[], interfaces=[])
     for p in ps:
         c = check(p["print"], p["name"])
@@ -336,6 +404,27 @@ def checks() -> dict:
         F.append(dict(feature="pin hole (press)" if d < 3.15 else "pin hole (run)", **_hole_d(blk, x, y, 5.0, d)))
     F.append(dict(feature="M3 insert hole", **_hole_d(blk, INSERT[0], INSERT[1], H - 3.0, INSERT[2])))
     F.append(dict(feature="M12 tap drill", **_hole_d(blk, M12[0], M12[1], 5.0, M12[2])))
+    for x, y, d in DBORES:
+        okr = True
+        for a in np.radians(np.arange(-170.0, -9.0, 20.0)):             # round half (the flat faces +y)
+            okr &= (not cb.is_inside(Vector(x + (d / 2 - 0.01) * math.cos(a), y + (d / 2 - 0.01) * math.sin(a), 5.0))) \
+                and cb.is_inside(Vector(x + (d / 2 + 0.01) * math.cos(a), y + (d / 2 + 0.01) * math.sin(a), 5.0))
+        fr = d / 2 - DBORE_FLAT
+        okf = (not cb.is_inside(Vector(x, y + fr - 0.01, 5.0))) and cb.is_inside(Vector(x, y + fr + 0.01, 5.0))
+        F.append(dict(feature="B: hub D-bore D%.2f with a %.1f flat (round half and flat probed)" % (d, DBORE_FLAT),
+                      xy=[x, y], ok=bool(okr and okf)))
+    for x, y, d in VDISCS:
+        F.append(dict(feature="B: disc seat vertical", **_hole_d(cb, x, y, CB_H - 1.0, d)))
+    for x, y, (a, b) in VSEATS:
+        ok = (not cb.is_inside(Vector(x + b / 2 - 0.02, y + a / 2 - 0.02, CB_H - 1.0))) and \
+            cb.is_inside(Vector(x + b / 2 + 0.02, y, CB_H - 1.0)) if False else \
+            (not cb.is_inside(Vector(x + a / 2 - 0.02, y + b / 2 - 0.02, CB_H - 1.0))) and \
+            cb.is_inside(Vector(x + a / 2 + 0.02, y, CB_H - 1.0)) and cb.is_inside(Vector(x, y + b / 2 + 0.02, CB_H - 1.0))
+        F.append(dict(feature="B: block seat vertical %.1f x %.1f" % (a, b), xy=[x, y], ok=bool(ok)))
+    for x, d in EAR["holes"]:
+        pin_ = Vector(x, EAR["y"], CB_H + 6.0 + d / 2 - 0.02)
+        pout = Vector(x, EAR["y"], CB_H + 6.0 + d / 2 + 0.02)
+        F.append(dict(feature="B: ear press hole horizontal D%.1f" % d, ok=bool((not cb.is_inside(pin_)) and cb.is_inside(pout))))
     I = res["interfaces"]
 
     def add(name, value, ok, **kw):
@@ -386,6 +475,13 @@ def checks() -> dict:
         "M12: tap M12x1.5 through and screw the gland in; 10 mm of thread.",
         "keys: the tongue slides in the groove without play you can feel; the lug passes the gap and slides "
         "to the lock end (0.25 radial, 0.2 axial play).",
+        "coupon B, D-bore: an 8 mm g6 shaft offcut with a 0.5 flat must slide in by hand with no rock: pick the "
+        "bore (8.10 / 8.15 / 8.25) and set ROTOR_HUB.bore_d.",
+        "coupon B, magnet seats: a 6 x 2 x 2 block and a 4 x 2 disc must drop into the vertical and the "
+        "horizontal (H) seats with a little play for the CA glue: pick the sizes for the hub (vertical), the "
+        "blade (horizontal) and the tail boss (vertical, prints at 45 deg).",
+        "coupon B, ear: the 3 mm dowel must press into the horizontal ear holes without splitting the 3.7 mm "
+        "ear: pick 2.9 / 3.0 / 3.1 for the hub ears (they print horizontal, unlike the pin row of coupon A).",
     ]
     return res
 

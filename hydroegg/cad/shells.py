@@ -15,23 +15,34 @@ on its tail end face, spigot tip up), so "down" for the 45 deg overhang rule is 
 Design decisions taken here (the interface values themselves come from params.py and the
 layout JSON; nothing below changes them):
 
-* Pockets: ONE cutter per blade lofted (ruled) through the rows of the pocket_depth table:
-  floor_r(x) over theta_b + [-az_hi, -az_lo]. The table floor already rises <= 45 deg (rotor
-  study printable_floor). The side walls follow the table and are widened only where they
-  would widen aft faster than 45 deg (an overhang when printed +X down) and stand >= 0.5 mm. A matching "liner" (the cutter grown by
-  POCKET_FLOOR_WALL normal to the floor and the side walls) is added inside each shell first,
-  so >= 2.0 mm of shell stays under every floor and beside every side wall.
+* Pockets (finding T04): the layout table gives the floor (deepest point per row, kept) and radial
+  side walls at the blade's widest point + 0.8 (a 0.5 deg raster), which left a serrated 1.4 to
+  6.6 mm shadow gap at the skin. Each section now has: the table floor, the table's depth-wise
+  bounds (smoothed outward) below the lip, a 45 deg in-slice flare up to the RIM, a rim wall in the
+  skin band at the blade's swept footprint (fold 0..90, layout surface, r > R - POCKET_LIP_T) +
+  POCKET_RIM_CLEAR, a 0.6 x 45 deg chamfer through the skin, then radial walls above the hull. Rim
+  and deep bounds are running envelopes through a monotone spline that never goes inside them;
+  the cutter is a set of smooth lofts (<= 8 sections each, uniform spacing: OCC parametrises the
+  sections uniformly) sewn into one solid, ruled on the root-notch ramp. Shells print +X down, so
+  in-slice undercuts cost nothing; the 45 deg widening rule between slices is kept. A matching
+  "liner" (the deep cutter grown by POCKET_FLOOR_WALL normal to the floor and the side walls) is
+  added inside each shell first, so >= 2.0 mm of shell stays under every floor.
 * Socket / spigot: JOINT and BAYONET as given. The lip's forward face is a 45 deg cone that
   matches the lug's 45 deg aft face (0.2 mm axial play), the lip's aft face is a 45 deg chamfer
   (it is an overhang when the front shell prints), the twist channel's forward wall is a 45 deg
   ceiling. The channel ends exactly at the locked lug, so the hard stop aligns the pockets of
-  both shells. The seal bore gets a 20 deg x 0.4 mm O-ring lead-in at the equator face.
+  both shells. The seal bore gets an 18 deg x 0.85 mm O-ring lead-in at the equator face (finding
+  T05: the stretched ring stands 0.48 above the bore), cut after the pocket liners.
 * Carrier seat: the 1.6 mm ring (CARRIER.ring) follows the shell wall; the twist lock is
   defined in CARRIER_LOCK (shell side, the carrier plate builder matches it): 3 tabs enter
   through 3 notches in the ring's aft lip and turn 30 deg toward -theta (the generator's
   reaction torque drives them into the hard stop) inside a groove whose forward wall is a 45
   deg seat cone.
-* Fins: pads and half-dovetail grooves per FIN (yawed with the fin). Retention: the reviewer is
+* Fins: pads and half-dovetail grooves per FIN (yawed with the fin); the pad front is rounded R3 in
+  plan, its root blends into the hull with R2 (the side that runs 2.2 to 3.6 mm from a pocket rim
+  sets the radius) and the groove mouth has 0.5 x 45 deg chamfers (finding T07); the
+  groove is 0.8 deeper than FIN.groove_depth so both cross-pin ligaments reach 1.2 (T18). The pads
+  still stand ~9 mm proud: lowering them needs a lower fin root standoff (layout). Retention: the reviewer is
   right that an M3 heat-set insert does not fit the 10 mm pad beside a 4 mm deep groove, so the
   fin is held by a 2 mm cross pin through the pad and the tongue (FIN_RAIL), hole printed as a
   teardrop; the groove is closed at the end stop, so drag pushes the fin home and the pin only
@@ -43,12 +54,18 @@ layout JSON; nothing below changes them):
   (the steepest support-free direction; boss face, hole and boss side all print at 45 deg),
   5.7 deg off the blade magnet's axis. The boss face clears the stowed blade by 0.1 mm over its
   whole 6.5 mm diameter (layout.py surface), which leaves ~1.0 mm between the magnet faces
-  (~1.3 N per the layout force table, ~7x the blade's gravity moment). See STOW_DETENT.
+  (~1.3 N per the layout force table, ~7x the blade's gravity moment). Finding T15: the static
+  magnet now sits 0.05 below the boss face and the blade magnet 0.1 below its mouth: ~0.70 mm,
+  ~1.75 N. The boss's lowest tip still starts ~1.1 mm (print height) above the floor ramp: a chin
+  or a column would hit the stowed blade root, which runs right behind it (open issue). See
+  STOW_DETENT.
 * Bearing tube: crush ribs (3 per seat) reach D21.9 / D15.9 (PRESS_FIT per side) in relieved
   bores D22.4 / D16.3; the seal shoulder's underside is a 0.6 mm flat ring (the seal's stop)
   plus a 45 deg cone, the only intentional sub-45 deg-rule face of the tube (reported).
 * Nose: plug forward of NOSE_PLUG.x_45 with a flat bridge (38.6 mm, reported as a bridge),
-  tow eye ring with a teardrop hole, raised gland seat block, 10.5 mm tap-drill bore through
+  tow eye (finding T06): a teardrop lug, its outer profile parallel to the hole's teardrop so the
+  crown keeps TOW_EYE ring_w (5.0) normal to the 45 deg flanks, the hole apex cut to a 2 mm flat,
+  the root blended R2 into the nose; raised gland seat block, 10.5 mm tap-drill bore through
   block, wall and plug (tapped M12x1.5 after printing, no modelled thread).
 """
 
@@ -94,6 +111,22 @@ OUT_CHECKS = REPO / "out" / "cad" / "checks"
 TAN45 = 1.0
 DX_TAB = 0.5                               # pocket table row spacing (mm)
 FLOOR_PRINT_DEG = 44.5                     # CAD pocket floor rise limit (table: 45, see pocket_profile)
+# Pocket rim (finding T04). The table's side walls are radial planes at the blade's widest point
+# + 0.8 side clearance (min-filtered on a 0.5 deg raster): at the skin that left a serrated 1.4 to
+# 6.6 mm shadow gap. The rim at the skin now follows the blade's swept footprint (fold 0..90) in the
+# lip band [R - POCKET_LIP_T, R] + POCKET_RIM_CLEAR; below the lip the walls flare out at 45 deg
+# (in-slice: free when printed +X down) to the table's depth-wise bounds, which are kept as they
+# were (smoothed). Rim and deep bounds are running-max envelopes (+-POCKET_SMOOTH) through a
+# monotone spline that never goes inside them; the cutter is a smooth loft through ~25 rows.
+POCKET_RIM_CLEAR = 1.0
+POCKET_LIP_T = P.MIN_WALL
+POCKET_RIM_CHAMFER = 0.6
+POCKET_SMOOTH = 1.0
+POCKET_ROW_STEP = 1.0                      # smooth-loft row spacing (mm) in the long middle zone
+POCKET_ROW_STEP_DENSE = 1.0                # ... and aft of POCKET_DENSE_X (the root-notch widening)
+POCKET_DENSE_X = 82.0
+POCKET_CHUNK = 8                           # sections per smooth loft (C0 joints between lofts)
+POCKET_MIN_EDGE = 0.3                      # shortest edge of a pocket section (mm)
 
 # --------------------------------------------------------------------------
 # Interface values (params.py; nothing here re-derives them)
@@ -121,7 +154,12 @@ ENTRY = list(BY["entry_theta_deg"])        # [37, 157, 277]
 GAP_W = BY["gap_w_deg"]                    # 20
 BAY_AX_CLEAR = 0.2                         # lug aft cone <-> lip cone, axial play
 LUG_CHAMFER = 0.4                          # lug forward-outer edge (O-ring and entry lead)
-SEAL_LEAD = (0.4, 20.0)                    # seal bore lead-in at the equator: radial mm, deg
+# O-ring lead-in at the equator (finding T05): the stretched -141 stands to r 32.528, 0.48 above
+# the D64.09 bore, so the mouth must open beyond it at every azimuth: 0.85 radial at 18 deg (mouth
+# D65.79, 2.62 long). It is cut AFTER the pocket liners (the liners had refilled it to 0.29 under
+# the three pockets); there the wall to the pocket floor drops to ~1.6 at the face (>= MIN_WALL,
+# reported separately from the 2.0 under-pocket rule).
+SEAL_LEAD = (0.85, 18.0)                   # seal bore lead-in at the equator: radial mm, deg
 EQ_CHAMFER = 0.5                           # outer edge of the equator faces (parting V, elephant foot)
 TAIL_CHAMFER = 0.4                         # outer edge of the static tail end face
 
@@ -146,23 +184,31 @@ CARRIER_LOCK["entry_theta_deg"] = [(t + CARRIER_LOCK["twist_deg"]) % 360.0 for t
 
 # Fin rail (shell side): groove section in the yawed pad, cross pin retention.
 FIN = P.FIN
+# Finding T18: with groove depth 4, a 2 mm pin left ~1.0 mm of pad over the D2.0 hole and 0.55 mm of
+# tongue under its D2.3 hole. The groove and the tongue are 0.8 deeper (4.8, the 45 deg undercut kept:
+# neck 3.3) and the pin sits at depth 2.2: both ligaments reach 1.2 (PROPOSED FIN.groove_depth 4.8).
 FIN_RAIL = dict(
-    pad_w=FIN["rail_w"], groove_depth=FIN["groove_depth"],
-    groove_w_top=4.5, groove_neck_h=2.5, groove_w_bottom=6.0,
+    pad_w=FIN["rail_w"], groove_depth=FIN["groove_depth"] + 0.8,
+    groove_w_top=4.5, groove_neck_h=2.5 + 0.8, groove_w_bottom=6.0,
     groove_w_offset=-2.25,              # w of the flat (vertical) wall, on the fin's flat side (-w)
     end_stop_u=FIN["chord"],            # groove closed at u = chord (fin TE at x_te 55.5)
-    pin_d=2.0, pin_hole_d=2.0, pin_l=10.0, pin_u=32.0, pin_depth=2.0,
-    tongue_pin_hole_d=2.3,
+    pin_d=2.0, pin_hole_d=2.0, pin_l=10.0, pin_u=32.0, pin_depth=2.2,
+    tongue_pin_hole_d=2.3, mouth_chamfer=0.5,
     note="u: along the yawed root chord from the LE (x_le 16.37 at w = 0), w: across, + toward +theta; "
          "depth: radial at the fin angle below the root line (pad top). Groove: flat wall at w = -2.25 "
-         "full depth (the fin's flat Clark Y side faces -theta), +w wall vertical to depth 2.5 then a 45 "
-         "deg undercut to w = +3.75 at depth 4 (mean width 4.78). Cross pin: ISO 8734 2 x 10 (or a 1.75 "
-         "mm filament stub) along w at u 32, depth 2.0, snug in the pad (D2.0 teardrop), D2.3 in the "
-         "tongue.",
+         "full depth (the fin's flat Clark Y side faces -theta), +w wall vertical to depth 3.3 then a 45 "
+         "deg undercut to w = +3.75 at depth 4.8 (mean width 4.73); 0.5 x 45 deg chamfers on the mouth. "
+         "Cross pin: ISO 8734 2 x 10 (or a 1.75 mm filament stub) along w at u 32, depth 2.2, snug in the "
+         "pad (D2.0 teardrop), D2.3 in the tongue: 1.2 mm of pad over the hole, 1.2 of tongue under it.",
 )
+PAD_FRONT_R = 3.0                          # DESIGN: rounded front of the rail pad (plan), finding T07
+PAD_ROOT_R = 2.0                           # DESIGN: pad-to-hull blend (falls back to 1.5 / 1.0)
+PAD_ROOT_USED = [None]
 
+# Finding T15: the static magnet now sits C.STOW_BOSS_RECESS (0.05) below the boss face (was 0.2) and
+# the blade magnet 0.1 below its seat mouth (blade.py), which takes the pair from 1.045 to ~0.70 mm.
 STOW_DETENT = dict(axis_lean_deg=45.0, boss_r=3.25, magnet_hole_d=P.MAGNET["D"] + 0.1,
-                   magnet_hole_depth=P.MAGNET["H"] + 0.2, face_clear=0.1)
+                   magnet_hole_depth=P.MAGNET["H"] + C.STOW_BOSS_RECESS, face_clear=0.1)
 
 CUTAWAY_THETA = (-73.0, 17.0)              # removed sector (theta), see cutaway_sector()
 # Seam azimuths of the full solids of revolution (windows free of every cutter that touches them):
@@ -314,6 +360,65 @@ def _printable_bounds(lo, hi, r_arc, dx, active=None):
     return lo, hi
 
 
+def _envelope(v: np.ndarray, half: float, upper: bool) -> np.ndarray:
+    """Running max (upper) / min of a bound over +-half mm of rows."""
+    w = 2 * int(round(half / DX_TAB)) + 1
+    return maximum_filter1d(v, w, mode="nearest") if upper else -maximum_filter1d(-v, w, mode="nearest")
+
+
+def _smooth_outside(x: np.ndarray, v: np.ndarray, upper: bool, step: int = 3) -> np.ndarray:
+    """Monotone cubic (PCHIP) through knots every ``step`` rows whose values are the extreme of v over
+    the two adjacent knot intervals: between two knots the curve is monotone, so it never lies inside
+    v (upper: curve >= v; lower: curve <= v) and never overshoots the local extreme of v."""
+    from scipy.interpolate import PchipInterpolator
+    idx = np.unique(np.r_[np.arange(0, len(x), step), len(x) - 1])
+    vals = []
+    for j, k in enumerate(idx):
+        a = idx[max(j - 1, 0)]
+        b = idx[min(j + 1, len(idx) - 1)]
+        seg = v[a:b + 1]
+        vals.append(seg.max() if upper else seg.min())
+    f = PchipInterpolator(x[idx], np.array(vals, float))(x)
+    assert (f >= v - 1e-9).all() if upper else (f <= v + 1e-9).all()
+    return f
+
+
+@functools.lru_cache(maxsize=1)
+def swept_rim(step: float = 0.3) -> dict:
+    """Blade 0's swept azimuth range (theta, deg; theta_b = 0) in the lip band r in
+    [R(x) - POCKET_LIP_T, R(x) + 0.5] per pocket table row (+-0.25 mm in x), folds 0..90
+    (1 deg, 0.25 deg from 80), from hydroegg.layout's blade surface (aero + shank). Also the same
+    for the stowed blade alone, and the swept range below the lip in 0.6 mm depth bands (checks)."""
+    from .. import layout as RL
+    tab = json.loads((DATA / "layout_rotor.json").read_text())
+    X = np.array(tab["pocket_depth"]["x_mm"], float)
+    blade, lay = RL.load_blade(), RL.chosen_layout()
+    a = tab["axis"]
+    ax = RL.BladeAxis(np.array(a["r_mm"]), np.array(a["s_mm"]), np.array(a["lead_mm"]), np.array(a["aft_mm"]),
+                      np.array(a["slope_daft_ds"]), np.array(a["aft_poly_coef_mm"]),
+                      np.array(a["lead_poly_coef_mm"]), blade.r_root, blade.r_tip)
+    S = RL.blade_surface(blade, lay, ax)
+    cloud = np.vstack([RL.densify(S.aero, step).reshape(-1, 3), RL.densify(S.shank, step).reshape(-1, 3)])
+    lo, hi = np.full(X.size, np.inf), np.full(X.size, -np.inf)
+    lo_st, hi_st = lo.copy(), hi.copy()
+    folds = np.concatenate([np.arange(0.0, 80.0, 1.0), np.arange(80.0, lay.fold_deg + 1e-9, 0.25)])
+    for f in folds:
+        W = RL.apply(RL.blade_to_world(f, lay.psi(0), lay), cloud)
+        xx, r = W[:, 0], np.hypot(W[:, 1], W[:, 2])
+        th = np.degrees(np.arctan2(W[:, 1], W[:, 2]))
+        i = np.round((xx - X[0]) / DX_TAB).astype(int)
+        ic = np.clip(i, 0, X.size - 1)
+        R = profile.radius(np.clip(xx, 0.0, P.HULL_L))
+        band = (i >= 0) & (i < X.size) & (np.abs(xx - X[ic]) <= DX_TAB / 2 + 1e-9) & (r >= R - POCKET_LIP_T) \
+            & (r <= R + 0.5)
+        np.minimum.at(lo, i[band], th[band])
+        np.maximum.at(hi, i[band], th[band])
+        if abs(f - lay.fold_deg) < 1e-9:
+            np.minimum.at(lo_st, i[band], th[band])
+            np.maximum.at(hi_st, i[band], th[band])
+    return dict(x=X, lo=lo, hi=hi, lo_stowed=lo_st, hi_stowed=hi_st, n_folds=len(folds), n_points=len(cloud))
+
+
 @functools.lru_cache(maxsize=1)
 def pocket_profile() -> dict:
     """Pocket and liner sections for the blade at theta 0, from layout_rotor.json pocket_depth.
@@ -342,18 +447,33 @@ def pocket_profile() -> dict:
     i = int(np.argmin(np.abs(x - xs_)))
     assert az_lo[i] <= az_ <= az_hi[i] and fl[i] < rs_         # the point lies inside the pocket
 
-    # --- theta bounds of the pocket at theta_b = 0: [-az_hi, -az_lo], exactly the table (its 0.5
-    # deg raster steps stay: smoothing them into an envelope cost the fin pads 0.4 mm of land),
-    # widened only where a side wall would widen aft faster than 45 deg and is >= 0.5 mm tall
+    # --- deep (depth-wise) theta bounds of the pocket at theta_b = 0: the table [-az_hi, -az_lo],
+    # smoothed outward (T04: no 0.5 deg raster steps), widened where a side wall would widen aft
+    # faster than 45 deg and is >= 0.5 mm tall
     th_lo, th_hi = -az_hi, -az_lo
     r_arc = np.array([r_out(v) for v in x]) + 1.0
     deep = (np.array([r_out(v) for v in x]) - fl) >= 0.5
-    th_lo, th_hi = _printable_bounds(th_lo, th_hi, r_arc, DX_TAB, active=deep)
     # square tip: the rows ahead of the first 0.5 mm deep row (the table's narrow 0.01 mm deep tip
     # row) take that row's bounds, so the floor's 45 deg ramp closes the pocket with parallel side
     # walls instead of sub-millimetre ledges
     i0 = int(np.argmax(deep))
     th_lo[:i0], th_hi[:i0] = th_lo[i0], th_hi[i0]
+    th_lo = _smooth_outside(x, _envelope(th_lo, POCKET_SMOOTH, upper=False), upper=False)
+    th_hi = _smooth_outside(x, _envelope(th_hi, POCKET_SMOOTH, upper=True), upper=True)
+    # --- rim bounds at the skin (swept footprint in the lip band + POCKET_RIM_CLEAR), inside the deep ones
+    sw = swept_rim()
+    assert np.allclose(sw["x"], x)
+    rr = np.array([r_out(v) for v in x])
+    clr = np.degrees((POCKET_RIM_CLEAR + 0.15) / rr)          # + half the 0.3 mm surface sampling step
+    rlo, rhi = sw["lo"] - clr, sw["hi"] + clr
+    ok = np.isfinite(rlo) & np.isfinite(rhi)
+    j0 = int(np.argmax(ok))
+    rlo[:j0], rhi[:j0] = rlo[j0], rhi[j0]                     # pocket tip: square, as the deep bounds
+    rlo = _smooth_outside(x, _envelope(rlo, POCKET_SMOOTH, upper=False), upper=False)
+    rhi = _smooth_outside(x, _envelope(rhi, POCKET_SMOOTH, upper=True), upper=True)
+    rlo, rhi = _printable_bounds(rlo, rhi, rr, DX_TAB)
+    th_lo, th_hi = np.minimum(th_lo, rlo), np.maximum(th_hi, rhi)
+    th_lo, th_hi = _printable_bounds(th_lo, th_hi, r_arc, DX_TAB, active=deep)
 
     # --- floor rule check (the table must already rise <= 45 deg going forward), then the same
     # rule at FLOOR_PRINT_DEG: the ruled loft twists the table's exact 45 deg ramps to 45.34 deg,
@@ -371,6 +491,8 @@ def pocket_profile() -> dict:
     fl_e = np.concatenate([[fl[0] + kf], fl, [fl[-1]]])
     lo_e = np.concatenate([[th_lo[0] + 0.0], th_lo, [th_lo[-1]]])
     hi_e = np.concatenate([[th_hi[0]], th_hi, [th_hi[-1]]])
+    rlo_e = np.concatenate([[rlo[0]], rlo, [rlo[-1]]])
+    rhi_e = np.concatenate([[rhi[0]], rhi, [rhi[-1]]])
     assert fl_e[0] > r_out(x_e[0]), "forward pocket row must start outside the hull"
 
     # --- liner: floor - W along the floor normal, bounds widened by W at the floor radius
@@ -385,9 +507,9 @@ def pocket_profile() -> dict:
     dth = np.degrees(W / fl_e)
     l_lo, l_hi = lo_e - dth, hi_e + dth
     l_lo, l_hi = _printable_bounds(l_lo, l_hi, np.array([r_in(v) for v in x_e]), DX_TAB)
-    return dict(x=x_e, floor=fl_e, th_lo=lo_e, th_hi=hi_e, liner_floor=lf, liner_lo=l_lo, liner_hi=l_hi,
-                table=dict(x=x, floor=fl_table, az_lo=az_lo, az_hi=az_hi), cad_floor=fl, tip_rows=i0,
-                sample=dict(x=xs_, az=az_, r=rs_))
+    return dict(x=x_e, floor=fl_e, th_lo=lo_e, th_hi=hi_e, rim_lo=rlo_e, rim_hi=rhi_e, liner_floor=lf,
+                liner_lo=l_lo, liner_hi=l_hi, table=dict(x=x, floor=fl_table, az_lo=az_lo, az_hi=az_hi),
+                cad_floor=fl, tip_rows=i0, sample=dict(x=xs_, az=az_, r=rs_), swept=sw)
 
 
 def _sector_wire(x: float, r0: float, r1: float, th0: float, th1: float) -> Wire:
@@ -424,18 +546,131 @@ def _decimate(x, cols, tols) -> np.ndarray:
     return np.array(keep)
 
 
+def pocket_section(i: int, r_top: float = 41.0) -> dict:
+    """Pocket section at row i of pocket_profile (theta_b = 0), as (theta deg, r) vertices:
+    floor arc at the table floor between the flare feet A0 / B0, walls up the deep bounds to A1 / B1,
+    45 deg flare in to the rim bounds at the lip underside A2 / B2 (R - POCKET_LIP_T), rim walls up to
+    the chamfer start A3 / B3 (R - POCKET_RIM_CHAMFER), 45 deg chamfer out through the skin to A5 / B5
+    at r_top. Clamped so every edge keeps a positive length where the pocket is shallow."""
+    pp = pocket_profile()
+    x, fl = float(pp["x"][i]), float(pp["floor"][i])
+    R = r_out(x)
+    e = POCKET_MIN_EDGE                          # every section edge >= this (OCC made sliver faces invalid)
+    r_c = max(R - POCKET_RIM_CHAMFER, fl + 3 * e)
+    r_lip = min(max(R - POCKET_LIP_T, fl + 2 * e), r_c - e)
+    out = {"x": x, "floor": fl, "r_lip": r_lip, "r_c": r_c}
+    for side, sg, tr, td in (("lo", -1.0, pp["rim_lo"][i], pp["th_lo"][i]), ("hi", 1.0, pp["rim_hi"][i], pp["th_hi"][i])):
+        g = max(math.radians(abs(td - tr)) * r_lip, e)
+        r1 = min(max(r_lip - g, fl + e), r_lip - e)
+        t1 = tr + sg * math.degrees((r_lip - r1) / r_lip)
+        r4 = max(R + 0.3, r_c + e)                 # chamfer ends just outside the skin, then radial:
+        t4 = tr + sg * math.degrees((r4 - r_c) / R)   # (the cutter must not reach the fin pads above it)
+        out[side] = [(t1, fl), (t1, r1), (tr, r_lip), (tr, r_c), (t4, r4), (t4, r_top)]
+    return out
+
+
+def _section_wire(sec: dict, r_top: float) -> Wire:
+    x = sec["x"]
+    lo, hi = sec["lo"], sec["hi"]
+    P_ = lambda tr: pt(x, tr[1], tr[0])                            # noqa: E731
+    e = []
+    for a, b in zip(lo[:-1], lo[1:]):                              # A0 -> A5 (up the -theta side)
+        e.append(Edge.make_line(P_(a), P_(b)))
+    tm = 0.5 * (lo[-1][0] + hi[-1][0])
+    e.append(Edge.make_three_point_arc(P_(lo[-1]), pt(x, r_top, tm), P_(hi[-1])))
+    for a, b in zip(hi[::-1][:-1], hi[::-1][1:]):                  # B5 -> B0 (down the +theta side)
+        e.append(Edge.make_line(P_(a), P_(b)))
+    tf = 0.5 * (lo[0][0] + hi[0][0])
+    e.append(Edge.make_three_point_arc(P_(hi[0]), pt(x, sec["floor"], tf), P_(lo[0])))
+    return Wire(e)
+
+
+def pocket_rows() -> list:
+    """Loft row groups: the forward tip (every table row while the floor is within the lip band),
+    the long middle zone (rows every ~POCKET_ROW_STEP), the root-notch ramp (every 2.5 mm). Each
+    group is lofted smooth (ruled=False) on its own; consecutive groups share their end row."""
+    pp = pocket_profile()
+    x, fl = pp["x"], pp["floor"]
+    R = np.array([r_out(v) for v in x])
+    n = len(x)
+    i_tip = int(np.argmax(R - fl > POCKET_LIP_T + 0.6))           # first row deeper than the lip band
+    slope = (fl[:-1] - fl[1:]) / DX_TAB                           # floor drop going aft
+    ramp = np.nonzero((slope > 0.8) & (np.arange(n - 1) > n // 2))[0]
+    i_r = int(ramp[0]) if ramp.size else n - 1
+    k = max(1, int(round(POCKET_ROW_STEP / DX_TAB)))
+    kd = max(1, int(round(POCKET_ROW_STEP_DENSE / DX_TAB)))
+    # runs of uniform row spacing (OCC's smooth ThruSections parametrises the sections uniformly, so
+    # a change of spacing inside one loft makes it overshoot by millimetres): the tip transition
+    # every row, the middle every k rows, the root-notch widening every kd rows, the ramp every kd rows
+    i_t = min(i_tip + int(round(3.0 / DX_TAB)), i_r)
+    i_d = max(i_t, int(np.searchsorted(x, POCKET_DENSE_X)))
+    i_d = i_t + ((i_d - i_t) // k) * k                             # land the middle run on a row
+    runs = [(0, i_tip, 1), (i_tip, i_t, 1), (i_t, i_d, k), (i_d, i_r - (i_r - i_d) % kd, kd)]
+    i_e = runs[-1][1]
+    runs += [(i_e, i_r, 1), (i_r, n - 1 - (n - 1 - i_r) % kd, kd), (n - 1 - (n - 1 - i_r) % kd, n - 1, 1)]
+    out = []
+    for a_, b_, st in runs:
+        rows = list(range(a_, b_ + 1, st))
+        if len(rows) < 2:
+            continue
+        if a_ >= i_r:                                            # root-notch ramp: piecewise linear floor
+            out.append(rows)                                     # (a smooth loft rounded the 45 deg ramp's
+            continue                                             #  kink to 47 deg): one ruled loft
+        j = 0
+        while j < len(rows) - 1:                                 # chunks of <= POCKET_CHUNK sections
+            out.append(rows[j:j + POCKET_CHUNK])
+            j += POCKET_CHUNK - 1
+    return out
+
+
+@functools.lru_cache(maxsize=2)
+def _pocket_cutter0(r_top: float = 41.0) -> Solid:
+    """Smooth lofts through the pocket_rows() chunks, sewn into one solid (a boolean fuse of lofts
+    that share an end section returned an invalid solid)."""
+    from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeSolid, BRepBuilderAPI_Sewing
+    from OCP.BRepLib import BRepLib
+    from OCP.TopAbs import TopAbs_SHELL
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopoDS import TopoDS
+    from build123d import GeomType
+    pp = pocket_profile()
+    groups = pocket_rows()
+    xa, xb = float(pp["x"][groups[0][0]]), float(pp["x"][groups[-1][-1]])
+    sew = BRepBuilderAPI_Sewing(1e-5)
+    i_ramp = groups[-1][0]
+    for grp in groups:
+        ruled = len(grp) < 3 or grp[0] >= i_ramp
+        loft = Solid.make_loft([_section_wire(pocket_section(i, r_top), r_top) for i in grp], ruled=ruled)
+        for f in loft.faces():
+            if f.geom_type == GeomType.PLANE and abs(f.normal_at(f.center()).X) > 0.999 \
+                    and min(abs(f.center().X - xa), abs(f.center().X - xb)) > 1e-6:
+                continue                                       # internal cap shared by two chunks
+            sew.Add(f.wrapped)
+    sew.Perform()
+    ex = TopExp_Explorer(sew.SewedShape(), TopAbs_SHELL)
+    ms = BRepBuilderAPI_MakeSolid()
+    while ex.More():
+        ms.Add(TopoDS.Shell(ex.Current()))
+        ex.Next()
+    so = ms.Solid()
+    BRepLib.OrientClosedSolid_s(so)
+    out = Solid(so)
+    assert out.is_valid and len(out.shells()) == 1
+    return out
+
+
 def pocket_cutter(theta_b: float = 0.0, liner: bool = False, r_top: float = 41.0) -> Solid:
-    """The reusable pocket cutter (or its liner) of the blade at theta_b: a ruled loft through
-    the table rows (rows that linear interpolation reproduces within 0.01 mm / 0.02 deg are
-    skipped)."""
+    """The reusable pocket cutter (or its liner) of the blade at theta_b. Liner: a ruled loft of
+    annular sectors through the rows (rows that linear interpolation reproduces within 0.01 mm /
+    0.02 deg are skipped). Pocket: smooth lofts of pocket_section() through pocket_rows()."""
     pp = pocket_profile()
     if liner:
         f, lo, hi = pp["liner_floor"], pp["liner_lo"], pp["liner_hi"]
+        k = _decimate(pp["x"], (f, lo, hi), (0.01, 0.02, 0.02))
+        ws = [_sector_wire(float(pp["x"][i]), float(f[i]), r_top, float(lo[i]), float(hi[i])) for i in k]
+        s = Solid.make_loft(ws, ruled=True)
     else:
-        f, lo, hi = pp["floor"], pp["th_lo"], pp["th_hi"]
-    k = _decimate(pp["x"], (f, lo, hi), (0.01, 0.02, 0.02))
-    ws = [_sector_wire(float(pp["x"][i]), float(f[i]), r_top, float(lo[i]), float(hi[i])) for i in k]
-    s = Solid.make_loft(ws, ruled=True)
+        s = _pocket_cutter0(r_top)
     assert s.is_valid
     return C.at_azimuth(s, theta_b) if theta_b else s
 
@@ -480,6 +715,15 @@ def _front_cavity() -> Solid:
         ("L", (x_lead, R_BORE)), ("L", (EQ, R_BORE + lead_r)), ("L", (EQ + 1.0, R_BORE + lead_r)),
         ("L", (EQ + 1.0, 0.0)),
     ]
+    return revolve_nodes(nodes, seam=SEAM_CAVITY)
+
+
+def _seal_lead_cutter() -> Solid:
+    """The O-ring lead-in cone alone (cut after the pocket liners are added)."""
+    lead_r, lead_deg = SEAL_LEAD
+    x_lead = EQ - lead_r / math.tan(math.radians(lead_deg))
+    nodes = [("L", (x_lead - 0.5, R_BORE - 0.6)), ("L", (x_lead - 0.5, R_BORE)), ("L", (x_lead, R_BORE)),
+             ("L", (EQ, R_BORE + lead_r)), ("L", (EQ + 1.0, R_BORE + lead_r)), ("L", (EQ + 1.0, R_BORE - 0.6))]
     return revolve_nodes(nodes, seam=SEAM_CAVITY)
 
 
@@ -528,21 +772,80 @@ def _carrier_cutters() -> list:
     return out
 
 
-def _eye() -> Solid:
-    """Tow eye: ring in the XZ plane (hole axis Y) ahead of the nose, teardrop hole (tip toward
-    -X, up when the front shell prints nose-up), outer edges rounded."""
+EYE_APEX_R = 1.5                           # DESIGN: round of the outer teardrop apex
+EYE_HOLE_FLAT = 2.0                        # DESIGN: hole apex truncated to this flat (short bridge)
+EYE_ROOT_R = 2.0                           # DESIGN: fillet where the ring meets the nose
+
+
+def eye_profile() -> dict:
+    """Tow-eye outline in the XZ plane (finding T06). The ring's outer profile is a teardrop too
+    (circle R hole/2 + ring_w, 45 deg roof toward -X with an EYE_APEX_R round), parallel to the
+    hole's teardrop, so the crown in front of the hole keeps TOW_EYE ring_w normal to the 45 deg
+    flanks; the hole's apex is cut to an EYE_HOLE_FLAT flat (a 2 mm bridge when printed nose-up),
+    so the line bears on the two flanks, not on a point."""
     E = P.TOW_EYE
-    xc, rh = E["hole_centre_x"], E["hole_d"] / 2
-    ro, t = rh + E["ring_w"], E["ring_t"]
-    ring = Solid.make_cylinder(ro, t, Plane(origin=(xc, -t / 2, 0), z_dir=(0, 1, 0)))
+    xc, rh = float(E["hole_centre_x"]), E["hole_d"] / 2
+    ro = rh + E["ring_w"]
+    s2 = math.sqrt(2.0)
+    apex_o = xc - ro * s2
+    apex_h = xc - rh * s2
+    x_flat = apex_h + EYE_HOLE_FLAT / 2
+    # crown: min distance hole boundary -> outer boundary over the front half (flank to flank = ring_w)
+    crown_axis = x_flat - (apex_o + EYE_APEX_R * (s2 - 1))
+    return dict(xc=xc, rh=rh, ro=ro, apex_outer=apex_o, apex_hole=apex_h, x_flat=x_flat,
+                crown_normal_mm=ro - rh, crown_axis_mm=crown_axis, t=E["ring_t"])
+
+
+def _eye() -> Solid:
+    """Tow eye: ring in the XZ plane (hole axis Y) ahead of the nose. Outer and hole profiles are
+    parallel teardrops pointing -X (up when the front shell prints nose-up); outer edges rounded."""
+    g = eye_profile()
+    xc, rh, ro, t = g["xc"], g["rh"], g["ro"], g["t"]
+    s2 = math.sqrt(2.0)
+    y0 = -t / 2
+    V = lambda x, z: Vector(x, y0, z)                                      # noqa: E731
+    # outer: arc from T1 (135 deg) through +X to T2 (225 deg), flanks to the rounded apex
+    T1, T2 = (xc - ro / s2, ro / s2), (xc - ro / s2, -ro / s2)
+    ra = EYE_APEX_R
+    apex = g["apex_outer"]
+    P1, P2 = (apex + ra / s2, ra / s2), (apex + ra / s2, -ra / s2)
+    Pm = (apex + ra * (s2 - 1), 0.0)
+    outer = Wire([Edge.make_three_point_arc(V(*T1), V(xc + ro, 0.0), V(*T2)), Edge.make_line(V(*T2), V(*P2)),
+                  Edge.make_three_point_arc(V(*P2), V(*Pm), V(*P1)), Edge.make_line(V(*P1), V(*T1))])
+    ring = Solid.extrude(Face(outer), Vector(0, t, 0))
     try:
         ring = ring.fillet(1.2, ring.edges())
     except Exception:  # noqa: BLE001
         pass
-    # teardrop hole, point toward -X (up when the front shell prints nose-up)
-    hole = teardrop((xc, 0.0, 0.0), (0, 1, 0), (-1, 0, 0), rh, t + 2.0)
-    assert abs(hole.bounding_box().min.X - (xc - rh * math.sqrt(2.0))) < 1e-6
-    return ring.cut(hole)
+    H1, H2 = (xc - rh / s2, rh / s2), (xc - rh / s2, -rh / s2)
+    xf, hf = g["x_flat"], EYE_HOLE_FLAT / 2
+    hole_w = Wire([Edge.make_three_point_arc(V(*H1), V(xc + rh, 0.0), V(*H2)), Edge.make_line(V(*H2), V(xf, -hf)),
+                   Edge.make_line(V(xf, -hf), V(xf, hf)), Edge.make_line(V(xf, hf), V(*H1))])
+    hole = Solid.extrude(Face(hole_w), Vector(0, t + 2.0, 0)).moved(Location((0, -1.0, 0)))
+    out = ring.cut(hole)
+    assert out.is_valid
+    return out
+
+
+def _eye_root_fillet(body: Solid) -> Solid:
+    """EYE_ROOT_R fillet on the edges where the eye ring meets the nose (finding T06); falls back to
+    smaller radii if OCC cannot build it."""
+    g = eye_profile()
+    t = g["t"]
+
+    def on_root(e) -> bool:
+        pts = [e.position_at(u) for u in np.linspace(0.0, 1.0, 7)]
+        return all(-0.5 < p.X < 6.0 and abs(p.Y) <= t / 2 + 0.05 and math.hypot(p.Y, p.Z) < g["ro"] + 3.0
+                   and abs(math.hypot(p.Y, p.Z) - r_out(max(p.X, 0.0))) < 0.05 for p in pts)
+    edges = [e for e in body.edges() if on_root(e)]
+    for r in (EYE_ROOT_R, 1.5, 1.0):
+        try:
+            cand = body.fillet(r, edges)
+            if cand.is_valid and len(cand.solids()) == 1:
+                return cand
+        except Exception:  # noqa: BLE001
+            continue
+    return body
 
 
 def gland_frame() -> dict:
@@ -635,7 +938,7 @@ def _pad_local() -> Solid:
     front = [e for e in pad.edges() if abs((e.position_at(0) - Vector(*F["o"])).dot(ud)) < 1e-3
              and abs((e.position_at(1) - Vector(*F["o"])).dot(ud)) < 1e-3
              and abs((e.position_at(1) - e.position_at(0)).normalized().Z) > 0.95]
-    pad = pad.fillet(1.5, front)
+    pad = pad.fillet(PAD_FRONT_R, front)
     nt = Vector(-math.sin(phi), 0.0, math.cos(phi))
     topf = max(pad.faces(), key=lambda f: f.normal_at(f.center()).dot(nt))
     edges = [e for e in topf.edges() if min(e.position_at(0).X, e.position_at(1).X, e.center().X) < EQ - 0.2]
@@ -649,7 +952,9 @@ def _groove_local() -> Solid:
     F, R = fin_frame(), FIN_RAIL
     w0 = R["groove_w_offset"]
     wt, wb, hn, d = R["groove_w_top"], R["groove_w_bottom"], R["groove_neck_h"], R["groove_depth"]
-    sec = [(w0, 1.5), (w0 + wt, 1.5), (w0 + wt, -hn), (w0 + wb, -d), (w0, -d)]
+    ch = R["mouth_chamfer"]
+    sec = [(w0 - ch - 1.5, 1.5), (w0, -ch), (w0, -d), (w0 + wb, -d), (w0 + wt, -hn), (w0 + wt, -ch),
+           (w0 + wt + ch + 1.5, 1.5)]
     u0, u1 = -1.0, R["end_stop_u"]
     base = F["P"](u0)
     pts = [Vector(*(base + w * F["w"] + np.array([0.0, 0.0, z]))) for w, z in sec]
@@ -660,6 +965,37 @@ def _groove_local() -> Solid:
     c = F["P"](R["pin_u"], 0.0, R["pin_depth"])
     pin = teardrop(c, F["w"], (-1.0, 0.0, 0.0), R["pin_hole_d"] / 2, R["pad_w"] + 4.0)
     return groove, pin
+
+
+def _pad_root_fillet(body: Solid) -> Solid:
+    """PAD_ROOT_R fillet where the fin rail pads meet the hull (finding T07: the pads were square
+    rails standing 9 mm proud with no blend). One radius all round: the root edge is a tangent chain
+    (sides and the R3 rounded front), along which OCC propagates a fillet, so the side that runs 2.2
+    to 3.6 mm from a pocket rim sets it: R2 keeps the blend's foot off the rim and the folding blades
+    >= 2 mm off the pads (R4 left 2.01). Falls back to smaller radii if OCC cannot build it."""
+    th = [math.radians(t) for t in FIN["theta_deg"]]
+
+    def on_root(e) -> bool:
+        pts = [e.position_at(u) for u in np.linspace(0.0, 1.0, 7)]
+        for p in pts:
+            r = math.hypot(p.Y, p.Z)
+            a = math.atan2(p.Y, p.Z)
+            if not (FIN["pad_x"][0] - 3.0 < p.X < EQ - 0.6 and abs(r - r_out(p.X)) < 0.05):
+                return False
+            if min(abs((a - t + math.pi) % (2 * math.pi) - math.pi) for t in th) * r > FIN["rail_w"]:
+                return False
+        return True
+    edges = [e for e in body.edges() if on_root(e)]
+    for r in (PAD_ROOT_R, 1.5, 1.0):
+        try:
+            cand = body.fillet(r, edges)
+            if cand.is_valid and len(cand.solids()) == 1:
+                PAD_ROOT_USED[0] = r
+                return cand
+        except Exception:  # noqa: BLE001
+            continue
+    PAD_ROOT_USED[0] = 0.0
+    return body
 
 
 def pads_added() -> list:
@@ -711,11 +1047,13 @@ def build_front_shell() -> Solid:
     core = _front_core()
     pads, pad_cuts = _pads()
     ext = [p.cut(core) for p in pads] + [_gland_block().cut(core)]
-    outer = hull.fuse(_eye(), *ext)
+    outer = _eye_root_fillet(hull.fuse(_eye()))
+    outer = _pad_root_fillet(outer.fuse(*ext))
     body = outer.cut(_front_cavity())
     liners = [inter(l, hull) for l in pocket_cutters(liner=True)]
     body = body.fuse(*liners)
-    cutters = _socket_cutters() + _carrier_cutters() + [_gland_bore()] + pad_cuts + pocket_cutters()
+    cutters = _socket_cutters() + _carrier_cutters() + [_gland_bore(), _seal_lead_cutter()] + pad_cuts + \
+        pocket_cutters()
     body = body.cut(*cutters)
     body = single(body, "front_shell")
     print(f"front shell {time.time() - t0:.1f} s", flush=True)
@@ -890,7 +1228,7 @@ def stow_detent_geometry() -> dict:
     near = perp <= STOW_DETENT["boss_r"] + 0.3
     s_face = float(s[near].min()) - STOW_DETENT["face_clear"]
     face = p + s_face * n
-    mag_c = face - (0.2 + P.MAGNET["H"] / 2) * n
+    mag_c = face - (C.STOW_BOSS_RECESS + P.MAGNET["H"] / 2) * n
     return dict(contact=p, mouth=p, n=n, blade_face_normal=nb, blade_face_lean_deg=lean_face, lean_deg=lean,
                 axis_mismatch_deg=float(math.degrees(math.acos(min(1.0, float(n @ -nb))))),
                 s_face=s_face, face=face, magnet_centre=mag_c, blade_min_s=float(s[near].min()),
@@ -971,9 +1309,12 @@ def build_all(force: bool = False) -> dict:
 
 NOTES = {
     "front_shell": "PLA (display) / PETG (v2). Prints nose-up on its equator face, no supports: the nose "
-                   "plug's 38.6 mm flat bridge is the only bridge; eye and pin holes are teardrops; socket "
-                   "ceiling, lip chamfer, carrier groove ceiling and pocket ramps are 45 deg; fin pads stand "
-                   "on the bed. Tap the M12x1.5 after printing (10.5 mm drill modelled).",
+                   "plug's 38.6 mm flat bridge is the only bridge (good bridge settings: cooling 100 %, bridge "
+                   "speed ~25 mm/s; expect a little sag on that internal face); the tow eye is a teardrop lug "
+                   "pointing up with a 2 mm flat on its hole apex; pin holes are teardrops; socket ceiling, "
+                   "lip chamfer, O-ring lead-in, carrier groove ceiling and pocket ramps are 45 deg; pocket "
+                   "lips undercut in-slice; fin pads stand on the bed. Tap the M12x1.5 after printing (10.5 "
+                   "mm drill modelled).",
     "aft_shell": "PLA / PETG. Prints on its tail end face, spigot tip up, no supports: lugs, O-ring groove "
                  "flank, root ring, notch ramps and detent bosses at 45 deg; the 0.6 mm seal stop ring under "
                  "the seal shoulder is the only sub-rule face. Bearings pressed with a draw bolt; crush ribs "
@@ -1062,6 +1403,26 @@ def _occ_rays(shape, origins, dirs, far: float = 200.0) -> np.ndarray:
         isec.Perform(gp_Lin(gp_Pnt(*map(float, o)), gp_Dir(*map(float, d))), 1e-6, far)
         if isec.IsDone() and isec.NbPnt() > 0:
             out[k] = min(isec.WParameter(i) for i in range(1, isec.NbPnt() + 1))
+    return out
+
+
+def _occ_wall(shape, origins, dirs, far: float = 50.0) -> np.ndarray:
+    """Thickness of the first material run met along each ray (origin in the void): second crossing
+    minus first; crossings closer than 1 um (a ray through an edge between two faces) are merged."""
+    from OCP.gp import gp_Dir, gp_Lin, gp_Pnt
+    from OCP.IntCurvesFace import IntCurvesFace_ShapeIntersector
+    isec = IntCurvesFace_ShapeIntersector()
+    isec.Load(shape.wrapped, 1e-7)
+    out = np.full(len(origins), np.inf)
+    for k, (o, d) in enumerate(zip(origins, dirs)):
+        isec.Perform(gp_Lin(gp_Pnt(*map(float, o)), gp_Dir(*map(float, d))), 0.0, far)
+        w = sorted(isec.WParameter(i) for i in range(1, isec.NbPnt() + 1))
+        m = []
+        for v in w:
+            if not m or v - m[-1] > 1e-3:
+                m.append(v)
+        if len(m) >= 2:
+            out[k] = m[1] - m[0]
     return out
 
 
@@ -1209,10 +1570,10 @@ def floor_wall_check(shape, x_range) -> dict:
                 nn = np.array([sf[k], 0.0, 0.0]) - e
                 nn /= np.linalg.norm(nn)
                 p0 = np.array([x[k], 0.0, 0.0]) + fl[k] * e
-                O.append(p0 + 0.02 * nn)
+                O.append(p0 - 0.3 * nn)                     # start in the pocket void, 0.3 above the floor
                 D.append(nn)
                 meta.append((x[k], th))
-    d = _occ_rays(shape, O, D) + 0.02
+    d = _occ_wall(shape, O, D)
     k = int(np.argmin(d))
     return dict(n_rays=len(d), min_mm=round(float(d.min()), 3), at_x_theta=[round(meta[k][0], 2), round(meta[k][1] % 360, 1)],
                 p05_mm=round(float(np.percentile(d, 5)), 3))
@@ -1238,22 +1599,54 @@ def gland_engagement(shape) -> dict:
                 layout_min_mm=P.GLAND["thread_engagement_min"], bore_x_max_mm=round(float(xs), 2))
 
 
+@functools.lru_cache(maxsize=1)
+def _section_table() -> dict:
+    """pocket_section() of every row as arrays (theta in deg, blade at theta 0)."""
+    pp = pocket_profile()
+    rows = [pocket_section(i) for i in range(len(pp["x"]))]
+    out = {"x": np.array([r["x"] for r in rows]), "floor": np.array([r["floor"] for r in rows]),
+           "r_lip": np.array([r["r_lip"] for r in rows])}
+    for side in ("lo", "hi"):
+        out[f"t1_{side}"] = np.array([r[side][0][0] for r in rows])
+        out[f"r1_{side}"] = np.array([r[side][1][1] for r in rows])
+        out[f"tr_{side}"] = np.array([r[side][2][0] for r in rows])
+    return out
+
+
+def pocket_bounds(x: np.ndarray, r: np.ndarray) -> tuple:
+    """(floor, theta_lo, theta_hi) of the CAD pocket section at points (x, r), blade at theta 0:
+    rim bounds above the lip underside, the 45 deg flare below it, the flare foot below r1.
+    Row quantities interpolated linearly in x (the smooth loft follows them within ~0.15 mm)."""
+    T = _section_table()
+    xs = T["x"]
+    f = np.interp(x, xs, T["floor"])
+    rl = np.interp(x, xs, T["r_lip"])
+    out = []
+    for side, sg in (("lo", -1.0), ("hi", 1.0)):
+        tr = np.interp(x, xs, T[f"tr_{side}"])
+        r1 = np.interp(x, xs, T[f"r1_{side}"])
+        d = np.clip(rl - np.maximum(r, r1), 0.0, None)
+        out.append(tr + sg * np.degrees(d / rl))
+    return f, out[0], out[1]
+
+
 def blade_pocket_check(S: dict, step: float = 0.4) -> dict:
     """Stowed blades (hydroegg.layout surface model, all 3) against the CAD pockets: analytic
-    clearances to the cutter's floor and side walls, then OCC point classification of every
-    suspect point (outside a pocket's angular range, within 0.25 mm of a floor, or near a detent
-    boss) against both shells."""
+    clearances to the pocket section (floor, rim at the skin, 45 deg flare, deep walls), then OCC
+    point classification of every suspect point (outside the section, within 0.25 mm of a floor,
+    or near a detent boss) against both shells."""
     pp = pocket_profile()
-    xt, fl, lo, hi = pp["x"], pp["floor"], pp["th_lo"], pp["th_hi"]
+    xt = pp["x"]
     g = stow_detent_geometry()
     n_pts = n_sus = n_in = 0
-    fa = fr = sc = np.inf
+    fa = fr = sc = sc_skin = np.inf
     for i, tb in enumerate(BLADE_THETA):
         B = stowed_blade_points(i, step)
         x, r = B[:, 0], np.hypot(B[:, 1], B[:, 2])
         rel = (np.degrees(np.arctan2(B[:, 1], B[:, 2])) - tb + 180.0) % 360.0 - 180.0
-        m = (x <= P.STATIC_TAIL_X + 0.5) & (r < profile.radius(np.clip(x, 0, P.HULL_L)) + 0.05)
-        f, a, b = np.interp(x, xt, fl), np.interp(x, xt, lo), np.interp(x, xt, hi)
+        R_ = profile.radius(np.clip(x, 0, P.HULL_L))
+        m = (x <= P.STATIC_TAIL_X + 0.5) & (r < R_ + 0.05)
+        f, a, b = pocket_bounds(x, r)
         inr = (rel >= a) & (rel <= b) & (x >= xt[0])
         q = m & inr
         fc = r - f
@@ -1261,8 +1654,12 @@ def blade_pocket_check(S: dict, step: float = 0.4) -> dict:
             fa = min(fa, float(fc[q & (x <= 100)].min()))
         if (q & (x > 100)).any():
             fr = min(fr, float(fc[q & (x > 100)].min()))
+        side = np.minimum(rel - a, b - rel) * np.radians(1.0) * r
         if q.any():
-            sc = min(sc, float((np.minimum(rel - a, b - rel)[q] * np.radians(1.0) * r[q]).min()))
+            sc = min(sc, float(side[q].min()))
+            sk = q & (r > R_ - POCKET_LIP_T)
+            if sk.any():
+                sc_skin = min(sc_skin, float(side[sk].min()))
         # near a detent boss: blade-0 frame, distance along the boss axis to the boss face plane
         B0 = np.column_stack([x, r * np.sin(np.radians(rel)), r * np.cos(np.radians(rel))])   # blade 0 frame
         rel0 = B0 - g["contact"]
@@ -1276,12 +1673,46 @@ def blade_pocket_check(S: dict, step: float = 0.4) -> dict:
         n_in += int(_occ_inside(S["aft_shell"], Bs[Bs[:, 0] > X_TIP - 0.5]).sum())
         n_in += int(_occ_inside(S["front_shell"], Bs[Bs[:, 0] < EQ + 0.5]).sum())
     return dict(n_points=n_pts, n_suspects=n_sus, n_inside=n_in, floor_clear_aero_mm=round(fa, 3),
-                floor_clear_root_mm=round(fr, 3), side_clear_mm=round(sc, 3))
+                floor_clear_root_mm=round(fr, 3), side_clear_mm=round(sc, 3), side_clear_skin_mm=round(sc_skin, 3))
+
+
+def fold_sweep_check(d_fold: float = 0.5, step: float = 0.4) -> dict:
+    """Blade 0 folding 60..90 deg (layout surface): every point inside the hull and over the pocket
+    x range must lie inside the CAD pocket section (analytic): minimum side and floor clearance over
+    the sweep, and the number of points outside it."""
+    from .. import layout as RL
+    tab = json.loads((DATA / "layout_rotor.json").read_text())
+    blade, lay = RL.load_blade(), RL.chosen_layout()
+    a = tab["axis"]
+    ax = RL.BladeAxis(np.array(a["r_mm"]), np.array(a["s_mm"]), np.array(a["lead_mm"]), np.array(a["aft_mm"]),
+                      np.array(a["slope_daft_ds"]), np.array(a["aft_poly_coef_mm"]),
+                      np.array(a["lead_poly_coef_mm"]), blade.r_root, blade.r_tip)
+    Sx = RL.blade_surface(blade, lay, ax)
+    cloud = np.vstack([RL.densify(Sx.aero, step).reshape(-1, 3), RL.densify(Sx.shank, step).reshape(-1, 3)])
+    pp = pocket_profile()
+    side_min, floor_min, n_out, worst = np.inf, np.inf, 0, None
+    for fd in np.arange(60.0, lay.fold_deg + 1e-9, d_fold):
+        W = RL.apply(RL.blade_to_world(fd, lay.psi(0), lay), cloud)
+        x, r = W[:, 0], np.hypot(W[:, 1], W[:, 2])
+        th = np.degrees(np.arctan2(W[:, 1], W[:, 2]))
+        R_ = profile.radius(np.clip(x, 0, P.HULL_L))
+        m = (r < R_ - 0.02) & (x >= pp["x"][0]) & (x <= P.STATIC_TAIL_X - 0.02)
+        if not m.any():
+            continue
+        f, lo, hi = pocket_bounds(x[m], r[m])
+        side = np.minimum(th[m] - lo, hi - th[m]) * np.radians(1.0) * r[m]
+        fc = r[m] - f
+        n_out += int(((side < 0) | (fc < 0)).sum())
+        if side.min() < side_min:
+            side_min, worst = float(side.min()), float(fd)
+        floor_min = min(floor_min, float(fc.min()))
+    return dict(folds=[60.0, float(lay.fold_deg), d_fold], side_clear_min_mm=round(side_min, 3), at_fold=worst,
+                floor_clear_min_mm=round(floor_min, 3), n_points_outside=n_out)
 
 
 def pad_pocket_arc(step: float = 0.05) -> tuple:
-    """Smallest arc (mm, at the hull radius) between a yawed rail pad side and a CAD pocket bound
-    over the pad length: the layout's definition (pad walls are planes parallel to the radial line
+    """Smallest arc (mm, at the hull radius) between a yawed rail pad side and a CAD pocket rim
+    (at the skin, before its 0.6 chamfer) over the pad length: the layout's definition (pad walls are planes parallel to the radial line
     at the fin angle, so a wall at lateral offset lat meets the hull at theta + asin(lat / R))."""
     pp = pocket_profile()
     F = fin_frame()
@@ -1294,8 +1725,8 @@ def pad_pocket_arc(step: float = 0.05) -> tuple:
         b = math.degrees(math.asin((FIN["rail_w"] / 2 + dx * F["si"]) / F["ci"] / R))
         for tf in FIN["theta_deg"]:
             for tb in BLADE_THETA:
-                lo = float(np.interp(x, pp["x"], pp["th_lo"])) + tb
-                hi = float(np.interp(x, pp["x"], pp["th_hi"])) + tb
+                lo = float(np.interp(x, pp["x"], pp["rim_lo"])) + tb            # the rim at the skin (T04)
+                hi = float(np.interp(x, pp["x"], pp["rim_hi"])) + tb
                 for off in (-360.0, 0.0, 360.0):
                     g = max(lo + off - (tf + b), (tf + a) - (hi + off))
                     if g > -90 and math.radians(g) * R < best[0]:
@@ -1324,14 +1755,27 @@ def interface_checks(S: dict) -> list:
         bp["floor_clear_aero_mm"] >= P.POCKET_CLEAR - 0.01, P.POCKET_CLEAR)
     add("stowed root above the CAD pocket floor (min radial clearance, x > 100), mm", bp["floor_clear_root_mm"],
         bp["floor_clear_root_mm"] >= 0.0, "> 0 (floor cut deeper by the 45 deg rule)")
-    add("stowed blade to the CAD pocket side walls (min arc), mm", bp["side_clear_mm"], bp["side_clear_mm"] >= 0.5, 0.5)
+    add("stowed blade to the CAD pocket side walls (min arc, any depth), mm", bp["side_clear_mm"],
+        bp["side_clear_mm"] >= 0.5, 0.5)
+    add("stowed blade to the pocket rim in the skin band (min arc, r > R - lip; T04 rim = swept footprint + %.1f), mm"
+        % POCKET_RIM_CLEAR, bp["side_clear_skin_mm"], bp["side_clear_skin_mm"] >= 0.8, 0.8)
+    fs = fold_sweep_check()
+    add("blade folding 60..90 deg (layout surface) inside the pocket section: points outside / min side / min floor "
+        "clearance, mm", [fs["n_points_outside"], fs["side_clear_min_mm"], fs["floor_clear_min_mm"]],
+        fs["n_points_outside"] == 0, "0 outside")
+    from .. import layout as RL
+    hab = float(max(RL.height_above_hull(stowed_blade_points(i, 0.3)).max() for i in range(len(BLADE_THETA))))
+    add("stowed blades flush: max height above the hull (layout surface), mm", round(hab, 3), hab <= 0.065 + 1e-3,
+        "<= 0.065")
     g = stow_detent_geometry()
     add("stowed-detent boss face to the stowed blade (normal, min over the face), mm", round(g["blade_min_s"] - g["s_face"], 3),
         g["blade_min_s"] - g["s_face"] >= 0.05, ">= 0.05")
     add("stowed-detent static magnet axis vs the blade face normal at the shared mouth point (45 deg print limit), deg",
         round(g["axis_mismatch_deg"], 2), g["axis_mismatch_deg"] <= 8.0, "<= 8")
     # floor walls
-    fw = floor_wall_check(front, (P.POCKETS["x"][0], EQ))
+    lead_r, lead_deg = SEAL_LEAD
+    x_lead = EQ - lead_r / math.tan(math.radians(lead_deg))
+    fw = floor_wall_check(front, (P.POCKETS["x"][0], x_lead))
     aw = floor_wall_check(aft, (EQ, P.STATIC_TAIL_X))
     add("front shell wall under the pocket floors (rays along the floor normal), min mm", fw["min_mm"],
         fw["min_mm"] >= P.POCKET_FLOOR_WALL - 0.05, P.POCKET_FLOOR_WALL)
@@ -1377,6 +1821,51 @@ def interface_checks(S: dict) -> list:
     add("locked lugs to the front shell (hard stop contact), mm", round(dl, 4), dl < 0.01, "contact")
     add("seal bore / spigot radial clearance, mm", round(R_BORE - R_SPIGOT, 3), abs(R_BORE - R_SPIGOT - P.ORING_EQUATOR["radial_clearance"]) < 1e-6,
         P.ORING_EQUATOR["radial_clearance"])
+    # O-ring lead-in (T05): mouth radius at many azimuths, the stretched ring's outer radius, and the wall
+    # left to the pocket floors over the lead-in
+    O = P.ORING_EQUATOR
+    cs_st = O["cs"] * (1 - 0.0123)                                # cross-section at ~2.5 % stretch
+    r_ring = R_GROOVE + cs_st
+    ths = np.arange(0.0, 360.0, 5.0)
+    orig = [np.array([EQ - 0.05, 0.0, 0.0])] * len(ths)
+    dirs = [np.array([0.0, math.sin(math.radians(t)), math.cos(math.radians(t))]) for t in ths]
+    rm = _occ_rays(front, orig, dirs)
+    add("O-ring lead-in: mouth radius at the equator face (min over 72 azimuths) vs the stretched -141 (r %.3f), mm"
+        % r_ring, round(float(rm.min()), 3), float(rm.min()) >= r_ring + 0.25, ">= ring + 0.25")
+    xw = np.linspace(x_lead, EQ - 0.02, 6)
+    wmin = np.inf
+    for xx in xw:
+        rl = R_BORE + (xx - x_lead) * math.tan(math.radians(lead_deg))
+        for tb in BLADE_THETA:
+            for dt in (-10.0, -5.0, 0.0, 5.0):
+                t = math.radians(tb + dt)
+                e = np.array([0.0, math.sin(t), math.cos(t)])
+                o = np.array([xx, 0.0, 0.0]) + (rl + 0.01) * e
+                d = _occ_rays(front, [o], [e])[0]
+                wmin = min(wmin, float(d) + 0.01)
+    add("O-ring lead-in: wall to the pocket floors over the lead-in (x %.2f..%.1f, radial), mm" % (x_lead, EQ),
+        round(wmin, 3), wmin >= P.MIN_WALL, "MIN_WALL (2.0 rule relaxed over the 2.6 mm lead-in)")
+    # tow eye (T06): crown, stress on the section as built (layout_internal nose.eye model), gland and shackle
+    ep = eye_profile()
+    li = json.loads((DATA / "layout_internal.json").read_text())["nose"]
+    Fd = float(li["loads"]["design_load_N"])
+    Rm = ep["rh"] + ep["crown_normal_mm"] / 2
+    sig = 6 * (Fd * Rm / math.pi) / (ep["t"] * ep["crown_normal_mm"] ** 2)
+    util = {m: round(sig / float(li["eye"]["materials"][m]["xy_tensile_yield_MPa"]), 3) for m in ("PETG", "PLA")}
+    add("tow eye crown: normal to the 45 deg flanks / along the pull axis (hole flat to the outer apex), mm",
+        [round(ep["crown_normal_mm"], 3), round(ep["crown_axis_mm"], 3)], ep["crown_normal_mm"] >= P.TOW_EYE["ring_w"] - 1e-6,
+        "TOW_EYE ring_w %g" % P.TOW_EYE["ring_w"])
+    add("tow eye crown bending at the %.0f N design load (layout model, w = crown as built): stress MPa, utilisation"
+        % Fd, [round(sig, 2), util], max(util.values()) < 0.5, "< 0.5")
+    G_ = gland_frame()
+    gl_body = Solid.make_cylinder(17.3 / 2, 21.0, Plane(origin=Vector(*G_["S"]), z_dir=Vector(*G_["A"])))
+    d_eg = _eye().distance_to(gl_body)
+    add("tow eye ring to the gland body (D17.3 x 21 envelope on the gland axis), mm", round(d_eg, 3),
+        d_eg >= 2.0, ">= 2.0 (layout GLAND_TOW_CLEAR)")
+    shk = Solid.make_box(29.0, 24.0, 10.0).moved(Location((-30.0, -12.0, -5.0)))   # x -30..-1, |y| <= 12, |z| <= 5
+    d_gs = gl_body.distance_to(shk)
+    add("gland body to the shackle envelope (layout: from the hole's aft edge forward, |y| <= 12, |z| <= 5), mm",
+        round(d_gs, 3), d_gs >= 2.0, ">= 2.0")
     # tube vs rotor keep-out, tail end
     kp = json.loads((DATA / "layout_rotor.json").read_text())["pocket_summary"]["keepout_min_mm"]
     add("bearing tube outer r under the tail notch keep-out, mm", BT["r_out_rear"], BT["r_out_rear"] < kp, "< %.2f" % kp)
@@ -1385,6 +1874,18 @@ def interface_checks(S: dict) -> list:
         abs(bb.max.X - P.STATIC_TAIL_X) < 1e-6, P.STATIC_TAIL_X)
     add("claw B step OD %.0f to the tube mouth (radial), mm" % P.COUPLER["claw_b_step_od"],
         round(R608 - P.COUPLER["claw_b_step_od"] / 2, 3), R608 - P.COUPLER["claw_b_step_od"] / 2 >= 0.3, 0.3)
+    # fin pads (T07): blend and how far they stand proud
+    add("fin pad root blend radius (OCC fillet, tried 2 / 1.5 / 1), mm", PAD_ROOT_USED[0],
+        (PAD_ROOT_USED[0] or 0) >= 1.0, ">= 1.0")
+    mpad = _mesh(front, 0.05)
+    vv = np.asarray(mpad.vertices)
+    az = np.degrees(np.arctan2(vv[:, 1], vv[:, 2]))
+    near = np.zeros(len(vv), bool)
+    for tf in FIN["theta_deg"]:
+        near |= np.abs((az - tf + 180.0) % 360.0 - 180.0) < 25.0
+    proud = float((np.hypot(vv[:, 1], vv[:, 2]) - profile.radius(np.clip(vv[:, 0], 0, P.HULL_L)))[near].max())
+    add("fin pads stand proud of the hull (max), mm (needs a lower fin root standoff to change: layout)",
+        round(proud, 2), True, "information")
     # cutaway keeps the fin pads
     sec = cutaway_sector(True)
     vp = sum(x.volume for pd in pads for x in (pd.intersect(sec) or []))
@@ -1471,9 +1972,12 @@ def main(argv: list[str]) -> None:
         n = d["name"]
         export_step(d["shape"], str(OUT_STEP / f"{n}.step"))
         export_stl(d["print"], str(OUT_STL / f"{n}.stl"), tolerance=0.03, angular_tolerance=0.1)
+        stl_fix = C.repair_stl(OUT_STL / f"{n}.stl")
         x_bed = d["shape"].bounding_box().max.X
-        rec = dict(C.check(d["shape"], n), print_check=C.check(d["print"], n), fits_bed=C.fits_bed(d["print"]),
-                   stl=stl_check(OUT_STL / f"{n}.stl"), overhang=overhang_scan(d["shape"], x_bed),
+        rec = dict(C.check(d["shape"], n), n_faces=len(d["shape"].faces()),
+                   step_mb=round((OUT_STEP / f"{n}.step").stat().st_size / 1e6, 2),
+                   print_check=C.check(d["print"], n), fits_bed=C.fits_bed(d["print"]),
+                   stl=dict(stl_check(OUT_STL / f"{n}.stl"), repair=stl_fix), overhang=overhang_scan(d["shape"], x_bed),
                    robustness=robustness_probe(d["shape"]), role=d["role"], notes=d["notes"])
         report["parts"].append(rec)
         print(n, json.dumps({k: rec[k] for k in ("valid", "n_solids", "volume_cm3")}), "stl", rec["stl"]["watertight"],

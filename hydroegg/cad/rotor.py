@@ -1,4 +1,4 @@
-"""Rotor: hub, spinner, hinge pins, hub detent magnets, hub grub screw and spinner screw.
+"""Rotor: hub, spinner, spinner tip cap, hinge pins, hub detent magnets, hub grub screw and spinner screw.
 
     scripts/cadrun.sh .venv/bin/python -m hydroegg.cad.rotor      # build, export, check, preview
 
@@ -37,28 +37,37 @@ Hub (printed, rotating, x 108.6 to 128)
     surface on both sides. Pin retention: press fit in both ears, and a loose ISO 8734 3 x 4 filler
     dowel in each channel, trapped by the spinner shell, so a loosened pin can move 0.4 mm at most
     and stays in both ears (without the fillers it could travel 4.4 mm, more than the 3.7 mm ear).
-    Deployed-detent magnets: D3.90 x 2.2 pockets in the stop faces (DETENTS).
+    The pin goes in LAST: drop the blade into its slot, then press the pin through the channel.
+    Deployed-detent magnets (finding T03): a D4 x 2 disc did not fit the 4.5 mm stop zone (0.15 mm
+    to the knuckle arc). Glued 6.1 x 2.1 x 2.2 seats for N52 blocks 6 x 2 x 2 (6 along the pin, 2
+    radial, magnetised along x) centred at r_e 8.2 (common.DEP_MAGNET), 1.27 mm to the knuckle arc.
     M3 x 4 cup-point grub, radial at x 111.6, psi 60: tapped M3 in the PLA (2.5 drill, r 4.08 to
     9.5) with a D3.4 clearance bore out to the surface. A heat-set insert does not fit: its D4.0
     hole needs 1.6 mm of wall and leaves 1.0 to the front face and about 1.3 to the swept roots,
     and it would sit 15 mm deep. PLA tapping is enough here: the D-flat carries the torque, the
     rotor thrust goes through the spinner screw, the grub only sets the hub's axial position.
-    Front face: flat slinger face 0.6 mm (HUB_GAP) from the static tail end face, with two 90 deg
-    V-grooves (labyrinth chambers) around the lip-seal counterbore (r 6.3 and 8.7, 0.5 deep, kept
-    inside the grub's tapped zone so 1.25 mm of wall stays to the grub bore); nothing stands proud,
-    so the hub prints on it. Three D3 x 1.5 pegs on the aft face key the spinner.
+    Front face: flat slinger face 0.6 mm (HUB_GAP) from the static tail end face; the v1 labyrinth
+    V-grooves were removed (finding T11: first-layer squish closes them and the r 8.7 groove stood
+    1.0 mm from the grub thread). Nothing stands proud, so the hub prints on it. Three D3 x 1.5
+    pegs on the aft face key the spinner. (A 2 mm trim of the hub's outer skin to the window
+    outline was tried and dropped, see hub_trim0.)
 
-Spinner (printed, rotating, x 108.6 to the tip)
-    1.2 mm shell (normal) over the hub with a 0.2 mm gap; per blade the same tau bands, but cut
-    through the full depth as windows (no feathered skin where a band floor would graze the inner
-    cone). Inner aft wall (3 mm): a flat bridge D22.6 around the screw hole, then a 45 deg cone that
-    matches the hub's aft cone; clamped against the hub aft face and the shaft end by one ISO 4762
-    M3 x 8 into the tapped shaft end (rotor thrust: hub -> spinner wall -> screw -> shaft). Aft of
-    the wall the spinner is solid (perimeters + infill) around the D6 access bore, which opens at
-    the tip. The access bore leaves no room for a pointed tip: the shell ends at x 151.7, where the
-    R = SPINNER_TIP_R round leaves MIN_WALL + chamfer around the bore. Three holes in the aft wall
-    take the hub's pegs (keying). Slide the spinner on with the blades folded >= 15 deg (stowed is
-    simplest): fully deployed blades block it 10.5 mm before home.
+Spinner (printed, rotating, x 108.6 to the joint plane X_JOINT 151.725)
+    1.2 mm shell (normal) over the hub with a 0.2 mm gap. Inner aft wall (3 mm): a flat D22.6 seat
+    ceiling around the screw hole (the clamp face on the hub and the 3 peg holes), then a 45 deg
+    cone that matches the hub's aft cone; clamped against the hub aft face and the shaft end by
+    one ISO 4762 M3 x 8 into the tapped shaft end (rotor thrust: hub -> spinner wall -> screw ->
+    shaft). Windows (finding T01, see spinner_window0): one smooth outline per blade (convex hull
+    of the slot bands + 1.5 offset, arc joins) with a 45 deg gable top; full depth only where the
+    heel and knuckle sweep (it closes with 45 deg flanks and a <= 15 mm bridge at x ~125.9, leaving
+    a complete ring of the cone under the seat ceiling), elsewhere a recess above a 1.2 mm skin
+    whose floor rises at 45 deg out through the surface. Aft of the wall the spinner is solid
+    around the D6 access bore, which opens into a 45 deg countersink at the joint plane.
+    Tip cap (finding T02): a printed push-in cap continues profile.radius from X_JOINT to an
+    R SPINNER_TIP_R round on the axis (built tip x ~161, L/D 2.15): D5.7 x 12 spigot with three
+    crush ribs to D6.1 in the access bore, 45 deg shoulder in the countersink, and a fingernail
+    V-groove at the joint (0.8 x 45 deg chamfers on both sides) to pull it for the M3 screw.
+    Slide the spinner on with the blades folded >= 15 deg (stowed is simplest).
 
 Printing: hub on its front face, spinner base (front edge) down; see SUPPORT_NOTES.
 """
@@ -78,7 +87,7 @@ from build123d import Axis, Edge, Face, Location, Shape, Solid, Vector, Wire, ex
 from .. import layout as L
 from .. import params as P
 from .. import profile
-from .common import axis_cyl, check, cyl, fits_bed, on_bed
+from .common import DEP_MAGNET, axis_cyl, check, cyl, fits_bed, on_bed
 
 REPO = Path(__file__).resolve().parents[2]
 OUT_STEP = REPO / "out/cad/step"
@@ -108,9 +117,17 @@ PIN_HALF = P.PIN_L / 2                         # 11 = ear outer face
 EAR_IN = P.KNUCKLE_L / 2 + RUN                 # 7.3 = ear inner face
 HEEL_HW = P.HEEL_W / 2 + RUN                   # 5.3 heel band
 HUB_AFT_FLAT_R = 11.0                          # DESIGN: flat aft face radius, then a 45 deg cone
-MAG_D_HOLE = P.MAGNET["D"] + 2 * P.PRESS_FIT   # 3.90
 MAG_H = P.MAGNET["H"]
 MAG_RECESS = 0.2                               # layout magnet_recess (DETENTS hub magnet x 112.3)
+# Deployed-detent pair (finding T03): a D4 x 2 disc does not fit the 4.5 mm stop zone (0.15 mm to
+# the knuckle arc on the hub, 0.39 to the heel tip on the blade). Both sides take an N52 BLOCK
+# 6 x 2 x 2 (6 along the pin, 2 radial, magnetised through 2 along x) centred at r_e DEP_MAG_RE,
+# CA-glued in DEP_SEAT seats; each face sits MAG_RECESS below its stop face, so the deployed pair
+# gap is 2 x MAG_RECESS = 0.4 (DETENTS design gap). PROPOSED for params DETENTS (not edited).
+DEP_MAG = tuple(DEP_MAGNET["size_tau_re_x"])   # tau, r_e, x (magnetisation) mm
+DEP_SEAT = tuple(DEP_MAGNET["seat_tau_re"])     # glued seat (tau, r_e)
+DEP_MAG_RE = DEP_MAGNET["r_e"]                  # r_e of the block centre (DETENTS had 8.4388 for the disc)
+assert abs(MAG_RECESS - DEP_MAGNET["recess"]) < 1e-12
 GRUB_TAP_D, GRUB_CLEAR_D, GRUB_TAP_R1 = 2.5, 3.4, 9.5
 GRUB_L = 4.0                                   # M3 x 4 (ROTOR_HUB.grub)
 SCREW_L, SCREW_HEAD_D, SCREW_HEAD_H = 8.0, 5.5, 3.0   # ISO 4762 M3 x 8
@@ -118,12 +135,18 @@ SCREW_CLEAR_D = 3.4
 ACCESS_R = P.SPINNER_ACCESS["d"] / 2           # 3.0
 AFT_WALL = float(P.SPINNER_ACCESS["aft_wall"]) # 3.0
 X_HEAD = X_AFT + AFT_WALL                      # 131: screw head seat
-TIP_CHAMFER = 0.3                              # access bore edge at the tip
+# Tip (finding T02): the spinner ends at the joint plane X_JOINT in a 45 deg countersink around
+# the D6 access bore; a printed push-in tip cap continues profile.radius to a SPINNER_TIP_R round.
+X_JOINT = 151.725                              # DESIGN: old blunt end plane (L/D unchanged up to here)
+CAP_SPIGOT_D, CAP_SPIGOT_L = 5.7, 12.0         # 0.15 radial in the D6 bore, 3 crush ribs to D6.1
+CAP_RIB_R, CAP_RIB_W = 3.05, 0.6               # rib tips (0.05 radial interference) and width
+CAP_GROOVE = 0.8                               # fingernail V-groove: 45 deg chamfers on both sides of the joint
 PEG_D, PEG_H, PEG_R = 3.0, 1.5, 8.0            # DESIGN: anti-rotation pegs on the hub aft face
 PEG_PSI = (60.0, 180.0, 300.0)                 # between the blades
 PEG_HOLE_D, PEG_HOLE_DEPTH = PEG_D + 2 * P.CLEAR_SLIDE, PEG_H + 0.3
 FILLER_L = 4.0                                 # DESIGN: ISO 8734 3 x 4 filler dowel in each pin channel
-GROOVES_R, GROOVE_DEPTH = (6.3, 8.7), 0.5      # DESIGN: front-face labyrinth V-grooves (90 deg)
+# (front-face labyrinth V-grooves removed for v1, finding T11: first-layer squish closes them and
+#  the r 8.7 groove stood 1.0 mm from the grub thread)
 FRONT_CHAMFER = 0.4                            # elephant-foot relief on the bed edges
 BORE_CHAMFER = 0.5
 DX = 0.02                                      # floor sampling step along x
@@ -135,11 +158,15 @@ SUPPORT_NOTES = {
     "hub": ("front face on the bed (+X up). No supports: outer flank leans <= 24 deg; slot floors "
             "rise <= 45 deg; slot ends are flat bridges across the slot (<= 14.6 mm); the ear holes, "
             "pin channels and grub bore are horizontal holes D <= 3.5 (arched tops); magnet pockets "
-            "and the bore open upward; the aft cone is a 45 deg roof; the V-grooves have 45 deg flanks."),
+            "and the bore open upward; the aft cone is a 45 deg roof; the front face is flat (no grooves)."),
     "spinner": ("front edge (base) on the bed, tip up. No supports: shell leans <= 26 deg; the inner "
-                "aft wall is a 45 deg cone plus a flat bridge of D 22.6 around the screw hole; the slot "
-                "windows have vertical side walls and flat bridged aft ends (<= 14.6 mm across); the "
-                "access bore is vertical; brim recommended (bed contact is the 1.2 mm front edge)."),
+                "aft wall is a 45 deg cone plus a flat D22.6 bridge (the hub clamp face) that sits on a "
+                "complete ring of that cone; each window's full-depth part closes with 45 deg flanks "
+                "and a flat bridge <= 15 mm anchored on both flanks, its shallow part ends in a 45 deg "
+                "floor that runs out through the surface; the access bore and its 45 deg countersink "
+                "are vertical; brim recommended (bed contact is the 1.2 mm front edge)."),
+    "spinner_cap": ("No supports: D5.7 spigot (3 crush ribs with 45 deg lead-ins) on the bed, 45 deg "
+                    "shoulder, outer surface leans <= 31 deg; 3 mm brim (25 mm2 footprint, 21 mm tall)."),
 }
 
 
@@ -442,18 +469,193 @@ def slot_cut0() -> Solid:
     return _fuse([_band_prism(poly, *b["tau"]) for b in slot_bands()["bands"] for poly in b["polys"]])
 
 
+# ---- spinner windows ----------------------------------------------------------------------
+# One outline per blade in the (x, tau) plane, extruded along e_r. The spinner prints base down
+# (+X up), so a window's aft end is the part that must be support-free.
+WIN_OFFSET = 1.5          # DESIGN: outline = convex hull of the band rectangles, offset outward (arc joins)
+WIN_DEEP_AFT = 0.5        # DESIGN: aft clearance of the full-depth part (its gable) beyond the deep band ends
+WIN_BRIDGE = 15.0         # DESIGN: longest flat bridge across a window top (print)
+WIN_SKIN_N = P.MIN_WALL   # skin left (normal) under the shallow part of a window
+WIN_X_THIN = 119.5        # forward of this the spinner is too thin for a skin + recess: full depth
+WIN_CHAMFER = 0.4         # outer window edge
+HUB_TRIM = 2.0            # hub outer skin trimmed with the full-depth outline (no slot teeth show)
+
+
+def r_inner_spinner(x):
+    """Spinner inner surface radius: hull inset SP_WALL, then the 45 deg cone to the aft wall."""
+    x = np.asarray(x, float)
+    xci = x_cone_spinner()
+    r_ceil = HUB_AFT_FLAT_R + SP_GAP * math.sqrt(2)
+    return np.where(x < xci, hull_in(np.minimum(x, xci), SP_WALL), r_ceil + (X_AFT - x))
+
+
+def _xt_face(pts) -> Face:
+    """Polygon of (x, tau) points in the plane r_e = -1 of blade 0 (tau = -y at psi 0)."""
+    vs = [Vector(float(x), -float(t), -1.0) for x, t in pts]
+    return Face(Wire.make_polygon(vs, close=True))
+
+
+def _faces_of(s) -> list:
+    """Faces of a boolean result (Shape, Sketch, Compound or ShapeList)."""
+    if isinstance(s, (list, tuple)):
+        return [f for x in s for f in _faces_of(x)]
+    return list(s.faces()) if hasattr(s, "faces") else [s]
+
+
+def _gable(pts_rad, x_min: float, bridge: float) -> dict:
+    """Smallest 45 deg gable roof with a flat top of at most ``bridge`` (mm) over points (x, tau, r)
+    grown by r: left flank x = cL + tau, right flank x = cR - tau, flat top at xa."""
+    cL = max(x - t + r * math.sqrt(2) for x, t, r in pts_rad)
+    cR = max(x + t + r * math.sqrt(2) for x, t, r in pts_rad)
+    xa = max((cL + cR - bridge) / 2, x_min)
+    return {"cL": cL, "cR": cR, "xa": xa, "tau_a": (xa - cL, cR - xa)}
+
+
+def _gable_face(g: dict, x_low: float = 90.0, half: float = 40.0) -> Face:
+    """Region under a gable (big polygon) in the window plane."""
+    cL, cR, xa = g["cL"], g["cR"], g["xa"]
+    return _xt_face([(x_low, -half), (cL - half, -half), (xa, xa - cL), (xa, cR - xa), (cR - half, half),
+                     (x_low, half)])
+
+
+@functools.lru_cache(maxsize=1)
+def window_layout() -> dict:
+    """Window geometry of blade 0 (see spinner_window0): outlines, gables, skin floor profile."""
+    from scipy.spatial import ConvexHull
+    from build123d import Kind, offset
+    sb = slot_bands()
+    xs = sb["xs"]
+    rects, deep = [], []
+    rS0 = r_inner_spinner(xs) + WIN_SKIN_N * np.sqrt(1 + np.gradient(r_inner_spinner(xs), xs) ** 2)
+    T = np.full(xs.size, np.inf)                       # shallow (non-deep) band floors, as radius
+    for b in sb["bands"]:
+        t0, t1 = b["tau"]
+        tmin = 0.0 if t0 <= 0.0 <= t1 else min(abs(t0), abs(t1))
+        g = b["floor"]
+        fin = np.isfinite(g)
+        fr = np.where(fin, np.sqrt(np.maximum(g, 0.0) ** 2 + tmin * tmin), np.inf)
+        is_deep = fin & (fr < rS0 + 0.05)
+        for poly in b["polys"]:
+            rects.append((b["name"], float(poly[:, 0].min()), float(poly[:, 0].max()), t0, t1))
+        idx = np.nonzero(is_deep)[0]
+        shallow = fin & ~is_deep
+        # a band whose shallow tail stands above the hull surface needs no cut there (b3)
+        shallow &= fr < hull_r(xs) - 0.05
+        if idx.size:
+            x1d = float(xs[idx.max()]) if shallow.any() else float(xs[np.nonzero(fin)[0].max()])
+            deep.append((b["name"], float(xs[idx.min()]), x1d, t0, t1))
+        T = np.where(shallow, np.minimum(T, fr), T)
+    # skin floor of the shallow part: >= the skin, <= every shallow band floor, rising at most 45 deg
+    # going aft (up in print); after the last band it keeps rising and leaves through the surface
+    has = np.isfinite(T)
+    first = int(np.argmax(has))
+    Tt = np.where(np.arange(xs.size) < first, rS0, T)
+    F = Tt.copy()
+    for i in range(1, xs.size):
+        F[i] = min(F[i], F[i - 1] + DX)
+    rS = np.maximum(rS0, F)
+    # outer outline P (hull + offset) and its roof
+    corners = np.array([(x, t) for _, x0, x1, t0, t1 in rects for x in (x0, x1) for t in (t0, t1)])
+    hv = corners[ConvexHull(corners).vertices]
+    Pf = offset(_xt_face(hv), WIN_OFFSET, kind=Kind.ARC)
+    gS = _gable([(x, t, WIN_OFFSET) for x, t in hv], float(hv[:, 0].max()) + WIN_OFFSET, WIN_BRIDGE)
+    # full-depth part D: hull of the deep band rectangles (and of the whole outline forward of
+    # WIN_X_THIN, where the spinner is too thin for a skin) + offset, aft end cut by its own gable
+    dc = [(x, t) for _, x0, x1, t0, t1 in deep for x in (x0, x1) for t in (t0, t1)]
+    for a, b in zip(hv, np.roll(hv, -1, axis=0)):                  # hull edges crossing x = WIN_X_THIN
+        if (a[0] - WIN_X_THIN) * (b[0] - WIN_X_THIN) < 0:
+            u = (WIN_X_THIN - a[0]) / (b[0] - a[0])
+            dc.append((WIN_X_THIN, float(a[1] + u * (b[1] - a[1]))))
+    dc = np.array(dc)
+    dv = dc[ConvexHull(dc).vertices]
+    gD = _gable([(x, t, WIN_DEEP_AFT) for x, t in dv], float(dv[:, 0].max()) + WIN_DEEP_AFT, WIN_BRIDGE)
+    return dict(xs=xs, rects=rects, deep=deep, hull=hv, deep_hull=dv, P=Pf, gable_S=gS, gable_D=gD,
+                rS0=rS0, rS=rS, T=T)
+
+
+def _slab(face_or_faces) -> Solid:
+    out = [Solid.extrude(f, Vector(0, 0, R_TOP + 1.0)) for f in _faces_of(face_or_faces)]
+    return _fuse(out) if len(out) > 1 else out[0]
+
+
+@functools.lru_cache(maxsize=1)
+def window_parts0() -> dict:
+    """Solids of the blade-0 window: 'deep' (full-depth slab D) and 'shallow' (the outer outline
+    slab above the skin floor), plus their 2D faces."""
+    W = window_layout()
+    gS, gD = W["gable_S"], W["gable_D"]
+    hv = W["hull"]
+    # outer outline: P plus the gable's flat top. The flanks touch P where its offset arcs turn
+    # 45 deg (support points of the hull grown along (1, -+1)/sqrt 2).
+    vL = hv[int(np.argmax(hv[:, 0] - hv[:, 1]))]
+    vR = hv[int(np.argmax(hv[:, 0] + hv[:, 1]))]
+    s2 = WIN_OFFSET / math.sqrt(2)
+    tL, tR = (vL[0] + s2, vL[1] - s2), (vR[0] + s2, vR[1] + s2)
+    cen = (float(hv[:, 0].mean()), float(hv[:, 1].mean()))
+    roof = _xt_face([tL, (gS["xa"], gS["tau_a"][0]), (gS["xa"], gS["tau_a"][1]), tR, cen])
+    outer = _faces_of(W["P"].fuse(roof).clean())
+    deep_f = _faces_of(offset_face(_xt_face(W["deep_hull"]), WIN_OFFSET).intersect(_gable_face(gD)))
+    # skin floor (revolved keep region) under the shallow part
+    xs, rS = W["xs"], W["rS"]
+    k = np.nonzero(rS < hull_r(xs) + 2.0)[0]
+    x_end = float(xs[k.max()])
+    sel = (xs >= WIN_X_THIN - 1.0) & (xs <= x_end)
+    pts = _rdp(np.column_stack([xs[sel], rS[sel]]), 0.003)
+    prof = [(float(pts[0, 0]), 0.0)] + [(float(x), float(r)) for x, r in pts] + \
+           [(x_end, 45.0), (145.0, 45.0), (145.0, 0.0)]
+    keep = _revolve([("line", prof + [prof[0]])])
+    shallow = _slab(outer).cut(keep)
+    deep = _slab(deep_f)
+    return dict(outer_face=outer, deep_face=deep_f, deep=deep, shallow=shallow, keep=keep,
+                tangent_points=(tL, tR), x_skin_exit=x_end)
+
+
+def offset_face(f: Face, d: float):
+    from build123d import Kind, offset
+    return offset(f, d, kind=Kind.ARC)
+
+
 @functools.lru_cache(maxsize=1)
 def spinner_window0() -> Solid:
-    """Spinner slot for blade 0: each band cut through the full depth (r_e >= 0) over its x range.
-    The spinner never needs material under a slot, and a full-depth window leaves no feathered
-    skin where a band floor crosses the spinner's inner surface at a grazing angle."""
-    out = []
-    for b in slot_bands()["bands"]:
-        for poly in b["polys"]:
-            x0, x1 = float(poly[:, 0].min()), float(poly[:, 0].max())
-            rect = np.array([[x0, -1.0], [x1, -1.0], [x1, R_TOP], [x0, R_TOP]])
-            out.append(_band_prism(rect, *b["tau"]))
-    return _fuse(out)
+    """Spinner window for blade 0 (finding T01: one smooth outline, support-free aft end).
+
+    Outline at the outer surface: the convex hull of the hub-slot band rectangles (x, tau), offset
+    WIN_OFFSET outward with arc joins (no corner gives material back to the swept root), with the
+    aft side closed by a 45 deg gable whose flat top is at most WIN_BRIDGE wide. Depth:
+      * full depth (r_e >= -1) only where a band floor lies below the spinner's inner surface + the
+        skin (the heel and knuckle sweep, x <= ~124.7) and everywhere forward of WIN_X_THIN; that
+        region D is the hull of the deep band parts + WIN_OFFSET, its aft end cut by a 45 deg
+        gable (flat top <= WIN_BRIDGE) over the deep corners + WIN_DEEP_AFT, so it closes at
+        x ~125.9 and a complete ring of the 45 deg cone stands under the D22.6 seat ceiling;
+      * elsewhere the window cuts only above a revolved skin floor: >= WIN_SKIN_N (normal) over the
+        inner surface, <= every shallow band floor (run clearance kept), rising at most 45 deg going
+        aft, and after the last band it rises on through the outer surface, which closes the
+        window (no ceiling at all)."""
+    w = window_parts0()
+    return _fuse([w["deep"], w["shallow"]])
+
+
+def hub_trim0() -> Solid:
+    """Hub outer HUB_TRIM mm inside the full-depth window outline (blade 0), proposed by finding T01
+    so no slot steps show through the window. Built and checked, then NOT applied to the hub: the
+    band slots run the full depth, so their steps still showed below the 2 mm trim, while the trim's
+    constant-tau side walls met the hub cone at a grazing angle (1.08 mm walls) and the guard that
+    kept it off the pin channel left a 12 mm2 cantilever ledge. The smooth spinner outline, 1.5 mm
+    outside the slots, is the visible fix."""
+    w = window_parts0()
+    xc = x_cone_hub()
+    rc = lambda x: float(hull_in(x, HUB_INSET + HUB_TRIM))  # noqa: E731
+    xs = np.linspace(X_FRONT - 1.0, xc, 30)
+    r_cc = float(hull_in(xc, HUB_INSET)) - HUB_TRIM * math.sqrt(2)
+    prof = [(X_FRONT - 1.0, 0.0)] + [(float(x), rc(max(x, X_FRONT))) for x in xs[:-1]]
+    prof += [(xc, min(r_cc, rc(xc))), (X_AFT + 2.0, min(r_cc, rc(xc)) - (X_AFT + 2.0 - xc)), (X_AFT + 2.0, 0.0)]
+    keep = _revolve([("line", prof + [prof[0]])])
+    # keep the hub whole around the +tau pin insertion channel (D3.5 along the pin, tau >= PIN_HALF):
+    # a trim surface crossing the channel at a grazing angle would leave a membrane over it
+    Hp, _, _ = hinge_frame(0.0)
+    m = CHANNEL_D / 2 + P.MIN_WALL
+    guard = _box_hinge(Hp[0] - m, Hp[0] + m, -5.0, R_TOP, PIN_HALF - m, R_TOP)
+    return w["deep"].cut(keep).cut(guard)
 
 
 def x_cone_hub() -> float:
@@ -483,15 +685,6 @@ def _d_bore() -> Solid:
     return _fuse([full, d, cham])
 
 
-def _grooves() -> Solid:
-    out = []
-    for r in GROOVES_R:
-        h = GROOVE_DEPTH
-        out.append(_revolve([("line", [(X_FRONT - 0.3, r - h - 0.3), (X_FRONT + h, r), (X_FRONT - 0.3, r + h + 0.3),
-                                       (X_FRONT - 0.3, r - h - 0.3)])]))
-    return _fuse(out)
-
-
 def _pin_holes0() -> Solid:
     """Ear hole (press) and both insertion channels for blade 0, along e_t."""
     Hp, e_r, e_t = hinge_frame(0.0)
@@ -503,15 +696,23 @@ def _pin_holes0() -> Solid:
 
 
 def magnet_center0() -> np.ndarray:
-    xm, re, tau = P.DETENTS["deployed_hub_magnet_x_re_tau"]
+    """Seated hub magnet centre (blade 0): x from STOP_X - recess - H/2, r_e DEP_MAG_RE, tau 0."""
     _, e_r, e_t = hinge_frame(0.0)
-    return np.array([xm, 0, 0]) + re * np.asarray(e_r) + tau * np.asarray(e_t)
+    xm = STOP_X - MAG_RECESS - DEP_MAG[2] / 2
+    return np.array([xm, 0, 0]) + DEP_MAG_RE * np.asarray(e_r)
+
+
+def _box_hinge(x0: float, x1: float, re0: float, re1: float, t0: float, t1: float) -> Solid:
+    """Box in the blade-0 hinge frame (x, r_e = +Z, tau = -Y)."""
+    return Solid.make_box(x1 - x0, t1 - t0, re1 - re0).moved(Location((x0, -t1, re0)))
 
 
 def _magnet_pocket0() -> Solid:
+    """Glued seat for the 6 x 2 x 2 block (6 along the pin, 2 radial, magnetised along x): DEP_SEAT
+    (+0.1 on each size), depth H + MAG_RECESS from the stop face, open 0.3 past it."""
     c = magnet_center0()
-    x0 = STOP_X - MAG_RECESS - MAG_H
-    return cyl((x0, c[1], c[2]), (STOP_X + 0.3, c[1], c[2]), MAG_D_HOLE / 2)
+    sx, sr = DEP_SEAT[0] / 2, DEP_SEAT[1] / 2
+    return _box_hinge(STOP_X - MAG_RECESS - DEP_MAG[2], STOP_X + 0.3, c[2] - sr, c[2] + sr, -sx, sx)
 
 
 def _grub_hole() -> Solid:
@@ -532,38 +733,43 @@ def _pegs() -> list:
 @functools.lru_cache(maxsize=1)
 def hub() -> Solid:
     body = hub_body()
-    tools = [_d_bore(), _grooves(), _grub_hole()]
-    cut0 = _fuse([slot_cut0(), _pin_holes0(), _magnet_pocket0()])
+    tools = [_d_bore(), _grub_hole()]                      # front-face V-grooves dropped for v1 (T11)
+    cut0 = _fuse([slot_cut0(), _pin_holes0(), _magnet_pocket0()])    # (hub_trim0 not applied: see its docstring)
     tools += [rot_psi(cut0, psi) for psi in psi_list()]
     body = body.cut(_fuse(tools))
     body = _fuse([body] + _pegs())
     return _single(body)
 
 
+@functools.lru_cache(maxsize=1)
 def tip_geometry() -> dict:
-    """Spinner tip: end plane x_e where the R = SPINNER_TIP_R round, tangent to the hull and to the
-    end face, leaves MIN_WALL + chamfer of flat face outside the access bore."""
-    R = P.SPINNER_TIP_R
-    target = ACCESS_R + TIP_CHAMFER + P.MIN_WALL      # radius where the round meets the end face
+    """Spinner / tip-cap joint (finding T02) and the cap's tip round.
 
-    def fillet(xe):
-        xc = xe - R
-        xx = np.linspace(xc - 2 * R, xe + 0.5, 4000)
-        rr = hull_r(xx)
-
-        def gap(rc):
-            return float(np.min(np.hypot(xx - xc, rr - rc))) - R
-        rc = _solve(lambda r: gap(r), 0.0, float(hull_r(xc)) - 1e-6)
-        k = int(np.argmin(np.hypot(xx - xc, rr - rc)))
-        return xc, rc, float(xx[k]), float(rr[k])
-
-    xe = _solve(lambda x: fillet(x)[1] - target, 140.0, 160.0, it=50)
-    xc, rc, xt, rt = fillet(xe)
-    a0 = math.atan2(rt - rc, xt - xc)
-    am = 0.5 * a0
-    mid = (xc + R * math.cos(am), rc + R * math.sin(am))
-    return {"x_end": xe, "r_face_top": rc, "tangent": (xt, rt), "mid": mid, "center": (xc, rc),
-            "hull_r_at_end": float(hull_r(xe))}
+    Joint plane X_JOINT. The spinner's access bore (D6) opens into a 45 deg countersink that
+    reaches the hull radius at X_JOINT; the cap's 45 deg shoulder seats in it (support-free on
+    both prints). A fingernail V-groove: the spinner's outer edge is chamfered 45 deg from
+    X_JOINT - CAP_GROOVE down to the countersink, the cap's edge 45 deg back out to the hull.
+    The cap's outer surface continues profile.radius to a SPINNER_TIP_R round on the axis."""
+    xj = X_JOINT
+    rj = float(hull_r(xj))
+    x_cs0 = xj - (rj - ACCESS_R)                          # countersink meets the bore
+    xa = xj - CAP_GROOVE
+    ra = float(hull_r(xa))
+    xb = (ra + xa - ACCESS_R + x_cs0) / 2                 # spinner chamfer meets the countersink
+    rb = ACCESS_R + xb - x_cs0
+    xc_ = _solve(lambda x: float(hull_r(x)) - (rb + x - xb), xb, xb + 3.0)   # cap chamfer meets the hull
+    rc_ = float(hull_r(xc_))
+    Rt = P.SPINNER_TIP_R
+    xx = np.linspace(150.0, P.HULL_L, 20001)
+    rr = hull_r(xx)
+    xcen = _solve(lambda xc: float(np.min(np.hypot(xx - xc, rr))) - Rt, 150.0, P.HULL_L - Rt * 0.5)
+    k = int(np.argmin(np.hypot(xx - xcen, rr)))
+    xt, rt = float(xx[k]), float(rr[k])
+    a0 = math.atan2(rt, xt - xcen)
+    mid = (xcen + Rt * math.cos(a0 / 2), Rt * math.sin(a0 / 2))
+    return {"x_joint": xj, "r_joint": rj, "x_countersink": x_cs0, "spinner_chamfer": [(xa, ra), (xb, rb)],
+            "cap_chamfer": [(xb, rb), (xc_, rc_)], "tip_center_x": xcen, "tangent": (xt, rt), "mid": mid,
+            "x_tip": xcen + Rt, "x_end": xj, "groove_depth": float(hull_r(xb)) - rb}
 
 
 def x_cone_spinner() -> float:
@@ -576,19 +782,53 @@ def spinner_body() -> Solid:
     ro = lambda x: float(hull_r(x))              # noqa: E731
     ri = lambda x: float(hull_in(x, SP_WALL))    # noqa: E731
     tg = tip_geometry()
-    xe, rft = tg["x_end"], tg["r_face_top"]
-    xt, rt = tg["tangent"]
+    (xa, ra), (xb, rb) = tg["spinner_chamfer"]
     xci = x_cone_spinner()
     r_ceil = HUB_AFT_FLAT_R + SP_GAP * math.sqrt(2)
     x1 = X_FRONT + 0.3
     segs = [("line", [(X_FRONT, ri(X_FRONT)), (X_FRONT, ro(X_FRONT) - 0.3), (x1, ro(x1))]),
-            ("spline", _spline_pts(ro, x1, xt, 60)),
-            ("arc", [(xt, rt), tg["mid"], (xe, rft)]),
-            ("line", [(xe, rft), (xe, ACCESS_R + TIP_CHAMFER), (xe - TIP_CHAMFER, ACCESS_R),
+            ("spline", _spline_pts(ro, x1, xa, 60)),
+            ("line", [(xa, ra), (xb, rb), (tg["x_countersink"], ACCESS_R),
                       (X_HEAD, ACCESS_R), (X_HEAD, SCREW_CLEAR_D / 2), (X_AFT, SCREW_CLEAR_D / 2),
                       (X_AFT, r_ceil), (xci, ri(xci))]),
             ("spline", list(reversed(_spline_pts(ri, X_FRONT, xci, 40))))]
     return _revolve(segs)
+
+
+@functools.lru_cache(maxsize=1)
+def spinner_cap() -> Solid:
+    """Printed push-in tip cap (T02): D5.7 spigot with 3 crush ribs (D6.1 over the tips) in the
+    access bore, 45 deg shoulder in the spinner's countersink, outer surface = profile.radius to an
+    R SPINNER_TIP_R round. Pull it with a fingernail in the joint groove to reach the M3 screw."""
+    tg = tip_geometry()
+    r_sp = CAP_SPIGOT_D / 2
+    x_sh = tg["x_countersink"] - (ACCESS_R - r_sp)        # spigot meets the 45 deg shoulder
+    x_s0 = x_sh - CAP_SPIGOT_L
+    (xb, rb), (xc_, rc_) = tg["cap_chamfer"]
+    xt, rt = tg["tangent"]
+    ro = lambda x: float(hull_r(x))              # noqa: E731
+    # R SPINNER_TIP_R round; it ends in a D0.5 flat on the axis (a surface of revolution with a pole on
+    # the axis tessellates with a crack there)
+    Rt, xcen = P.SPINNER_TIP_R, tg["tip_center_x"]
+    rt = math.sqrt(Rt ** 2 - (xt - xcen) ** 2)                 # exactly on the round
+    a0, a1 = math.atan2(rt, xt - xcen), math.asin(0.25 / Rt)
+    pend = (xcen + Rt * math.cos(a1), 0.25)
+    pmid = (xcen + Rt * math.cos(0.5 * (a0 + a1)), Rt * math.sin(0.5 * (a0 + a1)))
+    hull_pts = _spline_pts(ro, xc_, xt, 24)
+    hull_pts[-1] = (xt, rt)
+    segs = [("line", [(x_s0, 0.0), (x_s0, r_sp - 0.3), (x_s0 + 0.3, r_sp), (x_sh, r_sp), (xc_, rc_)]),   # (xb, rb) is collinear
+            ("spline", hull_pts),
+            ("arc", [(xt, rt), pmid, pend]),
+            ("line", [pend, (pend[0], 0.0), (x_s0, 0.0)])]
+    body = _revolve(segs)
+    xr0, xr1, ri0 = x_s0 + 1.2, x_sh - 0.2, r_sp - 0.3
+    pts = [(xr0, ri0), (xr1, ri0), (xr1, CAP_RIB_R), (xr0 + 0.55, CAP_RIB_R), (xr0, CAP_RIB_R - 0.55)]
+    vs = [Vector(float(x), -CAP_RIB_W / 2, float(r)) for x, r in pts]
+    rib = Solid.extrude(Face(Wire.make_polygon(vs, close=True)), Vector(0, CAP_RIB_W, 0))   # 45 deg lead-in
+    ribs = [rot_psi(rib, a) for a in (60.0, 180.0, 300.0)]      # clear of the revolve seam (+Z)
+    return _single(_fuse([body] + ribs))
+
+
 
 
 @functools.lru_cache(maxsize=1)
@@ -652,13 +892,20 @@ def filler(i: int, side: int) -> Solid:
 
 
 def magnet_model() -> Solid:
-    return _round_bar(MAG_H, P.MAGNET["D"] / 2, 0.1, 0.1)
+    """N52 block 6 x 2 x 2 (DEP_MAG): x along the magnetisation, centred at the origin, 0.1 edge chamfer."""
+    t, r, h = DEP_MAG
+    b = Solid.make_box(h, t, r).moved(Location((-h / 2, -t / 2, -r / 2)))
+    try:
+        b = b.chamfer(0.1, None, b.edges())
+    except Exception:  # noqa: BLE001
+        pass
+    return b
 
 
 def hub_magnet(i: int) -> Solid:
+    """Block seated on its seat floor (face MAG_RECESS below the stop face)."""
     c = magnet_center0()
-    m = magnet_model().moved(Location((c[0] - MAG_H / 2, c[1], c[2])))
-    return rot_psi(m, psi_list()[i])
+    return rot_psi(magnet_model().moved(Location(tuple(float(v) for v in c))), psi_list()[i])
 
 
 def grub_model() -> Solid:
@@ -708,13 +955,20 @@ def _parts_cached() -> tuple:
     out.append(dict(name="hub", shape=h, print=_print_pose(h), material="hub", role="body", rotor=True,
                     qty=1, bought=False, explode=[0, 0, 0],
                     notes="Print front face down, " + SUPPORT_NOTES["hub"] + " " + MATERIAL_PRINTED
-                          + ", 4 perimeters, 40 % infill. Tap the grub bore M3 after printing; press "
-                          "the pins and magnets."))
+                          + ", 4 perimeters, 40 % infill. Tap the grub bore M3 after printing; glue the "
+                          "three 6 x 2 x 2 magnets into the stop-face seats (CA). The hinge pins go in "
+                          "only after the blades: drop each blade into its slot, then press its pin "
+                          "through the D3.5 channel into both ears."))
     sp = spinner()
     out.append(dict(name="spinner", shape=sp, print=_print_pose(sp), material="hub", role="body", rotor=True,
                     qty=1, bought=False, explode=[40, 0, 0],
                     notes="Print base (front edge) down, " + SUPPORT_NOTES["spinner"] + " "
                           + MATERIAL_PRINTED + ", 3 perimeters, 30 % infill in the solid tail."))
+    cp = spinner_cap()
+    out.append(dict(name="spinner_cap", shape=cp, print=_print_pose(cp), material="hub", role="body", rotor=True,
+                    qty=1, bought=False, explode=[55, 0, 0],
+                    notes="Print spigot down, " + SUPPORT_NOTES["spinner_cap"] + " " + MATERIAL_PRINTED
+                          + ", 3 perimeters, 100 % infill (small part)."))
     for i, psi in enumerate(psi_list()):
         _, e_r, e_t = hinge_frame(psi)
         out.append(dict(name=f"hinge_pin_{i}", shape=pin(i), print=None, material="steel", role="internal",
@@ -735,8 +989,9 @@ def _parts_cached() -> tuple:
         out.append(dict(name=f"hub_magnet_{i}", shape=hub_magnet(i), print=None, material="magnet",
                         role="internal", rotor=True, qty=1, bought=True,
                         explode=[8.0, 0, 0],
-                        notes="N52 disc 4 x 2, axial; pressed (or CA-glued) into the stop face pocket, "
-                              "0.2 mm below the face; attracting the blade's heel magnet."))
+                        notes="N52 block 6 x 2 x 2, magnetised through the 2 mm along x; CA-glued in the "
+                              "6.1 x 2.1 stop-face seat, face 0.2 mm below the stop face; attracting the "
+                              "blade's heel magnet (pair gap 0.4)."))
     eg = [0.0, -math.sin(math.radians(GRUB_PSI)), math.cos(math.radians(GRUB_PSI))]
     out.append(dict(name="hub_grub", shape=grub(), print=None, material="steel", role="internal", rotor=True,
                     qty=1, bought=True, explode=[0.0, round(22 * eg[1], 3), round(22 * eg[2], 3)],
@@ -914,6 +1169,20 @@ def to_mesh(shape: Shape, tol: float = 0.02, angular: float = 0.1):
     return trimesh.Trimesh(np.array([(p.X, p.Y, p.Z) for p in v]), np.array(f), process=True)
 
 
+def to_mesh_closed(shape: Shape, tol: float = 0.005, angular: float = 0.05):
+    """Finest closed tessellation: OCC leaves cracks on some B-spline seams at very fine tolerances,
+    so the tolerance is relaxed (x2 steps, up to 0.04) until the mesh is a closed manifold."""
+    from OCP.BRepTools import BRepTools
+    t = tol
+    while True:
+        BRepTools.Clean_s(shape.wrapped)
+        m = to_mesh(shape, t, angular)
+        if m.is_watertight or t >= 0.04:
+            m.metadata["tol"] = t
+            return m
+        t *= 2
+
+
 def to_manifold(mesh):
     import manifold3d as mf
     m = mf.Manifold(mf.Mesh(np.asarray(mesh.vertices, np.float32), np.asarray(mesh.faces, np.uint32)))
@@ -1037,7 +1306,7 @@ def wall_thickness(mesh, n_rays: int = 30000, seed: int = 1) -> dict:
             continue
         best.append((h[0] + 2e-3, p))
     best.sort(key=lambda t: t[0])
-    return {"min_mm": float(best[0][0]), "at": [round(float(v), 2) for v in best[0][1]],
+    return {"mesh_tol_mm": mesh.metadata.get("tol"), "min_mm": float(best[0][0]), "at": [round(float(v), 2) for v in best[0][1]],
             "p01_mm": float(np.percentile([b[0] for b in best], 1)), "n_wall_rays": len(best),
             "n_corner_rays": corner,
             "thinnest": [[round(b[0], 3)] + [round(float(v), 2) for v in b[1]] for b in best[:8]]}
@@ -1172,6 +1441,103 @@ def cross_checks(hub_m, spin_m, d_deg: float = 2.0) -> dict:
     return out
 
 
+def _occ_hits(shape, o, d) -> list:
+    """Sorted line parameters of every crossing of the line o + t d with the shape's faces."""
+    from OCP.gp import gp_Dir, gp_Lin, gp_Pnt
+    from OCP.IntCurvesFace import IntCurvesFace_ShapeIntersector
+    it = IntCurvesFace_ShapeIntersector()
+    it.Load(shape.wrapped, 1e-7)
+    it.Perform(gp_Lin(gp_Pnt(*map(float, o)), gp_Dir(*map(float, d))), -1e3, 1e3)
+    return sorted(it.WParameter(i) for i in range(1, it.NbPnt() + 1))
+
+
+def seat_walls() -> dict:
+    """Material around the deployed-magnet seat of blade 0 on the real hub BREP (T03): lines along
+    e_r (+Z at psi 0) and along tau from inside the seat, and from the mouth rim (x STOP_X - 0.02)
+    outward along e_r and diagonally; the wall is the next material run after the seat face."""
+    h = hub()
+    c = magnet_center0()
+    x0 = STOP_X - MAG_RECESS - DEP_MAG[2]
+    sr, st = DEP_SEAT[1] / 2, DEP_SEAT[0] / 2
+    above, below, side, rim = [], [], [], []
+    for x in np.linspace(x0 + 0.05, STOP_X - 0.02, 12):
+        for t in (-st + 0.05, 0.0, st - 0.05):
+            o = np.array([x, -t, c[2]])
+            hp = [v for v in _occ_hits(h, o, (0, 0, 1)) if v > 0]
+            if len(hp) >= 2:
+                above.append(hp[1] - hp[0])
+            hn = sorted(-v for v in _occ_hits(h, o, (0, 0, 1)) if v < 0)
+            if len(hn) >= 2:
+                below.append(hn[1] - hn[0])
+        for sg in (1, -1):
+            o = np.array([x, 0.0, c[2]])
+            hs = [v for v in _occ_hits(h, o, (0, -sg, 0)) if v > 0]
+            if len(hs) >= 2:
+                side.append(hs[1] - hs[0])
+    for t in np.linspace(-st, st, 9):
+        for d in ((0, 0, 1), (0.0, 0.0, -1.0), (-0.7071, 0, 0.7071)):
+            for zr in (c[2] + sr, c[2] - sr):
+                if (d[2] > 0) != (zr > c[2]):
+                    continue
+                o = np.array([STOP_X - 0.02, -t, zr]) + 0.01 * np.array(d)
+                hh = [v for v in _occ_hits(h, o, d) if v > 0]
+                if hh:
+                    rim.append(hh[0])
+    return {"above_min_mm": float(min(above)), "below_min_mm": float(min(below)), "side_min_mm": float(min(side)),
+            "mouth_rim_min_mm": float(min(rim)), "n_lines": len(above) + len(below) + len(side) + len(rim),
+            "note": "rays from inside the seat along e_r (up: the knuckle arc of the slot, down: the heel slot) "
+                    "and along the pin (sides), and from the seat mouth rim on the stop face outward"}
+
+
+def layer_scan(stl: Path, layer: float = 0.2, min_area: float = 1.0) -> dict:
+    """Layer-by-layer unsupported regions of a print STL (45 deg rule, 0.2 mm layers): area, inscribed
+    width and the fraction of each region's boundary within 0.25 mm of the layer below (anchored).
+    A bridge anchored on both sides reads >= ~0.4; a cantilever tread ~0.3 or less."""
+    import manifold3d as mf
+    import trimesh
+    from matplotlib.path import Path as MP
+    tm = trimesh.load(stl, force="mesh")
+    M = mf.Manifold(mf.Mesh(vert_properties=np.asarray(tm.vertices, np.float32),
+                            tri_verts=np.asarray(tm.faces, np.uint32)))
+    zs = np.arange(0.1 + layer, float(tm.bounds[1][2]), layer)
+    prev = M.slice(0.1)
+    regs = []
+    for z in zs:
+        cur = M.slice(float(z))
+        un = cur - prev.offset(layer + 1e-3, mf.JoinType.Round)
+        for cp in un.decompose():
+            a = cp.area()
+            if a < min_area:
+                continue
+            lo, hi = 0.0, 30.0
+            for _ in range(14):
+                m_ = 0.5 * (lo + hi)
+                if cp.offset(-m_, mf.JoinType.Round).is_empty():
+                    hi = m_
+                else:
+                    lo = m_
+            pts = []
+            for poly in cp.to_polygons():
+                q = np.vstack([poly, poly[:1]])
+                for a_, b_ in zip(q[:-1], q[1:]):
+                    n = max(1, int(np.linalg.norm(b_ - a_) / 0.1))
+                    pts.append(a_ + np.outer((np.arange(n) + 0.5) / n, b_ - a_))
+            pts = np.vstack(pts)
+            w = np.zeros(len(pts))
+            for poly in prev.offset(0.25, mf.JoinType.Round).to_polygons():
+                poly = np.asarray(poly, float)
+                if len(poly) < 3:
+                    continue
+                sgn = 1 if 0.5 * (np.dot(poly[:, 0], np.roll(poly[:, 1], -1)) - np.dot(poly[:, 1], np.roll(poly[:, 0], -1))) > 0 else -1
+                w += sgn * MP(poly).contains_points(pts)
+            regs.append({"z_mm": round(float(z), 2), "area_mm2": round(float(a), 2), "width_mm": round(2 * lo, 2),
+                         "anchored": round(float((w > 0.5).mean()), 3)})
+        prev = cur
+    return {"n_regions": len(regs), "total_mm2": round(sum(r["area_mm2"] for r in regs), 1), "regions": regs[:20],
+            "method": "manifold slices every %.1f mm; region = slice minus the previous slice grown by one layer "
+                      "(45 deg); regions < %.0f mm2 ignored" % (layer, min_area)}
+
+
 def run_checks(part_list: list[dict], meshes: dict) -> dict:
     t0 = time.time()
     _, lay, _, _, _ = layout_model()
@@ -1217,25 +1583,61 @@ def run_checks(part_list: list[dict], meshes: dict) -> dict:
     add("heel slot floor r_e min / wall over the shaft bore (mm)",
         [round(b0["floor_min"], 4), round(b0["floor_min"] - BORE_R, 4)], P.MIN_WALL,
         b0["floor_min"] - BORE_R >= P.MIN_WALL - 1e-6)
-    add("magnet pocket: D / depth / face recess (mm)", [MAG_D_HOLE, MAG_H + MAG_RECESS, MAG_RECESS],
-        "DETENTS hub magnet x 112.3", abs((STOP_X - MAG_RECESS - MAG_H / 2) - P.DETENTS["deployed_hub_magnet_x_re_tau"][0]) < 1e-6)
+    c_m = magnet_center0()
+    add("deployed magnet seat (block 6 x 2 x 2, glued): seat tau x r_e / depth / face recess / centre r_e (mm)",
+        [list(DEP_SEAT), round(DEP_MAG[2] + MAG_RECESS, 3), MAG_RECESS, DEP_MAG_RE], "inside the stop face",
+        b0["stop_face_r_e"][0] + 1.0 <= DEP_MAG_RE - DEP_SEAT[1] / 2 and DEP_MAG_RE + DEP_SEAT[1] / 2
+        <= b0["stop_face_r_e"][1] - P.MIN_WALL,
+        "PROPOSED DETENTS.deployed_hub_magnet_x_re_tau = [%.2f, %.2f, 0] (was the 4 x 2 disc at r_e 8.4388)"
+        % (c_m[0], DEP_MAG_RE))
     eng = SCREW_L - AFT_WALL
     add("spinner screw M3 x 8: thread engagement in the shaft (mm)", eng, ">= 1.5 d = 4.5 and <= 8 (tap depth)",
         4.5 <= eng <= 8.0)
     add("access bore D vs M3 head D5.5 (radial clearance mm)", round(ACCESS_R - SCREW_HEAD_D / 2, 3), ">= 0.2",
         ACCESS_R - SCREW_HEAD_D / 2 >= 0.2)
     tg = tip_geometry()
-    add("spinner tip: end x / face radius / tip round R", [round(tg["x_end"], 3), round(tg["r_face_top"], 3),
-                                                          P.SPINNER_TIP_R], "r_face >= access r + chamfer + MIN_WALL",
-        tg["r_face_top"] >= ACCESS_R + TIP_CHAMFER + P.MIN_WALL - 1e-6)
+    r_sp = CAP_SPIGOT_D / 2
+    x_s0 = tg["x_countersink"] - (ACCESS_R - r_sp) - CAP_SPIGOT_L
+    head_top = X_HEAD + SCREW_HEAD_H
+    add("tip cap: spigot end to the M3 head (axial clearance, mm)", round(x_s0 - head_top, 3), ">= 1.0",
+        x_s0 - head_top >= 1.0, "spigot D%.1f x %.1f from x %.2f; head top x %.1f" % (CAP_SPIGOT_D, CAP_SPIGOT_L,
+                                                                                     x_s0, head_top))
+    add("tip cap: joint x / tip x / built length / L over D", [round(tg["x_joint"], 3), round(tg["x_tip"], 3),
+                                                              round(tg["x_tip"], 3), round(tg["x_tip"] / P.HULL_D, 3)],
+        "HULL_L %g (Myring point), L/D %.2f" % (P.HULL_L, P.HULL_L / P.HULL_D), tg["x_tip"] > X_JOINT + 5.0,
+        "the R%g round of the Myring point ends the egg at x %.2f" % (P.SPINNER_TIP_R, tg["x_tip"]))
+    add("tip cap: fingernail groove depth below the hull (mm)", round(tg["groove_depth"], 3), ">= 0.2",
+        tg["groove_depth"] >= 0.2)
+    xx = np.linspace(tg["x_countersink"], X_JOINT - CAP_GROOVE, 200)
+    wall_cs = float(np.min((hull_r(xx) - (ACCESS_R + xx - tg["x_countersink"])) / math.sqrt(2)))
+    add("spinner wall between the 45 deg countersink and the hull (normal, mm, before the groove chamfer)",
+        round(wall_cs, 3), ">= 0.3 at the groove edge", wall_cs >= 0.3)
     hub_m = to_manifold(meshes["hub"])
     spin_m = to_manifold(meshes["spinner"])
     add("D-flat start to the grub bore (wall, mm)", round(GRUB_X - GRUB_TAP_D / 2 - FLAT_X[0], 3), ">= MIN_WALL",
         GRUB_X - GRUB_TAP_D / 2 - FLAT_X[0] >= P.MIN_WALL - 1e-9,
         "and %.2f mm aft of the 0.5 mm bore chamfer" % (FLAT_X[0] - (X_FRONT + BORE_CHAMFER)))
-    add("front V-grooves inside the grub tapped zone: wall to the grub bore (mm)",
-        round(GRUB_X - GRUB_TAP_D / 2 - (X_FRONT + GROOVE_DEPTH), 3), ">= MIN_WALL",
-        max(GROOVES_R) + GROOVE_DEPTH <= GRUB_TAP_R1 and GRUB_X - GRUB_TAP_D / 2 - (X_FRONT + GROOVE_DEPTH) >= P.MIN_WALL)
+    add("grub M3 thread (major D3) to the hub front face (wall, mm); front-face grooves removed (T11)",
+        round(GRUB_X - 1.5 - X_FRONT, 3), ">= MIN_WALL", GRUB_X - 1.5 - X_FRONT >= P.MIN_WALL - 1e-9)
+    sw = seat_walls()
+    out["deployed_seat_walls"] = sw
+    add("deployed magnet seat walls (OCC rays on the hub): to the knuckle arc above / below / to the slot sides, "
+        "and from the mouth rim (mm)", [round(sw["above_min_mm"], 3), round(sw["below_min_mm"], 3),
+                                       round(sw["side_min_mm"], 3), round(sw["mouth_rim_min_mm"], 3)],
+        ">= MIN_WALL", min(sw["above_min_mm"], sw["below_min_mm"], sw["side_min_mm"],
+                           sw["mouth_rim_min_mm"]) >= P.MIN_WALL - 0.02, sw["note"])
+    W = window_layout()
+    wp = window_parts0()
+    out["windows"] = {"outline_offset_mm": WIN_OFFSET, "bridge_max_mm": WIN_BRIDGE,
+                      "outer_gable": {k: (list(v) if isinstance(v, tuple) else v) for k, v in W["gable_S"].items()},
+                      "deep_gable": {k: (list(v) if isinstance(v, tuple) else v) for k, v in W["gable_D"].items()},
+                      "deep_band_parts": [list(d) for d in W["deep"]],
+                      "skin_floor_exit_x_mm": wp["x_skin_exit"],
+                      "skin_n_mm": WIN_SKIN_N, "full_depth_forward_of_x_mm": WIN_X_THIN}
+    add("window full-depth part: flat top x / bridge width / ring of cone left under the seat ceiling (mm)",
+        [round(W["gable_D"]["xa"], 3), round(W["gable_D"]["tau_a"][1] - W["gable_D"]["tau_a"][0], 3),
+         round(X_AFT - W["gable_D"]["xa"], 3)], "bridge <= %g, ring >= 1.0" % WIN_BRIDGE,
+        W["gable_D"]["tau_a"][1] - W["gable_D"]["tau_a"][0] <= WIN_BRIDGE + 1e-6 and X_AFT - W["gable_D"]["xa"] >= 1.0)
     pr = pin_retention(spin_m)
     out["pin_retention"] = pr
     add("pins retained: free axial travel (pin + 3 x 4 filler to the spinner) / far-ear engagement left (mm)",
@@ -1255,8 +1657,14 @@ def run_checks(part_list: list[dict], meshes: dict) -> dict:
         "deployed blades (fold 0) block it %.1f mm before home: fold the blades (stowed) first"
         % so["fold_0"]["at_offset_mm"] if so["fold_0"]["min_gap_mm"] < RUN - 0.01 else "")
     print("  wall thickness...", flush=True)
-    out["wall_thickness"] = {k: wall_thickness(to_mesh(p["shape"], 0.005, 0.05))
-                             for k, p in ((q["name"], q) for q in part_list) if k in ("hub", "spinner")}
+    out["wall_thickness"] = {k: wall_thickness(to_mesh_closed(p["shape"], 0.005, 0.05))
+                             for k, p in ((q["name"], q) for q in part_list) if k in ("hub", "spinner", "spinner_cap")}
+    print("  layer scan...", flush=True)
+    out["layer_scan"] = {k: layer_scan(OUT_STL / f"{k}.stl") for k in ("hub", "spinner", "spinner_cap")}
+    cap_m = to_manifold(meshes["spinner_cap"])
+    out["cap_vs_spinner"] = {"overlap_mm3": float((cap_m ^ spin_m).volume()), "min_gap_mm": float(cap_m.min_gap(spin_m, 1.0)),
+                             "note": "3 crush ribs (0.05 mm radial) pressed in the D6 bore; the 45 deg shoulder "
+                                     "sits on the countersink (contact)"}
     out["shell_profile"] = shell_thickness()
     if "--no-cross" not in sys.argv:
         print("  cross checks (blade, shaft, aft shell)...", flush=True)

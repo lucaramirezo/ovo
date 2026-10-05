@@ -48,6 +48,22 @@ from .. import profile
 
 
 # --------------------------------------------------------------------------
+# Detent magnets shared by rotor.py, blade.py, shells.py and assembly.py (findings T03 / T15).
+# params.DETENTS still describes the layout's 4 x 2 discs; the values below are the built
+# geometry and are PROPOSED for params (out/cad/checks/*.json, docs/notes/cad.md).
+# --------------------------------------------------------------------------
+# Deployed pair (blade heel / hub stop face): N52 BLOCK 6 x 2 x 2, 6 along the pin (tau = blade c),
+# 2 radial (r_e = blade s), magnetised through 2 along x (= blade n deployed). Glued seats +0.1.
+DEP_MAGNET = dict(size_tau_re_x=(6.0, 2.0, 2.0), seat_tau_re=(6.1, 2.1), r_e=8.2, recess=0.2,
+                  gap=0.4, grade="N52", source="e.g. supermagnete Q-06-02-02-N52 (VERIFY)")
+# Stowed pair (blade shank inner face / aft-shell boss): N52 disc 4 x 2 (params.MAGNET) on the
+# face normal; blade magnet face STOW_BLADE_BELOW_MOUTH below the seat mouth, static magnet face
+# STOW_BOSS_RECESS below the boss face.
+STOW_BLADE_BELOW_MOUTH = 0.1
+STOW_BOSS_RECESS = 0.05
+
+
+# --------------------------------------------------------------------------
 # Bodies of revolution about the X axis
 # --------------------------------------------------------------------------
 
@@ -228,3 +244,60 @@ def interference(a: Shape, b: Shape) -> float:
 def min_distance(a: Shape, b: Shape) -> float:
     """Minimum distance between two shapes (mm), 0 if they touch or overlap."""
     return float(a.distance_to(b))
+
+
+# --------------------------------------------------------------------------
+# Mesh repair (OCC's mesher leaves sliver gaps where fillets meet other blends)
+# --------------------------------------------------------------------------
+
+def close_mesh_slivers(m, max_perimeter: float = 0.2) -> tuple[int, float]:
+    """Close boundary loops of a trimesh with fans oriented against their neighbours (in place).
+    Returns (loops closed, largest perimeter closed); loops longer than max_perimeter are left, so a
+    real defect still fails the watertight check."""
+    faces = np.asarray(m.faces)
+    directed = np.vstack([faces[:, [0, 1]], faces[:, [1, 2]], faces[:, [2, 0]]])
+    have = {tuple(e) for e in directed}
+    nxt = {}
+    for a, b in directed:
+        if (b, a) not in have:
+            nxt[b] = a
+    new, done, closed, pmax = [], set(), 0, 0.0
+    for start in list(nxt):
+        if start in done:
+            continue
+        loop, v = [start], nxt[start]
+        while v != start and v in nxt and len(loop) < 200:
+            loop.append(v)
+            v = nxt[v]
+        done.update(loop)
+        if v != start or len(loop) < 3:
+            continue
+        P_ = m.vertices[loop]
+        per = float(np.linalg.norm(P_ - np.roll(P_, -1, axis=0), axis=1).sum())
+        if per <= max_perimeter:
+            new += [[loop[0], loop[k], loop[k + 1]] for k in range(1, len(loop) - 1)]
+            closed += 1
+            pmax = max(pmax, per)
+    if new:
+        m.faces = np.vstack([faces, np.asarray(new)])
+    return closed, pmax
+
+
+def repair_stl(path, max_perimeter: float = 12.0) -> dict:
+    """Weld an exported STL and close sliver gaps (perimeter <= max_perimeter mm, near-zero area) left
+    by the mesher; rewrites the file only when that makes it watertight."""
+    import trimesh
+    m = trimesh.load(path)
+    if m.is_watertight:
+        return {"closed_loops": 0}
+    n, pmax = close_mesh_slivers(m, max_perimeter)
+    if n and m.is_watertight:
+        m.export(path)
+    return {"closed_loops": n, "max_perimeter_mm": round(pmax, 3), "watertight_after": bool(m.is_watertight)}
+
+
+def closed_mesh(m, max_perimeter: float = 12.0):
+    """The same repair on an in-memory trimesh (returns it)."""
+    if not m.is_watertight:
+        close_mesh_slivers(m, max_perimeter)
+    return m
