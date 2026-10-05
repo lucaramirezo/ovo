@@ -1,8 +1,8 @@
 # CAD: parts, assembly and checks
 
 Status: v1 CAD, integrated 2026-10-04; design review findings T01 to T31 applied 2026-10-05
-(section 9). Sources: `hydroegg/cad/*.py` (one module per subassembly, see the table below) and
-`hydroegg/cad/assembly.py` (integration). Every dimension comes from `hydroegg/params.py` and the
+(section 9). Sources: `ovo/cad/*.py` (one module per subassembly, see the table below) and
+`ovo/cad/assembly.py` (integration). Every dimension comes from `ovo/params.py` and the
 layout tables in `data/`, except where the review round changed the CAD: those values are listed
 in section 10 as proposed params changes (params.py, profile.py, layout*.py and bem.py were not
 edited). The CAD numbers below are measured on the real solids and come from
@@ -18,7 +18,7 @@ modules' own checks; logs in `out/work/build/`):
 ```
 
 `build.py` runs the six part modules through `scripts/cadrun.sh` (at most 2 OCC jobs on the
-machine), then `python -m hydroegg.cad.assembly --force` (rebuilds the part cache under
+machine), then `python -m ovo.cad.assembly --force` (rebuilds the part cache under
 `out/work/cad/integrate/cache/`), then the seven renders through the viewer, and prints a summary
 table (parts, interference, key clearances, spin sweep, viewer check, print plan, outputs).
 
@@ -28,9 +28,9 @@ table (parts, interference, key clearances, spin sweep, viewer check, print plan
 |---|---|
 | `out/cad/step/<part>.step` | every part in its assembled (world) pose, except `blade.step` and the coupon parts, which are in print pose |
 | `out/cad/stl/<part>.stl` | every printed part in print orientation (on z = 0, mm); the three blades share `blade.stl`, the two fins and the two fin blanks are identical pairs |
-| `out/cad/step/hydroegg_assembly_stowed.step` | the machine as carried: PACKED state (blades stowed, fins off, blanking strips in), 54 named parts, 28.8 MB |
-| `out/cad/step/hydroegg_assembly_deployed.step` | the machine running: blades deployed, fins fitted, 54 named parts, 34.7 MB |
-| `out/web/hydroegg.glb`, `out/web/manifest.json` | viewer scene: 61 meshes, 276k triangles, 9.7 MB; roles, rotor flags, `packed` flags, explode vectors, blade pivots, cut-face section meshes, material table |
+| `out/cad/step/ovo_assembly_stowed.step` | the machine as carried: PACKED state (blades stowed, fins off, blanking strips in), 54 named parts, 28.8 MB |
+| `out/cad/step/ovo_assembly_deployed.step` | the machine running: blades deployed, fins fitted, 54 named parts, 34.7 MB |
+| `out/web/ovo.glb`, `out/web/manifest.json` | viewer scene: 61 meshes, 276k triangles, 9.7 MB; roles, rotor flags, `packed` flags, explode vectors, blade pivots, cut-face section meshes, material table |
 | `out/web/packed_kit.glb`, `out/web/packed_kit.json` | a separate light scene: the packed egg with the two fins laid out in front of the nose (24 meshes) |
 | `out/renders/*.png` | hero_deployed, stowed, packed_kit, cutaway, exploded, side, front (1600 x 1000) |
 | `out/cad/checks/<module>.json` | each module's own checks |

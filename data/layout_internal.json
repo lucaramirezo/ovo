@@ -1,6 +1,6 @@
 {
- "schema": "hydroegg.layout_internal/1",
- "generated_by": "python -m hydroegg.layout_internal",
+ "schema": "ovo.layout_internal/1",
+ "generated_by": "python -m ovo.layout_internal",
  "conventions": {
   "frame": "X body axis, flow +X, nose at x = 0, Z up, right-handed",
   "theta": "angle about +X from +Z toward +Y; theta = -psi of layout_rotor (blade i at psi 120 i, i.e. theta 0/240/120); pockets span theta_blade + [-az_hi, -az_lo]",
@@ -8,7 +8,7 @@
   "estimates": "any value marked ESTIMATE is a modelling assumption, not a sourced number"
  },
  "inputs": {
-  "pockets_source": "hydroegg.layout -> data/layout_rotor.json (pocket_depth table, asymmetric about each blade azimuth)",
+  "pockets_source": "ovo.layout -> data/layout_rotor.json (pocket_depth table, asymmetric about each blade azimuth)",
   "pocket_model": {
    "x0_mm": 30.75,
    "x1_mm": 108.0,
@@ -1036,7 +1036,7 @@
     "model": "yawed pad footprint (pad_footprint, 0.25 mm x 11 samples; planar pad walls meet the hull at theta + asin(lat / R)) vs each pocket's theta span at the sample x, arc at the hull radius"
    },
    "fold_at_index": {
-    "rule": "blades fold at the stowing index (blade i at psi 120 i), fold 0 to 90 deg in 1 deg steps, rotor surface from hydroegg.layout",
+    "rule": "blades fold at the stowing index (blade i at psi 120 i), fold 0 to 90 deg in 1 deg steps, rotor surface from ovo.layout",
     "sampling": "aero and shank surfaces densified to 1 mm, fold in 1 deg steps (clearances +- ~0.5 mm)",
     "n_points_near_fins": 327102,
     "pad_clear_min_mm": 3.0948,

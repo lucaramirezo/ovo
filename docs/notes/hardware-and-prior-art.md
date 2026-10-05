@@ -597,7 +597,7 @@ warping. Use PETG for every wetted part; use ASA only for long sun exposure and 
 | WaterLily (discontinued) | n/a (unit 178 mm dia x 76 mm) | up to 15 W; 2-3 W under tow | min 1 km/h; peak 7.2 mph (3.2 m/s) | 1.3 kg | 7 x 3 in | USD 159 | rigid ducted wheel, tethered or towed | [src](https://get.waterlilyturbine.com/paddling-charger/), [src](https://www.popsci.com/gear/best-hydroelectric-generators/), [src](https://worldwaterreserve.com/waterlily-turbine-review/), [src](https://www.theoutbound.com/neonconflagrations/waterlily-turbine-portable-power-generator-review) |
 | Blue Freedom Portable | 120 mm | max 5 W (15 V nominal) | not published by the maker; a translated review says 'at least 1 m/s' | 690 g | body 220 x 55 mm | EUR 299 | prop stored in body, flexible shaft | [src](https://blue-freedom.net/hydro/portable/), [review](https://gigazine.net/gsc_news/en/20160418-blue-freedom/) |
 | Ampair Aquair UW | 318 mm (12.5 in) | 70 W @ 6 mph, 100 W @ 9 mph | 2.7 / 4.0 m/s | 13.6 kg | 14.5 in long | not for sale | fixed prop, pole or tow | [src](https://nooutage.com/aquair-uw.htm) |
-| **HydroEgg (this project)** | 194 mm deployed | 18.3 W shaft @ 1.5 m/s (BEM, Cp peak); 7.66 W DC with the GL40 via a diode bridge (8.92 W active) | 1.5 m/s design | n/a | stowed 75 x 165 mm | display build priced parts EUR 35.48 to buy | blades fold forward into tail pockets | `hw_calc.py`, `data/blade_design.json` |
+| **Ovo (this project)** | 194 mm deployed | 18.3 W shaft @ 1.5 m/s (BEM, Cp peak); 7.66 W DC with the GL40 via a diode bridge (8.92 W active) | 1.5 m/s design | n/a | stowed 75 x 165 mm | display build priced parts EUR 35.48 to buy | blades fold forward into tail pockets | `hw_calc.py`, `data/blade_design.json` |
 
 Power sanity check, P = 0.5 rho A V^3 Cp (computed in `hw_calc.py`; Cp_el = electrical output over kinetic flux):
 
@@ -608,7 +608,7 @@ Power sanity check, P = 0.5 rho A V^3 Cp (computed in `hw_calc.py`; Cp_el = elec
 | WaterLily (7 in housing as upper bound on rotor) | 0.1778 | 15.0 | 3.219 | 414.0 | 0.036 | 1.82 | 1.59 |
 | Aquair UW @6 mph | 0.3175 | 70.0 | 2.682 | 763.9 | 0.092 | 2.07 | 1.81 |
 | Aquair UW @9 mph | 0.3175 | 100.0 | 4.023 | 2578.2 | 0.039 | 2.33 | 2.03 |
-| HydroEgg BEM shaft (Cp peak, 1.5 m/s) | 0.194 | 18.31 | 1.5 | 49.9 | 0.367 | 1.84 | 1.6 |
+| Ovo BEM shaft (Cp peak, 1.5 m/s) | 0.194 | 18.31 | 1.5 | 49.9 | 0.367 | 1.84 | 1.6 |
 
 Reading:
 - Blue Freedom states "max. 5 W" and no flow speed. A machine-translated review says at least 1 m/s is required,
@@ -616,7 +616,7 @@ Reading:
   1.43-1.64 m/s for 5 W.
 - The Estream (210 mm, 5 W) needs ~0.99-1.13 m/s at the same Cp_el; its rating speed is unpublished.
 - WaterLily's 15 W peak sits at 3.2 m/s, i.e. towed-boat speeds.
-- HydroEgg's 194 mm rotor gives 18.3 W shaft at 1.5 m/s (BEM Cp peak) and 7.66 W DC through a diode bridge with
+- Ovo's 194 mm rotor gives 18.3 W shaft at 1.5 m/s (BEM Cp peak) and 7.66 W DC through a diode bridge with
   the GL40 (Cp_el 0.153). Per swept area it is in the Estream's class (power scales with V^3, and the Estream's
   rating speed is unpublished). Its distinctive points are stowage and openness: blades fold flush into a
   0.401 L egg, against 0.813 L for the Estream's 245 x 65 mm tube, and the design is fully

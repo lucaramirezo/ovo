@@ -1,4 +1,4 @@
-"""Headless renders of the HydroEgg assembly through viewer/index.html.
+"""Headless renders of the Ovo assembly through viewer/index.html.
 
 Serves the repo over HTTP, drives Chrome with agent-browser (own named session so
 it never collides with other browser users), and screenshots each requested view.
@@ -28,7 +28,7 @@ import threading
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-SESSION = os.environ.get("AGENT_BROWSER_SESSION", "hydroegg-render")
+SESSION = os.environ.get("AGENT_BROWSER_SESSION", "ovo-render")
 AB = shutil.which("agent-browser") or str(Path.home() / ".nvm/versions/node/v24.13.0/bin/agent-browser")
 
 

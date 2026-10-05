@@ -1,7 +1,7 @@
 """Blade Element Momentum (BEM) solver and constraint-aware blade design for the
-HydroEgg rotor.
+Ovo rotor.
 
-Run ``python -m hydroegg.bem`` to regenerate ``data/blade_design.json``, the
+Run ``python -m ovo.bem`` to regenerate ``data/blade_design.json``, the
 ``docs/figures/bem_*.png`` figures and the generated tables of
 ``docs/notes/blade-design.md`` (``--cached``, ``--cached-post`` and ``--notes`` reuse
 the caches in ``out/work/bem``). The solver half of this module (sections,
@@ -132,7 +132,7 @@ def _kulfan(t_c: float, te_c: float) -> tuple[dict, float, float]:
     Returns (params, rotation_deg, scale): alpha_nf = alpha + rotation, Re_nf = Re / scale."""
     import aerosandbox as asb
 
-    af = asb.Airfoil(name="hydroegg-naca44", coordinates=naca44_section(t_c, te_c))
+    af = asb.Airfoil(name="ovo-naca44", coordinates=naca44_section(t_c, te_c))
     norm = af.normalize(return_dict=True)
     kaf = norm["airfoil"].to_kulfan_airfoil(n_weights_per_side=8, normalize_coordinates=False)
     kp = {k: np.asarray(v, dtype=float) for k, v in kaf.kulfan_parameters.items()}
@@ -1342,8 +1342,8 @@ def build_json(out: dict) -> dict:
                         "position (layout_axis_check compares the Cp peak on both axes)",
     }
     return {
-        "schema": "hydroegg.blade_design/1",
-        "generated_by": "python -m hydroegg.bem",
+        "schema": "ovo.blade_design/1",
+        "generated_by": "python -m ovo.bem",
         "conventions": {
             "frame": "X = body axis, flow +X (nose at x = 0), Z up, right-handed",
             "radius": "radius_mm is perpendicular to the body axis (not along the coned span)",
@@ -1359,7 +1359,7 @@ def build_json(out: dict) -> dict:
                                  "b = cone; d = cos(tw) * (+Y) + sin(tw) * e_n (LE -> TE); "
                                  "n = cos(tw) * e_n - sin(tw) * (+Y) (toward suction side). "
                                  "Section point = A + chord * ((xs - pitch_axis) * d + ys * n) for "
-                                 "unit-chord coordinates (xs, ys) of hydroegg.bem.naca44_section.",
+                                 "unit-chord coordinates (xs, ys) of ovo.bem.naca44_section.",
             "cone": "aft (+X) lean of the pitch axis out of the plane of rotation, about the "
                     "tangential hinge pin",
         },
@@ -2473,7 +2473,7 @@ def main(argv=None) -> None:
     import argparse
     import pickle
 
-    ap = argparse.ArgumentParser(description="HydroEgg BEM blade design study")
+    ap = argparse.ArgumentParser(description="Ovo BEM blade design study")
     ap.add_argument("--cached", action="store_true",
                     help=f"reuse the cached study ({CACHE.relative_to(ROOT)}) instead of re-running it")
     ap.add_argument("--cached-post", action="store_true", help="also reuse the cached post-processing")
@@ -2508,6 +2508,6 @@ def main(argv=None) -> None:
 
 
 if __name__ == "__main__":
-    # Run through the importable module so cached pickles reference hydroegg.bem classes.
-    from hydroegg import bem as _bem
+    # Run through the importable module so cached pickles reference ovo.bem classes.
+    from ovo import bem as _bem
     _bem.main()

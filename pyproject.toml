@@ -1,5 +1,5 @@
 [project]
-name = "hydroegg"
+name = "ovo"
 version = "0.1.0"
 description = "Parametric, printable folding-blade hydrokinetic charger (build123d)"
 requires-python = ">=3.12"

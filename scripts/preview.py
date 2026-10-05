@@ -1,6 +1,6 @@
 """Quick visual check of any part(s) while modeling.
 
-  .venv/bin/python scripts/preview.py hydroegg.blade:blade_stowed hydroegg.hull:front_shell \
+  .venv/bin/python scripts/preview.py ovo.blade:blade_stowed ovo.hull:front_shell \
       --out out/work/preview_blade.png --q "view=iso"
 
 Each target is module:function; the function is called with no arguments and must
@@ -20,7 +20,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from hydroegg.export_web import write_scene  # noqa: E402
+from ovo.export_web import write_scene  # noqa: E402
 
 PALETTE = ["shell", "blade", "hub", "generator", "steel", "fin", "stand", "rubber"]
 

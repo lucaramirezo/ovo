@@ -1,10 +1,10 @@
 # Blade design: constraint-aware BEM
 
-Status: v1 design, 2026-10-03. Source: `hydroegg/bem.py`. Outputs: `data/blade_design.json`
-(schema `hydroegg.blade_design/1`) and `docs/figures/bem_*.png`.
+Status: v1 design, 2026-10-03. Source: `ovo/bem.py`. Outputs: `data/blade_design.json`
+(schema `ovo.blade_design/1`) and `docs/figures/bem_*.png`.
 
 Every table between `<!-- bem:NAME -->` markers is rendered from `data/blade_design.json` by
-`python -m hydroegg.bem --notes` (a full run refreshes them too). Do not edit those tables by hand;
+`python -m ovo.bem --notes` (a full run refreshes them too). Do not edit those tables by hand;
 numbers quoted in the prose are taken from them.
 
 ## Summary
@@ -505,7 +505,7 @@ Layout geometry read from `data/layout_rotor.json`: hinge x 116 mm, r 14 mm (nom
 - The in-plane lead of the layout axis (sections offset toward the leading edge) is not modelled; the layout
   study lists it as an open issue.
 - Use the layout-axis column for the hinge, stop and lug until the layout hinge and axis are promoted to
-  params.py; then re-run this study (`python -m hydroegg.bem`) to refresh every provisional field.
+  params.py; then re-run this study (`python -m ovo.bem`) to refresh every provisional field.
 
 Cavitation margin (sigma + Cp_min at the worst element, sigma from the local relative speed at 0.1 m depth):
 
@@ -688,10 +688,10 @@ Root elements 0 and 1 (final blade): widths 0.287 and 0.855 mm of a 67 mm span; 
 ## 12. Reproduce
 
 ```
-python -m hydroegg.bem                 # full study, about 8 min on the dev machine (WSL2)
-python -m hydroegg.bem --cached        # reuse out/work/bem/study.pkl, redo post-processing (about 6 min)
-python -m hydroegg.bem --cached-post   # reuse out/work/bem/post.pkl, rewrite JSON, figures, note tables
-python -m hydroegg.bem --notes         # only re-render the tables of this note from the JSON
+python -m ovo.bem                 # full study, about 8 min on the dev machine (WSL2)
+python -m ovo.bem --cached        # reuse out/work/bem/study.pkl, redo post-processing (about 6 min)
+python -m ovo.bem --cached-post   # reuse out/work/bem/post.pkl, rewrite JSON, figures, note tables
+python -m ovo.bem --notes         # only re-render the tables of this note from the JSON
 ```
 
 References: Buhl, NREL/TP-500-36834 (2005); Ning, Wind Energy 17:1327 (2014); NeuralFoil (Sharpe,

@@ -1,8 +1,8 @@
-"""Internal layout study for HydroEgg: everything inside the static hull.
+"""Internal layout study for Ovo: everything inside the static hull.
 
-Run ``python -m hydroegg.layout_internal`` to regenerate ``data/layout_internal.json`` and
+Run ``python -m ovo.layout_internal`` to regenerate ``data/layout_internal.json`` and
 ``docs/figures/layout_section*.png``. A colleague owns the rotor side (fold kinematics, blade
-pockets, hub: ``hydroegg/layout.py`` -> ``data/layout_rotor.json``); this module owns the
+pockets, hub: ``ovo/layout.py`` -> ``data/layout_rotor.json``); this module owns the
 inside: drivetrain, generator bay, equator joint, nose (tow eye + cable gland), roll fins,
 mass and buoyancy, assembly sequence and part split.
 
@@ -18,10 +18,10 @@ Architecture chosen here (justified in the JSON ``decisions`` block):
     tube on 3 ribs under the pockets with a 608 (front, locating, takes thrust) and a 688
     (rear, floating), lip seal at the tail end, 8 mm shaft.
   * A two-dog claw coupling engages blind when the shells close; claw B is the thrust collar.
-Rotor inputs come from ``hydroegg.layout`` (the rotor half): pocket depth / floor / keep-out /
+Rotor inputs come from ``ovo.layout`` (the rotor half): pocket depth / floor / keep-out /
 half-width and azimuth tables, the solved blade axis (load plane, fold sweep), hub stations,
 detent magnets and blade mass. They are read from ``layout.DATA_JSON`` (data/layout_rotor.json,
-written by ``python -m hydroegg.layout``); if that file is missing or does not match
+written by ``python -m ovo.layout``); if that file is missing or does not match
 ``layout.CHOSEN`` the rotor study is re-run through ``layout.run()`` first. data/hardware.json
 (catalogue data) and data/blade_design.json (thrust, cone nominal) are read as before.
 
@@ -284,7 +284,7 @@ def _arr(seq) -> np.ndarray:
 
 
 def _rotor_json(allow_live: bool = True) -> dict | None:
-    """data/layout_rotor.json as written by hydroegg.layout. If it is missing or its chosen
+    """data/layout_rotor.json as written by ovo.layout. If it is missing or its chosen
     hinge / static tail / fold differ from layout.CHOSEN, re-run the rotor study through
     layout.run() (about 70 s) so both halves always describe the same rotor."""
     rj = _load(ROTOR_JSON)
@@ -293,7 +293,7 @@ def _rotor_json(allow_live: bool = True) -> dict | None:
         abs(float(ch.get(f"{k}_mm" if k != "fold_deg" else k, math.nan)) - float(RL.CHOSEN[k])) < 1e-6
         for k in ("hinge_x", "hinge_r", "static_tail_x", "fold_deg"))
     if not fresh and allow_live:
-        print("layout_rotor.json missing or stale: running hydroegg.layout.run()", flush=True)
+        print("layout_rotor.json missing or stale: running ovo.layout.run()", flush=True)
         RL.run(write=True, figures=False)
         rj = _load(ROTOR_JSON)
     return rj
@@ -314,7 +314,7 @@ def _rotor_tables(rj: dict) -> dict:
 
 
 def rotor_inputs() -> dict:
-    """Pocket model and rotor geometry from the rotor half (hydroegg.layout), plus
+    """Pocket model and rotor geometry from the rotor half (ovo.layout), plus
     data/blade_design.json for the BEM thrust and the nominal cone."""
     out = dict(source="fallback (task brief: 6 mm deep, 30 mm wide, x 45-118, 3 x 120 deg)",
                **POCKET_FALLBACK, depth_x=None, depth_v=None, width_v=None, az_lo_v=None, az_hi_v=None,
@@ -343,7 +343,7 @@ def rotor_inputs() -> dict:
         tp, ax, sec = T["pocket"], T["axis"], T["sections"]
         x = tp["x_mm"]
         out.update(
-            source="hydroegg.layout -> data/layout_rotor.json (pocket_depth table, asymmetric about "
+            source="ovo.layout -> data/layout_rotor.json (pocket_depth table, asymmetric about "
                    "each blade azimuth)",
             static_tail_x=float(ch["static_tail_x_mm"]), hinge_x=float(ch["hinge_x_mm"]),
             hinge_r=float(ch["hinge_r_mm"]), shaft_aft_x=float(rj.get("shaft_aft_x_mm", ch["shaft_end_x_mm"])),
@@ -2043,7 +2043,7 @@ def fin_design(ri: dict, x_rotor: float, pk: Pockets, rule: str = FIN_FOLD_RULE,
                                                  "pad walls meet the hull at theta + asin(lat / R)) vs each pocket's "
                                                  "theta span at the sample x, arc at the hull radius"),
                        fold_at_index=(dict(rule="blades fold at the stowing index (blade i at psi 120 i), fold 0 to "
-                                                "%.0f deg in %.0f deg steps, rotor surface from hydroegg.layout"
+                                                "%.0f deg in %.0f deg steps, rotor surface from ovo.layout"
                                                 % (_fold_cloud_near()["fold_deg"], _fold_cloud_near()["fold_step_deg"]),
                                            sampling=_fold_cloud_near()["sampling"],
                                            n_points_near_fins=_fold_cloud_near()["n_points"],
@@ -2894,7 +2894,7 @@ def figures(res: dict) -> list:
     ax.set_ylim(-47, 47)
     ax.set_xlabel("x (mm), flow ->")
     ax.set_ylabel("z (mm)")
-    ax.set_title("HydroEgg merged layout: side section (top half: blade 0 plane, theta 0, pocket floor = "
+    ax.set_title("Ovo merged layout: side section (top half: blade 0 plane, theta 0, pocket floor = "
                  "deepest point over azimuth; bottom half: theta 180, between pockets)", loc="left")
     for xv, lab in ((J["x_eq"], "equator %.1f" % J["x_eq"]), (x_end, "static tail end %.0f" % x_end)):
         ax.axvline(xv, color="#9a9a9a", lw=0.6, ls=":", zorder=1)
@@ -3552,8 +3552,8 @@ def summarize(res: dict) -> dict:
                     roll_damping_Nm_s=m["roll_damping_Nm_s"], neuralfoil_confidence_min=m["nf_confidence_min"])
 
     out = dict(
-        schema="hydroegg.layout_internal/1",
-        generated_by="python -m hydroegg.layout_internal",
+        schema="ovo.layout_internal/1",
+        generated_by="python -m ovo.layout_internal",
         conventions=dict(frame="X body axis, flow +X, nose at x = 0, Z up, right-handed",
                          theta="angle about +X from +Z toward +Y; theta = -psi of layout_rotor (blade i at psi "
                                "120 i, i.e. theta 0/240/120); pockets span theta_blade + [-az_hi, -az_lo]",
@@ -3960,7 +3960,7 @@ def merged(res: dict, summ: dict) -> dict:
     issues = summ["open_issues"][:1] + issues_cross + summ["open_issues"][1:] + rotor_open
     resolved = [
         "Internal layout now reads the real rotor tables (pocket depth / floor / keep-out / azimuth extent, "
-        "blade axis, hub stations) through hydroegg.layout; the fallback pockets are gone.",
+        "blade axis, hub stations) through ovo.layout; the fallback pockets are gone.",
         "STATIC_TAIL_X 118 -> 108: bearings and seal moved 10 mm forward; the bay moved forward and shrank to "
         "L %g so the bearing span stays >= %g mm." % (g["L_mm"], SPAN_MIN),
         "Pockets crossing the equator: %.1f mm deep there (not 6), so the joint grew (%s, seal bore D%.2f); the "
@@ -4007,11 +4007,11 @@ def merged(res: dict, summ: dict) -> dict:
     int_keep["mass_buoyancy"] = {k: mbj[k] for k in ("model", "display_PLA", "v2_PETG", "v2_needs", "v2_ballast",
                                                      "static_hull_outer_cc", "pockets_cc", "hardware")}
     return dict(
-        schema="hydroegg.layout/1",
-        generated_by="python -m hydroegg.layout (rotor half -> data/layout_rotor.json), then python -m "
-                     "hydroegg.layout_internal (internal half -> data/layout_internal.json, and this merge)",
-        sources=dict(rotor="data/layout_rotor.json (hydroegg/layout.py)",
-                     internal="data/layout_internal.json (hydroegg/layout_internal.py)",
+        schema="ovo.layout/1",
+        generated_by="python -m ovo.layout (rotor half -> data/layout_rotor.json), then python -m "
+                     "ovo.layout_internal (internal half -> data/layout_internal.json, and this merge)",
+        sources=dict(rotor="data/layout_rotor.json (ovo/layout.py)",
+                     internal="data/layout_internal.json (ovo/layout_internal.py)",
                      blade="data/blade_design.json", hardware="data/hardware.json"),
         conventions=dict(
             frame="X = body axis, flow +X, nose at x = 0, Z up, right handed; mm and deg, SI in physics",

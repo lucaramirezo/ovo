@@ -1,19 +1,19 @@
 # Layout: rotor and internal, merged
 
-Status: v1 layout after the review fix round, 2026-10-04. Sources: `hydroegg/layout.py` (rotor
-half) and `hydroegg/layout_internal.py` (internal half and merge). Outputs: `data/layout.json`
-(schema `hydroegg.layout/1`, the single consistent layout), plus the two half files it is built
+Status: v1 layout after the review fix round, 2026-10-04. Sources: `ovo/layout.py` (rotor
+half) and `ovo/layout_internal.py` (internal half and merge). Outputs: `data/layout.json`
+(schema `ovo.layout/1`, the single consistent layout), plus the two half files it is built
 from, `data/layout_rotor.json` and `data/layout_internal.json`. Every number below comes from
 those files; values marked ESTIMATE are modelling assumptions, not sourced numbers.
 
 Regenerate in this order:
 
 ```
-python -m hydroegg.layout            # rotor half, about 75 s, writes data/layout_rotor.json
-python -m hydroegg.layout_internal   # internal half + merge, about 25 s
+python -m ovo.layout            # rotor half, about 75 s, writes data/layout_rotor.json
+python -m ovo.layout_internal   # internal half + merge, about 25 s
 ```
 
-`layout_internal` reads the rotor tables through `hydroegg.layout` (`layout.DATA_JSON`). If that
+`layout_internal` reads the rotor tables through `ovo.layout` (`layout.DATA_JSON`). If that
 file is missing or its hinge, static tail or fold angle differ from `layout.CHOSEN`, it re-runs
 `layout.run()` first, so the two halves cannot drift apart. It also reads the final blade and its
 generator load line from `data/blade_design.json` and the equator O-ring, gland and motors from
@@ -105,7 +105,7 @@ stowed aero span of blade 0, the rotor keep-out line, the hub core with blade 0'
 the pin, knuckle, heel and stop block; bottom half at theta 180, between pockets, with the gland
 seat block, its bore and the gland.
 
-## 3. Rotor half (hydroegg/layout.py)
+## 3. Rotor half (ovo/layout.py)
 
 Summary of `data/layout_rotor.json` (re-run in this round; the file is byte-identical to the one
 the internal half was built on). The full tables (blade axis, pocket table, hub slot, detents) are
@@ -140,7 +140,7 @@ copied into `layout.json` under `rotor`.
 ![Fold, side view](../figures/layout_fold_side.png)
 ![Fold, end view](../figures/layout_fold_end.png)
 
-## 4. Internal half (hydroegg/layout_internal.py)
+## 4. Internal half (ovo/layout_internal.py)
 
 * **Generator bay.** The motor sits in the front shell on a twist-lock carrier with its rotor face
   aft. The carrier needs r >= 23.37 mm for the PCD 38.14 adapter of the alternative motor, which

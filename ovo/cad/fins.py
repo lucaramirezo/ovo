@@ -1,10 +1,10 @@
-"""Roll fins of the HydroEgg: two identical Clark Y fins on yawed dovetail rails of the front
-shell (FIN block of hydroegg/params.py).
+"""Roll fins of the Ovo: two identical Clark Y fins on yawed dovetail rails of the front
+shell (FIN block of ovo/params.py).
 
-    scripts/cadrun.sh .venv/bin/python -m hydroegg.cad.fins
+    scripts/cadrun.sh .venv/bin/python -m ovo.cad.fins
 
 Geometry (all from params.FIN; the rail section and the cross pin from
-hydroegg.cad.shells.FIN_RAIL, the shell side of the interface):
+ovo.cad.shells.FIN_RAIL, the shell side of the interface):
 
 * Fin frame (same as layout_internal.fin_frame and shells.fin_frame): at the fin angle theta,
   u runs along the yawed root chord from the LE, w across it (+ toward +theta), a radially out.
@@ -67,7 +67,7 @@ def rail() -> dict:
     try:
         from .shells import FIN_RAIL as R
         R = dict(R)
-        R["source"] = "hydroegg.cad.shells.FIN_RAIL"
+        R["source"] = "ovo.cad.shells.FIN_RAIL"
     except Exception:  # noqa: BLE001
         R = dict(_RAIL_FALLBACK, source="fins fallback copy")
     return R
@@ -705,7 +705,7 @@ def main() -> None:
     import sys
     if "--no-render" not in sys.argv:
         from .drivetrain import render_previews
-        res["renders"] = render_previews("hydroegg.cad.fins", [
+        res["renders"] = render_previews("ovo.cad.fins", [
             ("preview_with_pads", "fins_on_pads", "view=top"),
             ("preview_print", "fins_print", "view=-30,15")])
     res["elapsed_s"] = round(time.time() - t0, 1)

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HydroEgg viewer</title>
+<title>Ovo viewer</title>
 <style>
   :root { --bg0: #f4f2ee; --bg1: #dcd8d0; --ink: #1d1d1b; }
   html, body { margin: 0; height: 100%; background: radial-gradient(ellipse at 50% 35%, var(--bg0), var(--bg1)); overflow: hidden; font: 13px/1.4 system-ui, sans-serif; color: var(--ink); }
@@ -29,8 +29,8 @@
   <label><input id="c-spin" type="checkbox"> spin</label>
 </div>
 <script type="module">
-// Render harness + interactive viewer for the HydroEgg assembly.
-// Reads out/web/manifest.json (written by hydroegg/export_web.py) and the GLB it names.
+// Render harness + interactive viewer for the Ovo assembly.
+// Reads out/web/manifest.json (written by ovo/export_web.py) and the GLB it names.
 // CAD frame is Z-up with the flow along +X; three.js is Y-up, so the model root is
 // rotated -90 deg about X. URL params (all optional):
 //   m=<manifest url>  fold=0..1 (0 stowed, 1 deployed)  explode=0..1  cutaway=0|1  packed=0|1
@@ -197,7 +197,7 @@ window.setState = (patch = {}, refit = true) => {
 };
 window.partsInfo = () => parts.map(({ p, holder }) => ({ name: p.name, visible: holder.visible }));
 // Debug: exact CAD-frame bounding box of each part's posed vertices (fold, explode, spin applied),
-// used by hydroegg/cad/assembly.py to check that fold=1 lands the blades on the deployed solids.
+// used by ovo/cad/assembly.py to check that fold=1 lands the blades on the deployed solids.
 window.partBoxes = (names) => {
   root.updateMatrixWorld(true);
   const inv = root.matrixWorld.clone().invert(), m = new THREE.Matrix4(), v = new THREE.Vector3();

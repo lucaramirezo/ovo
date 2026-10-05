@@ -6586,7 +6586,7 @@
     "tow_eye_3x_rotor_thrust_N": 211
    },
    "unit": "N",
-   "source_url": "code:hydroegg/bem.py -> data/blade_design.json",
+   "source_url": "code:ovo/bem.py -> data/blade_design.json",
    "confidence": "medium",
    "note": "max rotor thrust over TSR up to runaway from the BEM study; static ratings are 19.7x (S608) and 8.3x (688) the towed 2.5 m/s thrust"
   },
@@ -8140,7 +8140,7 @@
   "recommendation": {
    "value": "printed eye integrated in the nose; pull-test to >= 3 x the BEM max rotor thrust at 2.5 m/s (211 N) plus hull drag (not computed here)",
    "unit": "-",
-   "source_url": "code:hydroegg/bem.py -> data/blade_design.json",
+   "source_url": "code:ovo/bem.py -> data/blade_design.json",
    "confidence": "medium",
    "note": "DIN 580 eye (36 mm tall) is half the 75 mm hull diameter"
   }
@@ -8484,7 +8484,7 @@
     "V_needed_at_Cp_el_0.30_m_s": 2.03
    },
    {
-    "product": "HydroEgg BEM shaft (Cp peak, 1.5 m/s)",
+    "product": "Ovo BEM shaft (Cp peak, 1.5 m/s)",
     "rotor_D_m": 0.194,
     "P_W": 18.31,
     "V_m_s": 1.5,

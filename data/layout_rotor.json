@@ -1,7 +1,7 @@
 {
- "schema": "hydroegg.layout_rotor/1",
- "generated_by": "python -m hydroegg.layout",
- "blade_source": "blade_design.json (hydroegg.blade_design/1): stations radius/chord/twist/t_c",
+ "schema": "ovo.layout_rotor/1",
+ "generated_by": "python -m ovo.layout",
+ "blade_source": "blade_design.json (ovo.blade_design/1): stations radius/chord/twist/t_c",
  "conventions": {
   "frame": "X = body axis, flow +X, nose at x = 0, Z up, right handed; mm and deg",
   "azimuth": "psi about +X from +Z, right handed: e_r = (0, -sin psi, cos psi), e_t = (0, -cos psi, -sin psi); blade i at psi = 120 i; rotor turns +psi (clockwise seen from upstream, as data/blade_design.json)",
@@ -395,7 +395,7 @@
     "feasible": true
    }
   ],
-  "sweep_source": "out/work/layout_rotor/hinge_sweep.jsonl (python -m hydroegg.layout --sweep), fold 90, d_fold 3 deg"
+  "sweep_source": "out/work/layout_rotor/hinge_sweep.jsonl (python -m ovo.layout --sweep), fold 90, d_fold 3 deg"
  },
  "axis": {
   "r_mm": [

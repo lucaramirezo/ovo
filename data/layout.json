@@ -1,9 +1,9 @@
 {
- "schema": "hydroegg.layout/1",
- "generated_by": "python -m hydroegg.layout (rotor half -> data/layout_rotor.json), then python -m hydroegg.layout_internal (internal half -> data/layout_internal.json, and this merge)",
+ "schema": "ovo.layout/1",
+ "generated_by": "python -m ovo.layout (rotor half -> data/layout_rotor.json), then python -m ovo.layout_internal (internal half -> data/layout_internal.json, and this merge)",
  "sources": {
-  "rotor": "data/layout_rotor.json (hydroegg/layout.py)",
-  "internal": "data/layout_internal.json (hydroegg/layout_internal.py)",
+  "rotor": "data/layout_rotor.json (ovo/layout.py)",
+  "internal": "data/layout_internal.json (ovo/layout_internal.py)",
   "blade": "data/blade_design.json",
   "hardware": "data/hardware.json"
  },
@@ -4044,7 +4044,7 @@
     "stowed_tip_x_mm": 31.75,
     "feasible": true
    },
-   "sweep_source": "out/work/layout_rotor/hinge_sweep.jsonl (python -m hydroegg.layout --sweep), fold 90, d_fold 3 deg"
+   "sweep_source": "out/work/layout_rotor/hinge_sweep.jsonl (python -m ovo.layout --sweep), fold 90, d_fold 3 deg"
   }
  },
  "internal": {
@@ -5086,7 +5086,7 @@
      "model": "yawed pad footprint (pad_footprint, 0.25 mm x 11 samples; planar pad walls meet the hull at theta + asin(lat / R)) vs each pocket's theta span at the sample x, arc at the hull radius"
     },
     "fold_at_index": {
-     "rule": "blades fold at the stowing index (blade i at psi 120 i), fold 0 to 90 deg in 1 deg steps, rotor surface from hydroegg.layout",
+     "rule": "blades fold at the stowing index (blade i at psi 120 i), fold 0 to 90 deg in 1 deg steps, rotor surface from ovo.layout",
      "sampling": "aero and shank surfaces densified to 1 mm, fold in 1 deg steps (clearances +- ~0.5 mm)",
      "n_points_near_fins": 327102,
      "pad_clear_min_mm": 3.0948,
@@ -6065,7 +6065,7 @@
   "POCKET_FLOOR_WALL_reason": "new: shell under every pocket floor used by the internal parts (2.0, stricter than the rotor keep-out at MIN_WALL)"
  },
  "resolved_conflicts": [
-  "Internal layout now reads the real rotor tables (pocket depth / floor / keep-out / azimuth extent, blade axis, hub stations) through hydroegg.layout; the fallback pockets are gone.",
+  "Internal layout now reads the real rotor tables (pocket depth / floor / keep-out / azimuth extent, blade axis, hub stations) through ovo.layout; the fallback pockets are gone.",
   "STATIC_TAIL_X 118 -> 108: bearings and seal moved 10 mm forward; the bay moved forward and shrank to L 24 so the bearing span stays >= 32 mm.",
   "Pockets crossing the equator: 3.0 mm deep there (not 6), so the joint grew (-141, seal bore D64.09); the socket keeps 2.44 mm under the pocket floor and the lugs sit in the lands (10.6 mm channel clearance).",
   "Hub / bearing / seal axial overlap: none (seal ends x 107.5, hub starts x 108.6); shaft end = hub aft face x 128.0; the tail end block carries the stowed-detent magnet seats.",

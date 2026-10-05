@@ -1,8 +1,8 @@
 """Shared CAD helpers for every part module.
 
-Conventions (see hydroegg/params.py): mm, X = body axis with the flow toward +X, Z up.
+Conventions (see ovo/params.py): mm, X = body axis with the flow toward +X, Z up.
 Every part module exposes ``parts() -> list[dict]`` with one dict per printed or bought
-part, in the format consumed by hydroegg/cad/assembly.py and export_web.write_scene:
+part, in the format consumed by ovo/cad/assembly.py and export_web.write_scene:
 
     name       unique snake_case id (blade_0, front_shell, bearing_608, ...)
     shape      build123d Shape in WORLD coordinates, assembled pose (blades: STOWED pose)

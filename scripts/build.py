@@ -1,4 +1,4 @@
-"""Regenerate every HydroEgg CAD output from scratch with one command.
+"""Regenerate every Ovo CAD output from scratch with one command.
 
   .venv/bin/python scripts/build.py                 # part modules, assembly, renders, summary table
   .venv/bin/python scripts/build.py --fresh         # also drop the shells and assembly BREP caches
@@ -10,9 +10,9 @@
 Steps (each geometry job goes through scripts/cadrun.sh, at most 2 OCC jobs machine-wide):
   1. part modules, in dependency order: shells, blade, rotor, drivetrain, fins, coupon. Each writes
      out/cad/step/<part>.step, out/cad/stl/<part>.stl (print orientation) and out/cad/checks/<module>.json
-  2. hydroegg.cad.assembly --force: rebuilds the part cache from the modules, interference matrix
+  2. ovo.cad.assembly --force: rebuilds the part cache from the modules, interference matrix
      (stowed / deployed / fold 30 / fold 60 / cutaway / packed), key clearances, rotor spin sweep, STL audit,
-     out/cad/step/hydroegg_assembly_{stowed,deployed}.step, out/web/hydroegg.glb + manifest.json,
+     out/cad/step/ovo_assembly_{stowed,deployed}.step, out/web/ovo.glb + manifest.json,
      viewer fold check, out/cad/checks/assembly.json
   3. renders through the viewer (1600 x 1000): out/renders/{hero_deployed,stowed,packed_kit,cutaway,exploded,side,front}.png
 """
@@ -111,8 +111,8 @@ def summary(timing: list | None = None) -> None:
         pp = A["print_plan"]
         print(f"print plan: {len(pp['plates'])} plates, {pp['total_grams_est']:.0f} g estimated "
               f"({', '.join(f'{k} {v:.0f} g' for k, v in pp['grams_by_material'].items())})")
-    outs = [REPO / "out/cad/step/hydroegg_assembly_stowed.step", REPO / "out/cad/step/hydroegg_assembly_deployed.step",
-            REPO / "out/web/hydroegg.glb", REPO / "out/web/manifest.json"] + \
+    outs = [REPO / "out/cad/step/ovo_assembly_stowed.step", REPO / "out/cad/step/ovo_assembly_deployed.step",
+            REPO / "out/web/ovo.glb", REPO / "out/web/manifest.json"] + \
            [REPO / "out/renders" / f"{n}.png" for n, _ in VIEWS]
     print("\noutputs:")
     for o in outs:
@@ -145,8 +145,8 @@ def main() -> None:
             flags = [] if a.previews else list(quiet)
             if mod == "shells" and a.fresh:
                 flags.append("--force")
-            step(f"module {mod}", [CADRUN, PY, "-m", f"hydroegg.cad.{mod}", *flags], logs / f"{mod}.log", timing)
-    step("assembly", [CADRUN, PY, "-m", "hydroegg.cad.assembly", "--force"], logs / "assembly.log", timing)
+            step(f"module {mod}", [CADRUN, PY, "-m", f"ovo.cad.{mod}", *flags], logs / f"{mod}.log", timing)
+    step("assembly", [CADRUN, PY, "-m", "ovo.cad.assembly", "--force"], logs / "assembly.log", timing)
     if not a.no_render:
         jobs = [{"out": f"out/renders/{n}.png", "q": q} for n, q in VIEWS]
         jf = REPO / "out" / "work" / "cad" / "integrate" / "views.json"

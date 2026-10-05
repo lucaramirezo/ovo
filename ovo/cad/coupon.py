@@ -1,7 +1,7 @@
 """Tolerance coupon: one small print (60 x 60 mm footprint) that calibrates every printed fit of
-the HydroEgg before the real parts are printed.
+the Ovo before the real parts are printed.
 
-    scripts/cadrun.sh .venv/bin/python -m hydroegg.cad.coupon
+    scripts/cadrun.sh .venv/bin/python -m ovo.cad.coupon
 
 The coupon prints flat (as modelled, z up) together with two small keys that sit in its window
 (separate bodies, 1 mm or more of air around them, they come off the bed loose):
@@ -74,7 +74,7 @@ LABEL_H = 2.6
 def _rail() -> dict:
     try:
         from .shells import FIN_RAIL as R
-        return dict(R, source="hydroegg.cad.shells.FIN_RAIL")
+        return dict(R, source="ovo.cad.shells.FIN_RAIL")
     except Exception:  # noqa: BLE001
         from .fins import _RAIL_FALLBACK
         return dict(_RAIL_FALLBACK, source="fins fallback copy")
@@ -511,7 +511,7 @@ def main() -> None:
     import sys
     if "--no-render" not in sys.argv:
         from .drivetrain import render_previews
-        res["renders"] = render_previews("hydroegg.cad.coupon", [
+        res["renders"] = render_previews("ovo.cad.coupon", [
             ("preview_parts", "coupon_print", "view=-30,55"),
             ("preview_test_fit", "coupon_bayonet_face", "view=90,12&zoom=1.6")])
     res["elapsed_s"] = round(time.time() - t0, 1)

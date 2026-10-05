@@ -1,10 +1,10 @@
 """Folding blade: 3 identical blades at psi = 0 / 120 / 240 (builder: blade).
 
-Geometry source: the rotor layout (hydroegg/layout.py, data/layout_rotor.json). The aero
+Geometry source: the rotor layout (ovo/layout.py, data/layout_rotor.json). The aero
 span is a smooth C2 B-spline surface interpolated through the layout's own sections
 (``layout.AeroStations`` on the solved curved pitch axis of data/layout_rotor.json), so the
 CAD is the surface the static-tail pockets and the hub slots were cut for. Everything is
-built in the BLADE FRAME of hydroegg/layout.py and carried to the world with
+built in the BLADE FRAME of ovo/layout.py and carried to the world with
 ``layout.blade_to_world``:
 
     local X = e_s  span (deployed: radially out)
@@ -53,7 +53,7 @@ parts(): blade_0..2 in the WORLD STOWED pose (fold FOLD_DEG) with a pivot such t
 rotating the stowed shape by deployed_deg about the axis through the hinge point gives
 the deployed pose (proved numerically by ``checks()``).
 
-Run ``scripts/cadrun.sh .venv/bin/python -m hydroegg.cad.blade`` to build, check and
+Run ``scripts/cadrun.sh .venv/bin/python -m ovo.cad.blade`` to build, check and
 export (out/cad/step/blade.step, out/cad/stl/blade.stl, out/cad/checks/blade.json and the
 preview out/work/cad/blade/final.png).
 """
@@ -846,7 +846,7 @@ def checks(write: bool = True) -> dict:
     t0 = time.time()
     blade, lay, ax = context()
     sol, info = _build()
-    res: dict = {"module": "hydroegg.cad.blade", "generated": time.strftime("%Y-%m-%d %H:%M"),
+    res: dict = {"module": "ovo.cad.blade", "generated": time.strftime("%Y-%m-%d %H:%M"),
                  "build": info}
     # ---- consistency of the inputs
     ax_mem = LY.solve_axis(blade, lay, n=41, iters=3)
@@ -1056,7 +1056,7 @@ def checks(write: bool = True) -> dict:
                 "blade's inner face there is inclined ~51 deg to radial; the blade seat follows the face "
                 "normal. The static side must put its magnet on this axis, behind a boss top that follows "
                 "the blade face (see open issues)."}
-    try:   # pairing with the static seat when hydroegg.cad.shells is present (other builder)
+    try:   # pairing with the static seat when ovo.cad.shells is present (other builder)
         from . import shells as SH
         g = SH.stow_detent_geometry()
         sc_, sn_ = np.asarray(g["magnet_centre"], float), np.asarray(g["n"], float)
@@ -1219,7 +1219,7 @@ def render_final(out: Path = WORK / "final.png") -> Path:
     WORK.mkdir(parents=True, exist_ok=True)
     jobs = [(WORK / "final_iso.png", "view=55,18&fold=1"), (WORK / "final_stowed.png", "view=140,24&fold=0")]
     for path, q in jobs:
-        subprocess.run([sys.executable, str(ROOT / "scripts/preview.py"), "hydroegg.cad.blade:preview_parts",
+        subprocess.run([sys.executable, str(ROOT / "scripts/preview.py"), "ovo.cad.blade:preview_parts",
                         "--out", str(path), "--q", q, "-W", "1000", "-H", "800"], check=True, cwd=ROOT)
     import matplotlib
     matplotlib.use("Agg")

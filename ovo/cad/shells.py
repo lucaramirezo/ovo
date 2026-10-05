@@ -1,9 +1,9 @@
-"""Static hull of HydroEgg: the front shell (nose to the equator, socket side) and the aft
+"""Static hull of Ovo: the front shell (nose to the equator, socket side) and the aft
 shell (equator to the static tail end, spigot side), plus their cutaway variants.
 
-    scripts/cadrun.sh .venv/bin/python -m hydroegg.cad.shells      # build, export, check, render
+    scripts/cadrun.sh .venv/bin/python -m ovo.cad.shells      # build, export, check, render
 
-Frame and conventions as hydroegg/params.py: mm, X = body axis (flow +X, nose at x = 0), Z up.
+Frame and conventions as ovo/params.py: mm, X = body axis (flow +X, nose at x = 0), Z up.
 Azimuth ``theta`` is measured about +X from +Z toward +Y (common.at_azimuth). The rotor study's
 pocket table (data/layout_rotor.json pocket_depth) uses ``psi`` = -theta with its azimuths
 relative to the blade (+ toward e_t); a pocket of the blade at theta_b therefore spans
@@ -387,7 +387,7 @@ def _smooth_outside(x: np.ndarray, v: np.ndarray, upper: bool, step: int = 3) ->
 def swept_rim(step: float = 0.3) -> dict:
     """Blade 0's swept azimuth range (theta, deg; theta_b = 0) in the lip band r in
     [R(x) - POCKET_LIP_T, R(x) + 0.5] per pocket table row (+-0.25 mm in x), folds 0..90
-    (1 deg, 0.25 deg from 80), from hydroegg.layout's blade surface (aero + shank). Also the same
+    (1 deg, 0.25 deg from 80), from ovo.layout's blade surface (aero + shank). Also the same
     for the stowed blade alone, and the swept range below the lip in 0.6 mm depth bands (checks)."""
     from .. import layout as RL
     tab = json.loads((DATA / "layout_rotor.json").read_text())
@@ -1168,7 +1168,7 @@ _BLADE_PTS = None
 
 
 def stowed_blade_points(i: int = 0, step: float = 0.3) -> np.ndarray:
-    """World points (stowed, fold FOLD_DEG) of blade i from hydroegg.layout's surface model."""
+    """World points (stowed, fold FOLD_DEG) of blade i from ovo.layout's surface model."""
     global _BLADE_PTS
     from .. import layout as RL
     if _BLADE_PTS is None:
@@ -1280,8 +1280,8 @@ NAMES = ("front_shell", "aft_shell", "front_shell_cutaway", "aft_shell_cutaway")
 
 def _cache_key() -> str:
     h = hashlib.sha1()
-    for p in (Path(__file__), REPO / "hydroegg/params.py", REPO / "hydroegg/profile.py",
-              REPO / "hydroegg/cad/common.py", DATA / "layout_rotor.json"):
+    for p in (Path(__file__), REPO / "ovo/params.py", REPO / "ovo/profile.py",
+              REPO / "ovo/cad/common.py", DATA / "layout_rotor.json"):
         h.update(p.read_bytes())
     return h.hexdigest()[:12]
 
@@ -1631,7 +1631,7 @@ def pocket_bounds(x: np.ndarray, r: np.ndarray) -> tuple:
 
 
 def blade_pocket_check(S: dict, step: float = 0.4) -> dict:
-    """Stowed blades (hydroegg.layout surface model, all 3) against the CAD pockets: analytic
+    """Stowed blades (ovo.layout surface model, all 3) against the CAD pockets: analytic
     clearances to the pocket section (floor, rim at the skin, 45 deg flare, deep walls), then OCC
     point classification of every suspect point (outside the section, within 0.25 mm of a floor,
     or near a detent boss) against both shells."""
@@ -1964,7 +1964,7 @@ def main(argv: list[str]) -> None:
     print(f"built {time.time() - t0:.1f} s", flush=True)
     for d in (OUT_STEP, OUT_STL, OUT_CHECKS, WORK):
         d.mkdir(parents=True, exist_ok=True)
-    report = dict(module="hydroegg.cad.shells", cache_key=_cache_key(), parts=[], conventions=dict(
+    report = dict(module="ovo.cad.shells", cache_key=_cache_key(), parts=[], conventions=dict(
         theta="about +X from +Z toward +Y; pocket table theta = -psi (asserted)",
         print="both shells print +X down (front: equator face on the bed, nose up; aft: tail end face on the bed, spigot up)",
         step="world pose (assembled)", stl="print orientation, z = 0 bed"))
@@ -2017,7 +2017,7 @@ def main(argv: list[str]) -> None:
                    ("preview_print", "shells_print", "view=-30,25", "default")]
         for fn, tag, q, mat in renders:
             for attempt in (1, 2):                      # headless Chrome sometimes times out on navigate
-                r = subprocess.run([sys.executable, str(REPO / "scripts/preview.py"), f"hydroegg.cad.shells:{fn}",
+                r = subprocess.run([sys.executable, str(REPO / "scripts/preview.py"), f"ovo.cad.shells:{fn}",
                                     "--out", str(WORK / f"{tag}.png"), "--q", q], cwd=REPO,
                                    env=dict(__import__("os").environ, SHELLS_PREVIEW_MAT=mat))
                 if r.returncode == 0:

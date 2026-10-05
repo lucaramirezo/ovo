@@ -1,6 +1,6 @@
-"""Rotor-side layout of HydroEgg: fold kinematics, stowage pockets, hub and hinge.
+"""Rotor-side layout of Ovo: fold kinematics, stowage pockets, hub and hinge.
 
-Run ``python -m hydroegg.layout`` to regenerate ``data/layout_rotor.json`` and
+Run ``python -m ovo.layout`` to regenerate ``data/layout_rotor.json`` and
 ``docs/figures/layout_fold_side.png`` / ``layout_fold_end.png``.
 
 Everything here is plain numpy (matplotlib only inside the figure function), so the
@@ -178,7 +178,7 @@ def load_blade(path: Path = BLADE_JSON) -> BladeDef:
         d = json.loads(path.read_text())
     except Exception:  # noqa: BLE001  (half-written file while the BEM study runs)
         return BladeDef(source=f"provisional ({path.name} unreadable)")
-    # schema hydroegg.blade_design/1 (hydroegg.bem): stations + section + rotor blocks
+    # schema ovo.blade_design/1 (ovo.bem): stations + section + rotor blocks
     stn = d.get("stations") if isinstance(d, dict) else None
     if isinstance(stn, dict) and all(k in stn for k in ("radius_mm", "chord_mm", "twist_deg")):
         sec = d.get("section", {}) or {}
@@ -1775,7 +1775,7 @@ def figure_side(lay: Layout, surf: BladeSurface, tb: dict, slot: dict, det: dict
         if k == 0:
             axp.set_xlim(0, 172)
             axp.set_ylim(0, 102)
-            axp.set_title("HydroEgg rotor: fold kinematics, side view (meridional plane of one blade)",
+            axp.set_title("Ovo rotor: fold kinematics, side view (meridional plane of one blade)",
                           loc="left", fontsize=11, color=INK)
             axp.annotate(f"hinge ({lay.hinge_x:g}, {lay.hinge_r:g})", (lay.hinge_x, lay.hinge_r),
                          (lay.hinge_x + 8, lay.hinge_r + 30), color=INK, fontsize=9,
@@ -1879,7 +1879,7 @@ def figure_end(lay: Layout, surf: BladeSurface, path: Path) -> None:
             if l_ not in hs:
                 hs[l_] = h_
                 ls.append(l_)
-    fig.suptitle("HydroEgg rotor seen from aft (looking upstream)", x=0.01, y=0.985, ha="left",
+    fig.suptitle("Ovo rotor seen from aft (looking upstream)", x=0.01, y=0.985, ha="left",
                  fontsize=12, color=INK)
     fig.subplots_adjust(left=0.06, right=0.985, top=0.88, bottom=0.2, wspace=0.2)
     fig.legend([hs[l_] for l_ in ls], ls, loc="lower center", ncol=3, fontsize=8, frameon=False,
@@ -1978,8 +1978,8 @@ def run(write: bool = True, figures: bool = True) -> dict:
     cs = cone_stats(ax)
     aero = xm <= X_AERO_ZONE
     out = {
-        "schema": "hydroegg.layout_rotor/1",
-        "generated_by": "python -m hydroegg.layout",
+        "schema": "ovo.layout_rotor/1",
+        "generated_by": "python -m ovo.layout",
         "blade_source": blade.source,
         "conventions": {
             "frame": "X = body axis, flow +X, nose at x = 0, Z up, right handed; mm and deg",
@@ -2023,7 +2023,7 @@ def run(write: bool = True, figures: bool = True) -> dict:
             "chosen_matches_rule": None,
             "rule_pick": None if pick is None else {REC_KEYS[k]: v for k, v in pick.items() if k in REC_KEYS},
             "hinge_sweep": [{REC_KEYS[k]: v for k, v in r.items() if k in REC_KEYS} for r in sweep_rows],
-            "sweep_source": "out/work/layout_rotor/hinge_sweep.jsonl (python -m hydroegg.layout --sweep), "
+            "sweep_source": "out/work/layout_rotor/hinge_sweep.jsonl (python -m ovo.layout --sweep), "
                             "fold 90, d_fold 3 deg",
         },
         "axis": {

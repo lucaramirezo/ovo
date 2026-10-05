@@ -1,4 +1,4 @@
-"""HydroEgg assembly (integrator).
+"""Ovo assembly (integrator).
 
 Collects every part module's ``parts()`` (see common.py for the part dict contract), adds the
 detent magnets no builder models, poses the rotor in its states and checks the whole machine:
@@ -13,15 +13,15 @@ detent magnets no builder models, poses the rotor in its states and checks the w
 
 Outputs (scripts/build.py runs this after the part modules):
   out/cad/checks/assembly.json              interference matrix, key clearances, STL audit, BOM
-  out/cad/step/hydroegg_assembly_{stowed,deployed}.step
-  out/web/hydroegg.glb + out/web/manifest.json   (viewer: roles, rotor flags, explode, pivots)
+  out/cad/step/ovo_assembly_{stowed,deployed}.step
+  out/web/ovo.glb + out/web/manifest.json   (viewer: roles, rotor flags, explode, pivots)
   out/work/cad/integrate/                   part cache (BREP, keyed on the sources), meshes
 
 Interference is computed on manifold3d meshes (0.02 mm chord, shells 0.03): exact OCC booleans
 against the full shells take minutes each. Overlaps below ~0.5 mm3 on curved contacts are
 facets of the tessellation; flat contacts tessellate exactly.
 
-  scripts/cadrun.sh .venv/bin/python -m hydroegg.cad.assembly [--force] [--no-web] [--no-verify]
+  scripts/cadrun.sh .venv/bin/python -m ovo.cad.assembly [--force] [--no-web] [--no-verify]
 """
 
 from __future__ import annotations
@@ -62,8 +62,8 @@ FOLD_STATES = {"stowed": 90.0, "fold_60": 60.0, "fold_30": 30.0, "deployed": 0.0
 # --------------------------------------------------------------------------
 
 def _sources() -> list[Path]:
-    src = sorted(p for p in (REPO / "hydroegg" / "cad").glob("*.py") if p.name != "assembly.py")
-    src += [REPO / "hydroegg" / n for n in ("params.py", "profile.py", "layout.py", "layout_internal.py")]
+    src = sorted(p for p in (REPO / "ovo" / "cad").glob("*.py") if p.name != "assembly.py")
+    src += [REPO / "ovo" / n for n in ("params.py", "profile.py", "layout.py", "layout_internal.py")]
     src += sorted((REPO / "data").glob("*.json"))
     return [p for p in src if p.exists()]
 
@@ -96,7 +96,7 @@ def _build_fresh(cdir: Path) -> None:
     meta, timing = [], {}
     for mod in MODULES:
         t0 = time.time()
-        m = importlib.import_module(f"hydroegg.cad.{mod}")
+        m = importlib.import_module(f"ovo.cad.{mod}")
         for p in m.parts():
             n = p["name"]
             export_brep(p["shape"], str(cdir / f"{n}.brep"))
@@ -930,12 +930,12 @@ def write_web(parts: list[dict], extras: dict) -> dict:
     for e in section_meshes(parts):
         e["explode"] = ex.get(e["name"].replace("_section", ""), [0.0, 0.0, 0.0])
         scene.append(e)
-    path = write_scene(scene, OUT_WEB, glb_name="hydroegg.glb", materials=dict(MATERIALS, section=SECTION_MATERIAL),
-                       extra={"generated_by": "hydroegg.cad.assembly", "cache": extras["cache_dir"],
+    path = write_scene(scene, OUT_WEB, glb_name="ovo.glb", materials=dict(MATERIALS, section=SECTION_MATERIAL),
+                       extra={"generated_by": "ovo.cad.assembly", "cache": extras["cache_dir"],
                               "states": {"stowed": "fold=0", "packed": "fold=0&packed=1", "deployed": "fold=1",
                                          "cutaway": "cutaway=1", "exploded": "explode=1"},
                               "stowing_index": "spin 0: blade i (psi 120 i) over the pocket at theta -psi"})
-    glb = OUT_WEB / "hydroegg.glb"
+    glb = OUT_WEB / "ovo.glb"
     return dict(glb=str(glb.relative_to(REPO)), manifest=str(path.relative_to(REPO)),
                 glb_mb=round(glb.stat().st_size / 1e6, 2), n_parts=len(scene),
                 triangles=int(sum(len(e["mesh"].faces) for e in scene)), explode=ex)
@@ -957,7 +957,7 @@ def write_kit_scene(parts: list[dict]) -> dict:
             q["shape"] = B[n]["shape"].moved(Location((-95.0 - 52.0 * k, -70.0 if k == 0 else 70.0, 0.0)))
             scene.append(dict(name=n + "_loose", material=q.get("material", "fin"), role="body", mesh=web_mesh(q)))
     path = write_scene(scene, OUT_WEB, glb_name="packed_kit.glb", materials=MATERIALS,
-                       extra={"generated_by": "hydroegg.cad.assembly.write_kit_scene"})
+                       extra={"generated_by": "ovo.cad.assembly.write_kit_scene"})
     return dict(manifest=str(path.relative_to(REPO)), n_parts=len(scene))
 
 
@@ -1017,8 +1017,8 @@ def export_assembly_steps(parts: list[dict]) -> list[str]:
             sh.label = p["name"]
             kids.append(sh)
         comp = Compound(children=kids)
-        comp.label = f"hydroegg_{st}"
-        f = OUT_STEP / f"hydroegg_assembly_{st}.step"
+        comp.label = f"ovo_{st}"
+        f = OUT_STEP / f"ovo_assembly_{st}.step"
         export_step(comp, str(f))
         out.append(str(f.relative_to(REPO)))
         print(f"  wrote {f.relative_to(REPO)} ({f.stat().st_size / 1e6:.1f} MB)", flush=True)
@@ -1215,7 +1215,7 @@ def run(force: bool = False, web: bool = True, verify: bool = True, steps: bool 
     OUT_CHK.mkdir(parents=True, exist_ok=True)
     ps, ex = collect(force=force)
     print(f"collected {len(ps)} parts ({time.time() - t0:.1f} s)", flush=True)
-    rep = dict(module="hydroegg.cad.assembly", cache=ex["cache_dir"], cache_key=cache_key(),
+    rep = dict(module="ovo.cad.assembly", cache=ex["cache_dir"], cache_key=cache_key(),
                build_timing_s=ex.get("timing_s"),
                conventions=dict(stowing_index="rotor spin 0: blade i at psi 120 i lies over the pocket at theta -psi",
                                 fold="0 deployed .. 90 stowed (blade.blade_world); viewer fold = 1 - fold/90",

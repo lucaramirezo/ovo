@@ -1,13 +1,13 @@
 {
- "schema": "hydroegg.blade_design/1",
- "generated_by": "python -m hydroegg.bem",
+ "schema": "ovo.blade_design/1",
+ "generated_by": "python -m ovo.bem",
  "conventions": {
   "frame": "X = body axis, flow +X (nose at x = 0), Z up, right-handed",
   "radius": "radius_mm is perpendicular to the body axis (not along the coned span)",
   "rotation": "right-handed about +X (Omega vector +X): CLOCKWISE seen from upstream (observer at the nose looking downstream). A blade pointing +Z moves toward -Y.",
   "twist": "angle between chord line and the plane of rotation, measured in the section plane normal to the pitch axis; POSITIVE = leading edge rotated upstream (-X). Angle of attack = inflow angle phi - twist.",
   "section_orientation": "suction (convex, upper) side faces downstream (+X); leading edge points in the direction of rotation",
-  "section_placement": "for the blade whose axis is in the +Z half-plane: pitch-axis point A = (pitch_axis_x_mm, 0, radius_mm); e_n = (cos b, 0, -sin b) with b = cone; d = cos(tw) * (+Y) + sin(tw) * e_n (LE -> TE); n = cos(tw) * e_n - sin(tw) * (+Y) (toward suction side). Section point = A + chord * ((xs - pitch_axis) * d + ys * n) for unit-chord coordinates (xs, ys) of hydroegg.bem.naca44_section.",
+  "section_placement": "for the blade whose axis is in the +Z half-plane: pitch-axis point A = (pitch_axis_x_mm, 0, radius_mm); e_n = (cos b, 0, -sin b) with b = cone; d = cos(tw) * (+Y) + sin(tw) * e_n (LE -> TE); n = cos(tw) * e_n - sin(tw) * (+Y) (toward suction side). Section point = A + chord * ((xs - pitch_axis) * d + ys * n) for unit-chord coordinates (xs, ys) of ovo.bem.naca44_section.",
   "cone": "aft (+X) lean of the pitch axis out of the plane of rotation, about the tangential hinge pin"
  },
  "rotor": {

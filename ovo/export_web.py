@@ -53,7 +53,7 @@ def to_trimesh(shape, tol: float = 0.02, angular: float = 0.12, smooth_deg: floa
     return mesh
 
 
-def write_scene(parts: list[dict], out_dir: str | Path, glb_name: str = "hydroegg.glb",
+def write_scene(parts: list[dict], out_dir: str | Path, glb_name: str = "ovo.glb",
                 materials: dict | None = None, extra: dict | None = None) -> Path:
     """parts: [{name, shape, material, role?, rotor?, explode?, pivot?}, ...]"""
     out_dir = Path(out_dir)
@@ -70,6 +70,6 @@ def write_scene(parts: list[dict], out_dir: str | Path, glb_name: str = "hydroeg
     scene.export(out_dir / glb_name, file_type="glb", include_normals=True)
     manifest = {"units": "mm", "up": "Z", "glb": glb_name,
                 "materials": materials or MATERIALS, "parts": manifest_parts, **(extra or {})}
-    path = out_dir / ("manifest.json" if glb_name == "hydroegg.glb" else glb_name.replace(".glb", ".json"))
+    path = out_dir / ("manifest.json" if glb_name == "ovo.glb" else glb_name.replace(".glb", ".json"))
     path.write_text(json.dumps(manifest, indent=2))
     return path

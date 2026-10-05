@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run a geometry build / check with at most 2 such jobs alive machine-wide, so parallel
-# agents do not stack OCC processes. Usage: scripts/cadrun.sh .venv/bin/python -m hydroegg.cad.blade
+# agents do not stack OCC processes. Usage: scripts/cadrun.sh .venv/bin/python -m ovo.cad.blade
 cd "$(dirname "$0")/.." || exit 1
 mkdir -p out/work
 while true; do

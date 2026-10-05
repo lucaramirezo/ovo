@@ -1,4 +1,4 @@
-"""Single source of truth for HydroEgg. Every module reads from here; nothing
+"""Single source of truth for Ovo. Every module reads from here; nothing
 hard-codes a dimension that lives in this file.
 
 Units: mm and degrees for geometry, SI for physics.

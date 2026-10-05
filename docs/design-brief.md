@@ -1,6 +1,6 @@
-# HydroEgg: design brief
+# Ovo: design brief
 
-Working name, rename freely before publishing. Portfolio project: a generic portable
+Product name: **Ovo** ("Ovo, a folding hydrokinetic charger"). Portfolio project: a generic portable
 hydrokinetic charger, modeled as parametric code-CAD (build123d), 3D-printable on a
 Bambu Lab printer (256 mm cube).
 
@@ -14,10 +14,19 @@ Bambu Lab printer (256 mm cube).
 | Blades | 3, folding. |
 | Generator bay | "v2-ready": real interfaces for a low-KV gimbal outrunner, shaft seal pocket, equator O-ring groove, cable gland. The display build carries a printed replica with the same envelope. |
 | Extras | Real bearings. Cutaway variant of the shells that shows shaft, bearings and generator. |
-| CAD | build123d (Python), everything parametric from `hydroegg/params.py`. |
+| CAD | build123d (Python), everything parametric from `ovo/params.py`. |
 | Printer | Bambu Lab A1 / P1S / X1, 256 mm cube. Single colour (no AMS assumed). |
 | Deliverables | Public GitHub repo (README, renders, exploded GIF, STL/STEP from CI), technical report (PDF), project web page with an interactive 3D viewer. BOM and assembly guide always. |
 | Language | English for repo, web and report. |
+
+## Decisions after the first CAD review (2026-10-05)
+
+| Topic | Decision |
+|---|---|
+| Name | Ovo. Python package `ovo`; the local folder keeps its old name. |
+| Fins | Recessed dovetail rail cut into a thickened inner wall of the front shell, closed by a flush blanking strip when the fins are off. Stowed, the egg stays at its 75 mm diameter. |
+| Colours | All-ivory egg (shells, hub, spinner, fins) with orange blades: stowed it reads as one egg with three orange stripes. |
+| Cable gland | Display build carries a low M12 blanking plug; the gland shows in the cutaway and the v2 documentation. |
 
 ## Engineering decisions (taken in design, open to change)
 
@@ -54,9 +63,9 @@ them without redesign.
 
 ## Repo map
 
-- `hydroegg/params.py`: every dimension.
-- `hydroegg/profile.py`: hull profile r(x).
-- `hydroegg/*.py`: one module per subassembly; `build.py` exports everything.
+- `ovo/params.py`: every dimension.
+- `ovo/profile.py`: hull profile r(x).
+- `ovo/*.py`: one module per subassembly; `build.py` exports everything.
 - `data/`: design-study outputs (JSON) consumed by the CAD.
 - `docs/`: brief, design notes, report sources, figures.
 - `out/`: generated STL / STEP / GLB / renders (git-ignored; CI publishes them).

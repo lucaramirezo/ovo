@@ -1,12 +1,12 @@
-"""Drivetrain of the HydroEgg: shaft, claw coupling, motor carrier, GL40 replica and the
+"""Drivetrain of the Ovo: shaft, claw coupling, motor carrier, GL40 replica and the
 bought parts of the power path (bearings, lip seal, shaft collar, O-ring, cable gland,
 screws and heat-set inserts).
 
-Run ``scripts/cadrun.sh .venv/bin/python -m hydroegg.cad.drivetrain`` to build every part,
+Run ``scripts/cadrun.sh .venv/bin/python -m ovo.cad.drivetrain`` to build every part,
 write out/cad/step/<part>.step (world pose), out/cad/stl/<part>.stl (print pose, printed
 parts only) and out/cad/checks/drivetrain.json.
 
-Sources: hydroegg/params.py (SHAFT, COUPLER, CARRIER, GENERATOR, BEARING, BEARING_ALT,
+Sources: ovo/params.py (SHAFT, COUPLER, CARRIER, GENERATOR, BEARING, BEARING_ALT,
 LIP_SEAL, ORING_EQUATOR, JOINT, GLAND, SHAFT_STOP, INSERT_M3, clearances) and
 data/hardware.json (GL40 hole patterns and solder-pad keep-out, collar, gland).
 
@@ -135,7 +135,7 @@ DESIGN = dict(
     carrier_clear_d=3.4,          # M3 clearance
     carrier_slot=(38.14, 40.0, 3.2),   # radial slots for PCD 38.14 (GM4108H) .. PCD 40 (GL40 M2.5)
     carrier_window_corner_r=2.0,
-    # carrier twist-lock tabs: taken from hydroegg.cad.shells.CARRIER_LOCK (shell side owns the
+    # carrier twist-lock tabs: taken from ovo.cad.shells.CARRIER_LOCK (shell side owns the
     # ring groove and notches); this copy is the fallback if shells.py cannot be imported
     carrier_lock_fallback=dict(n_tabs=3, tab_w_deg=16.0, tab_x=[20.5, 22.5], tab_r_out=27.2,
                                tab_front_chamfer_45=1.0, lock_theta_deg=[90.0, 210.0, 330.0], twist_deg=30.0),
@@ -163,7 +163,7 @@ def carrier_lock() -> dict:
     """Twist-lock tab spec shared with the front shell (shells.CARRIER_LOCK is the source)."""
     try:
         from .shells import CARRIER_LOCK as L
-        src = "hydroegg.cad.shells.CARRIER_LOCK"
+        src = "ovo.cad.shells.CARRIER_LOCK"
     except Exception:  # noqa: BLE001
         L, src = DESIGN["carrier_lock_fallback"], "drivetrain fallback copy"
     L = dict(L)
@@ -1124,7 +1124,7 @@ def assembly_sequence() -> list[dict]:
              "into the 16 bore onto the shoulder (a 14 mm socket as a driver), remove the sleeve.",
              check="fixes the layout flag: the seal goes on from the free shaft end, so the flat edges never "
              "touch the lip; the sleeve never has to pass a bearing.", ok=True),
-        dict(step=10, sub="rotor", action="Rotor per hydroegg.cad.rotor: glue the blade magnets and the 3 hub "
+        dict(step=10, sub="rotor", action="Rotor per ovo.cad.rotor: glue the blade magnets and the 3 hub "
              "magnets; slide the hub onto the D-flat until its flat aft face is flush with the shaft end (straightedge "
              "across both), tighten the grub; drop each blade radially into its slot and press its pin through the "
              "D3.5 channel into both ears; the 3 x 4 filler dowels; spinner over the hub with the blades folded "
@@ -1262,7 +1262,7 @@ def _stl_watertight(path: Path) -> bool:
     return bool(m.is_watertight)
 
 
-def render_previews(module: str = "hydroegg.cad.drivetrain", views=None) -> list[str]:
+def render_previews(module: str = "ovo.cad.drivetrain", views=None) -> list[str]:
     """Preview PNGs through scripts/preview.py (it takes the render lock)."""
     import subprocess
     views = views or [("preview_parts", "drivetrain_iso", "view=-35,22"),

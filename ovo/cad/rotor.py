@@ -1,9 +1,9 @@
 """Rotor: hub, spinner, spinner tip cap, hinge pins, hub detent magnets, hub grub screw and spinner screw.
 
-    scripts/cadrun.sh .venv/bin/python -m hydroegg.cad.rotor      # build, export, check, preview
+    scripts/cadrun.sh .venv/bin/python -m ovo.cad.rotor      # build, export, check, preview
 
 Sources: params.py (ROTOR_HUB, SPINNER_ACCESS, DETENTS, SHAFT, HUB_GAP, clearances),
-data/layout_rotor.json (solved blade axis, hub_slot, detents) and hydroegg/layout.py (blade
+data/layout_rotor.json (solved blade axis, hub_slot, detents) and ovo/layout.py (blade
 surface model and fold transforms). Frame as params.py: X = body axis (flow +X), Z up. Blade
 azimuth psi as layout.py: e_r = (0, -sin psi, cos psi), e_t = (0, -cos psi, -sin psi), blade i at
 psi = 120 i; a +Z feature is carried to psi by ``shape.rotate(Axis.X, psi)``. Hinge-plane
@@ -1400,7 +1400,7 @@ def cross_checks(hub_m, spin_m, d_deg: float = 2.0) -> dict:
                 if g < worst[k][0]:
                     worst[k] = (g, float(pv["deployed_deg"] - a))
         dep = _mf_transform(bm, _rot_about(pv["origin"], pv["axis"], pv["deployed_deg"]))
-        out["blade"] = {"source": "hydroegg.cad.blade blade_0 (stowed pose + pivot)",
+        out["blade"] = {"source": "ovo.cad.blade blade_0 (stowed pose + pivot)",
                         "min_gap_hub_mm": worst["hub"][0], "at_fold_deg": worst["hub"][1],
                         "min_gap_spinner_mm": worst["spinner"][0], "spinner_at_fold_deg": worst["spinner"][1],
                         "deployed_overlap_hub_mm3": float((hub_m ^ dep).volume()),
@@ -1542,7 +1542,7 @@ def run_checks(part_list: list[dict], meshes: dict) -> dict:
     t0 = time.time()
     _, lay, _, _, _ = layout_model()
     sb = slot_bands()
-    out = {"schema": "hydroegg.cad.rotor/1", "generated_by": "python -m hydroegg.cad.rotor"}
+    out = {"schema": "ovo.cad.rotor/1", "generated_by": "python -m ovo.cad.rotor"}
     # ---- slot bands
     out["slot_bands"] = [{"name": b["name"], "tau_mm": [round(b["tau"][0], 3), round(b["tau"][1], 3)],
                           "x_range_mm": [round(v, 3) for v in b["x_range"]],
