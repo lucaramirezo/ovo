@@ -2,7 +2,7 @@
 // and ovo/params.py. Do not edit: re-run the script.
 #let d = (
   date: "2026-10-06",
-  rev: "98c4f6c + local changes",
+  rev: "42150e7",
   author: "Luca Ramírez Olivo",
   affiliation: "Computer Engineering (final year), Universidad Europea de Madrid",
   hull_d: "75",
@@ -563,13 +563,13 @@
   ),
   clearances: (
     ("Hub gap, static tail to hub front", "0.600 mm", "≥ 0.6", "pass",),
-    ("Stowed aero span to pocket floors and walls", "0.337 mm (blades 0.337, 0.337, 0.337)", "≥ 0.3", "pass",),
+    ("Stowed aero span to pocket floors and walls", "0.337 mm (blades 0.337, 0.337, 0.337)", "≥ 0.3 (-0.05 tessellation)", "pass",),
     ("Stowed root to static tail", "0.899 mm (blades 0.899, 0.899, 0.899)", "≥ 0.8", "pass",),
     ("Stowed detent magnet pair: gap, angle, force", "0.420 / 0.365 mm, 1.66°, 0.00 mm; about 2.27 N (layout 2.32 N at 0.4 mm)", "face gap ≤ 0.45 mm, axis angle ≤ 2.0°, force ≥ 2.0 N", "pass",),
     ("Deployed detent pair: gap, force", "0.400 mm, about 2.32 N", "0.4 ± 0.15", "pass",),
     ("Deployed heel on hub stop face", "0.000 mm / 0.000 mm³", "contact, no overlap", "pass",),
     ("Folding blades to fins", "5.635 mm at fold 90", "≥ 2.0", "pass",),
-    ("Folding blades to hub (run clearance)", "0.296 mm at fold 6", "≥ RUN_CLEAR 0.3", "pass",),
+    ("Folding blades to hub (run clearance)", "0.296 mm at fold 6", "≥ RUN_CLEAR 0.3 (-0.01 tessellation)", "pass",),
     ("Knuckle bore on hinge pin", "0.149 mm at fold 60", "> 0.1", "pass",),
     ("Neighbouring blades while folding", "≥ 3 mm at every fold", "≥ 1.0", "pass",),
     ("Claw coupling dog flanks", "0.300 mm", "≥ 0.25", "pass",),
