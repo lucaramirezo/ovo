@@ -215,11 +215,34 @@ FIN_THETA_STEP = 0.5              # deg, fin angle search step
 FIN_PIVOT_STEP = 0.05             # yaw pivot search step (chord fraction from the LE)
 FIN_PLACE_MAX_EVAL = 400          # cap on fold-clearance evaluations per fin candidate
 FIN_T_HALF = 0.5 * 0.117          # fin half-thickness envelope / chord (Clark Y max t/c)
-GROOVE_W = 6.0                    # mm, mean width of the half-dovetail groove in the 10 mm pad (>= 2 mm
-                                  # walls); the fin's root tongue fills it (ESTIMATE until the CAD)
-RAIL_H = 4.0                      # mm, min pad height above the hull = dovetail depth
-RAIL_W = 10.0                     # mm, pad width (tangential)
-RAIL_X = (20.0, 43.0)             # mm, nominal rail extent (replaced by the fin root chord)
+# Recessed fin rail (owner decision 2026-10-05: no proud pads, stowed the egg keeps its 75 mm). The fin
+# root sits on the hull skin; a straight half-dovetail groove is sunk into a boss on the INSIDE of the
+# front shell wall and closed by a flush blanking strip when the fins are off. The rail climbs INWARD
+# going aft (RAIL_SLOPE < 0): the fin slides aft and in onto the end stop, drag pushes it home, and
+# retracted along the rail every point of the fin's hull-following root lifts off the skin. The groove
+# lives between the carrier (x <= 23.7) and the bayonet socket (x >= 41.7): its floor runs out
+# through the skin ahead of the stop, its aft end sits on the boss, which ends on a 45 deg cone ahead
+# of the spigot tip. Retention: an N52 4 x 2 x 2 block in the tongue bottom over a second one in the
+# groove floor (the cross pin of the proud pad cannot cross a flush groove: a tangential hole at the
+# pin depth leaves the hull at a grazing angle ~12 mm to each side).
+ROOT_GAP = 0.1                    # mm, fin root face above the hull skin (tongue seated on the floor)
+SLOT_W = 5.2                      # mm, groove neck = slot mouth in the hull (fin tongue 4.7)
+GROOVE_W = 6.5                    # mm, groove width at the floor (45 deg undercut flank on the +w side)
+GROOVE_W0 = -2.6                  # mm, w of the groove's flat wall (the fin's flat Clark Y side faces -theta)
+GROOVE_UC_H = 1.3                 # mm, height of the undercut above the floor
+RAIL_SLOPE = -0.25                # da/du of the rail (radial at the fin angle per mm along the yawed chord)
+RAIL_STOP_X = 39.4                # mm, end stop (groove aft face) at w = 0
+RAIL_FLOOR_A_STOP = 29.6          # mm, groove floor at the end stop, radial at the fin angle
+BOSS_FLOOR_T = 1.6                # mm, boss under the groove floor (4 perimeters)
+BOSS_SIDE_T = 1.6                 # mm, boss beside the groove walls
+BOSS_MAG_T = 3.45                 # mm, boss under the floor at the magnet seat, radial: 2.05 seat + 1.25 wall
+                                  # normal to the floor (x 1.031 for the rail slope)
+BOSS_CONE_X = 43.1                # mm, boss bounded by r >= r_lip - (BOSS_CONE_X - x) (45 deg, spigot tip 43.6)
+FIN_MAGNET = dict(size_u_w_a=(4.0, 2.0, 2.0), seat=(4.1, 2.1), recess=0.05, u_from_stop=1.75,
+                  grade="N52 block 4 x 2 x 2, magnetised through 2 along a (pole faces 4 x 2)")
+RAIL_H = 7.0                      # mm, deepest groove below the skin (fin root keel + tongue), bbox use
+RAIL_W = GROOVE_W                 # mm, slot footprint width at the skin (relief zone included)
+RAIL_X = (20.0, 43.0)             # mm, nominal rail extent (cavity_clear_r rail_flush option only)
 BRIDLE_A = 20.0                   # mm, v2 option: bridle eyes at +-Y on the nose
 BRIDLE_L = 80.0                   # mm, bridle leg length
 
@@ -1598,18 +1621,21 @@ def upstream_factor(x_mm: float, x_rotor: float, R_mm: float) -> float:
 
 
 def fin_root_line(x_le: float, x_te: float) -> dict:
-    """Straight dovetail rail on a raised pad at theta 90 / 270 under the fin root chord: the
-    line through the hull points at the chord ends, lifted so the pad is >= RAIL_H high
-    everywhere (the hull is convex in between). The fin root edge sits on this line."""
+    """Datum root line of a fin whose root sits on the hull skin (recessed rail, owner decision
+    2026-10-05): the straight line through the hull points at the chord ends, ROOT_GAP above the
+    skin. The fin's root follows the hull (it bulges above the datum by up to sag_max_mm between
+    the ends: the hull is convex); the tip line is the datum + span. root_mean_mm is the mean root
+    radius, span_loss_mm the mean bulge, so the mean span is span - span_loss_mm. pad_* = 0: no
+    material stands proud of the hull."""
     xs = np.linspace(x_le, x_te, 80)
-    ro = np.array(r_out(xs))
+    ro = np.array(r_out(xs)) + ROOT_GAP
     k = (ro[-1] - ro[0]) / (x_te - x_le)
     line0 = ro[0] + k * (xs - x_le)
-    lift = float((ro - line0).max()) + RAIL_H
-    pad = line0 + lift - ro
-    return dict(x_le=x_le, x_te=x_te, y_le=float(ro[0] + lift), y_te=float(ro[-1] + lift),
-                y_mean=float(np.mean(line0 + lift)), incl_deg=math.degrees(math.atan(k)),
-                pad_min_mm=float(pad.min()), pad_max_mm=float(pad.max()))
+    sag = ro - line0
+    return dict(x_le=x_le, x_te=x_te, y_le=float(ro[0]), y_te=float(ro[-1]),
+                y_mean=float(np.mean(line0)), incl_deg=math.degrees(math.atan(k)),
+                root_mean_mm=float(np.mean(ro)), span_loss_mm=float(np.mean(sag)), sag_max_mm=float(sag.max()),
+                pad_min_mm=0.0, pad_max_mm=0.0)
 
 
 def blade_sweep_len(ri: dict) -> float:
@@ -1649,24 +1675,79 @@ def fin_te_sense(ri: dict) -> float:
 
 def fin_frame(x_te: float, c: float, inc_deg: float, pivot: float, sense: float,
               x_eq: float = P.EQUATOR_X) -> dict:
-    """Yawed fin root and rail pad. The root chord (length c) and its pad are yawed by the
-    incidence about the radial line through the pivot (chord fraction from the LE), so the rail
-    runs along the fin chord and the fin prints flat with its root block. The TE sits on the rail
-    end stop x_te. Local coordinates at a fin angle: u chordwise from the LE, w across the chord
-    (+ toward +theta at zero yaw), 'along' radial. The pad (RAIL_W wide, top = the root line)
-    runs from the LE aft and ends with a 45 deg chamfer from the TE if that fits ahead of the
-    equator, else it runs down to the equator face (the front shell prints on that face, so the
-    pad's aft end stands on the bed: no overhang)."""
+    """Yawed fin root and its recessed rail. The root chord (length c) and the rail are yawed by
+    the incidence about the radial line through the pivot (chord fraction from the LE), so the rail
+    runs along the fin chord. The fin TE sits at x_te. Local coordinates at a fin angle: u chordwise
+    from the LE, w across the chord (+ toward +theta at zero yaw), 'along' radial (a). The fin root
+    sits on the hull skin; the rail (rail_slot) is a groove sunk into an inner boss of the front
+    shell, so nothing stands proud of the hull (x_end = x_te: the fin root ends at its TE)."""
     i = math.radians(inc_deg)
     ci, si = math.cos(i), sense * math.sin(i)
     x_le = x_te - c * ci
     x_p = x_le + pivot * c * ci
     rl = fin_root_line(x_le, x_te)
     k = (rl["y_te"] - rl["y_le"]) / (x_te - x_le)
-    h_te = rl["y_te"] - float(r_out(x_te))
-    chamfer = x_te + h_te <= x_eq
-    return dict(c=c, inc_deg=inc_deg, pivot=pivot, sense=sense, ci=ci, si=si, x_le=x_le, x_te=x_te,
-                x_p=x_p, rl=rl, k=k, h_te=h_te, chamfer=chamfer, x_end=x_te + h_te if chamfer else x_eq)
+    fg = dict(c=c, inc_deg=inc_deg, pivot=pivot, sense=sense, ci=ci, si=si, x_le=x_le, x_te=x_te,
+              x_p=x_p, rl=rl, k=k, h_te=0.0, chamfer=False, x_end=x_te)
+    fg["rail"] = rail_slot(fg)
+    return fg
+
+
+def _fin_world(fg: dict, u, w):
+    """(x, lat) of the fin-frame point (u, w): lat = tangential offset from the fin angle line."""
+    up = np.asarray(u, float) - fg["pivot"] * fg["c"]
+    w = np.asarray(w, float)
+    return fg["x_p"] + up * fg["ci"] - w * fg["si"], up * fg["si"] + w * fg["ci"]
+
+
+def _a_hull(fg: dict, u, w, gap: float = 0.0):
+    """Radial coordinate (at the fin angle) of the hull skin (+ gap) at the fin-frame point (u, w)."""
+    x, lat = _fin_world(fg, u, w)
+    R = np.asarray(r_out(np.clip(x, 0.0, P.HULL_L)), float) + gap
+    return np.sqrt(np.maximum(R ** 2 - lat ** 2, 0.0))
+
+
+def rail_slot(fg: dict) -> dict:
+    """Recessed rail of the yawed fin (owner decision 2026-10-05), in the fin frame (u, w, a):
+    floor a_f(u) = RAIL_FLOOR_A_STOP + RAIL_SLOPE (u - u_stop), end stop at u_stop (RAIL_STOP_X at
+    w = 0), groove w in [GROOVE_W0, GROOVE_W0 + GROOVE_W] at the floor (neck SLOT_W wide from
+    GROOVE_UC_H up through the skin). The entry is where the floor runs out through the skin (the
+    most forward w); the slot mouth is the groove cut by the skin. Boss under the floor: BOSS_FLOOR_T
+    (BOSS_MAG_T at the magnet seat); its smallest radius in the generator bay's x span is reported."""
+    ci = fg["ci"]
+    u_stop = (RAIL_STOP_X - fg["x_le"]) / ci
+
+    def a_f(u):
+        return RAIL_FLOOR_A_STOP + RAIL_SLOPE * (np.asarray(u, float) - u_stop)
+
+    uu = np.arange(u_stop, u_stop - 60.0, -0.02)
+    ws = np.linspace(GROOVE_W0, GROOVE_W0 + GROOVE_W, 9)
+    u_ent = []
+    for w in ws:
+        d = _a_hull(fg, uu, w) - a_f(uu)                         # > 0: floor below the skin
+        out = np.nonzero(d <= 0.0)[0]
+        u_ent.append(float(uu[out[0]]) if out.size else float(uu[-1]))
+    u_entry = min(u_ent)
+    depth_stop = float(_a_hull(fg, u_stop, 0.0) - a_f(u_stop))
+    u_mag = (u_stop - FIN_MAGNET["u_from_stop"] - FIN_MAGNET["seat"][0], u_stop - FIN_MAGNET["u_from_stop"])
+    # boss bottom (radius of its lowest corner) over the generator bay span
+    G_ = P.GENERATOR
+    uq = np.linspace(u_entry, u_stop + BOSS_FLOOR_T, 200)
+    wq = np.array([GROOVE_W0 - BOSS_SIDE_T, GROOVE_W0 + GROOVE_W + BOSS_SIDE_T])
+    r_min = np.inf
+    for w in wq:
+        x, lat = _fin_world(fg, uq, w)
+        t = np.where((uq >= u_mag[0] - 1.0) & (uq <= u_mag[1] + 1.0), BOSS_MAG_T, BOSS_FLOOR_T)
+        ab = a_f(np.minimum(uq, u_stop)) - t
+        r = np.hypot(ab, lat)
+        m = (x >= G_["x_bay_fwd"] - C_GEN) & (x <= G_["x_bay_fwd"] + G_["bay_L"] + C_GEN)
+        if m.any():
+            r_min = min(r_min, float(r[m].min()))
+    x_m, _ = _fin_world(fg, np.array([u_entry, u_stop]), np.array([GROOVE_W0 + GROOVE_W, GROOVE_W0]))
+    return dict(u_stop=u_stop, u_entry=u_entry, floor_a_stop=RAIL_FLOOR_A_STOP, slope=RAIL_SLOPE,
+                depth_at_stop_mm=depth_stop, length_mm=u_stop - u_entry, u_magnet=list(u_mag),
+                x_mouth=[float(x_m[0]), float(x_m[1])], boss_r_min_in_bay_mm=r_min,
+                bay_clear_mm=r_min - G_["bay_D"] / 2)
 
 
 def fin_offset(fg: dict, x) -> np.ndarray:
@@ -1679,11 +1760,8 @@ def _root_y(fg: dict, x):
 
 
 def _pad_top(fg: dict, x):
-    x = np.asarray(x, float)
-    y = _root_y(fg, x)
-    if fg["chamfer"]:
-        y = np.where(x > fg["x_te"], np.minimum(y, r_out(x) + fg["h_te"] - (x - fg["x_te"])), y)
-    return y
+    """Top of the rail slot box: the hull skin + ROOT_GAP (the blanking strip / fin keel is flush)."""
+    return np.asarray(r_out(np.clip(np.asarray(x, float), 0.0, P.HULL_L)), float) + ROOT_GAP
 
 
 def _to_fin(fg: dict, x, lat):
@@ -1694,16 +1772,13 @@ def _to_fin(fg: dict, x, lat):
 
 
 def pad_footprint(fg: dict, du: float = 0.25, nw: int = 11):
-    """Sampled pad footprint on the hull as (x, lat): u from the LE aft, |w| <= RAIL_W / 2, cut at
-    the pad end x."""
-    u_max = (fg["x_end"] - fg["x_p"]) / fg["ci"] + fg["pivot"] * fg["c"] + RAIL_W
-    uu = np.arange(0.0, u_max + 1e-9, du)[:, None]
-    ww = np.linspace(-RAIL_W / 2, RAIL_W / 2, nw)[None, :]
-    up = uu - fg["pivot"] * fg["c"]
-    x = fg["x_p"] + up * fg["ci"] - ww * fg["si"]
-    lat = up * fg["si"] + ww * fg["ci"]
-    keep = x <= fg["x_end"]
-    return x[keep], lat[keep]
+    """Sampled footprint of the recessed rail's slot mouth on the hull as (x, lat): u from the entry
+    to the end stop, w over the full groove width (the entry relief opens the mouth to it)."""
+    rs = fg["rail"]
+    uu = np.arange(rs["u_entry"], rs["u_stop"] + 1e-9, du)[:, None]
+    ww = np.linspace(GROOVE_W0, GROOVE_W0 + GROOVE_W, nw)[None, :]
+    x, lat = _fin_world(fg, uu + 0 * ww, ww + 0 * uu)
+    return x.ravel(), lat.ravel()
 
 
 def fin_pocket_clearance(fg: dict, pk: Pockets, thetas) -> np.ndarray:
@@ -1778,11 +1853,15 @@ def _fold_cloud_near() -> dict:
 
 
 def fin_fold_clearance(fg: dict, span: float, fin_th) -> dict:
-    """Smallest 3D distance between the blades folding at the stowing index and (a) the yawed rail
-    pads, (b) the yawed fins (Clark Y envelope |w| <= 0.0585 c, from the root line to the tip),
-    for the fin angles fin_th. Distances are taken to the pad / fin boxes in the yawed frame."""
+    """Smallest 3D distance between the blades folding at the stowing index and (a) the recessed
+    rail's slot mouth (the flush blanking strip / fin keel: box from the entry to the stop over the
+    groove width, up to the skin + ROOT_GAP), (b) the yawed fins (Clark Y envelope |w| <= 0.0585 c,
+    from the datum root line to the tip: the real root follows the skin above it), for the fin
+    angles fin_th. Distances are taken to the boxes in the yawed frame."""
     C = _fold_cloud_near()
     t_half = FIN_T_HALF * fg["c"]
+    rs = fg["rail"]
+    w0, w1 = GROOVE_W0, GROOVE_W0 + GROOVE_W
     pad, fin = [], []
     for th_f in fin_th:
         dth = np.radians((C["theta"] - th_f + 180.0) % 360.0 - 180.0)
@@ -1791,8 +1870,8 @@ def fin_fold_clearance(fg: dict, span: float, fin_th) -> dict:
         lat, al = rho * np.sin(d_), rho * np.cos(d_)
         u, w = _to_fin(fg, x, lat)
         top = _pad_top(fg, x)
-        dp = np.sqrt(np.maximum(0.0, -u) ** 2 + np.maximum(0.0, np.abs(w) - RAIL_W / 2) ** 2
-                     + np.maximum(0.0, x - fg["x_end"]) ** 2 + np.maximum(0.0, al - top) ** 2)
+        dp = np.sqrt(np.maximum(0.0, np.maximum(rs["u_entry"] - u, u - rs["u_stop"])) ** 2
+                     + np.maximum(0.0, np.maximum(w0 - w, w - w1)) ** 2 + np.maximum(0.0, al - top) ** 2)
         y_r = _root_y(fg, x)
         df = np.sqrt(np.maximum(0.0, np.maximum(-u, u - fg["c"])) ** 2 + np.maximum(0.0, np.abs(w) - t_half) ** 2
                      + np.maximum(0.0, np.maximum(y_r - al, al - y_r - span)) ** 2)
@@ -1832,7 +1911,9 @@ def fin_place(ri: dict, pk: Pockets, c: float, inc_deg: float, span: float, x_te
     best["ok_pocket"] = best["pocket_clear_mm"] >= FIN_POCKET_CLEAR
     best["ok_fold"] = (not fold_check) or min(best["fold"]["pad_clear_min_mm"],
                                               best["fold"]["fin_clear_min_mm"]) >= FIN_FOLD_CLEAR
-    best["ok"] = best["ok_pocket"] and best["ok_fold"]
+    rs = best["fg"]["rail"]
+    best["ok_rail"] = bool(rs["u_entry"] >= 0.0 and rs["u_stop"] <= c and rs["bay_clear_mm"] >= C_GEN)
+    best["ok"] = best["ok_pocket"] and best["ok_fold"] and best["ok_rail"]
     return best
 
 
@@ -1889,15 +1970,18 @@ def fin_design(ri: dict, x_rotor: float, pk: Pockets, rule: str = FIN_FOLD_RULE,
             target = 1.0 + FIN_TORQUE_MARGIN
             for alpha_set in np.arange(0.0, 14.0 + 1e-9, FIN_ALPHA_STEP):
                 rl = fin_root_line(x_te - c * math.cos(math.radians(alpha_set)), x_te)
-                r_cp = rl["y_mean"] + FIN_CP_SPAN * s
-                res = _fin_eval(c, s, r_cp, alpha_set, x_te - c / 2, x_rotor, ri)
+                # root on the skin: mean span = datum-to-tip span - the hull's mean bulge over the datum
+                s_eff = s - rl["span_loss_mm"]
+                r_cp = rl["root_mean_mm"] + FIN_CP_SPAN * s_eff
+                res = _fin_eval(c, s_eff, r_cp, alpha_set, x_te - c / 2, x_rotor, ri)
                 if res[FIN_DESIGN_V]["ratio"] >= target:
                     ok = (all(m["CL"] <= FIN_CL_RESERVE * m["CLmax3D"] for m in res.values())
                           and res[FIN_DESIGN_V]["ratio"] <= target * (1.0 + FIN_RATIO_BAND))
                     alpha_ok = float(alpha_set)
                     break
-            row = dict(chord_mm=c, span_mm=float(s), AR=s / c, area_cm2=c * s / 100,
-                       r_cp_mm=rl["y_mean"] + FIN_CP_SPAN * s, x_le_mm=rl["x_le"], x_te_mm=x_te,
+            s_eff = s - rl["span_loss_mm"]
+            row = dict(chord_mm=c, span_mm=float(s), span_eff_mm=s_eff, AR=s_eff / c, area_cm2=c * s_eff / 100,
+                       r_cp_mm=rl["root_mean_mm"] + FIN_CP_SPAN * s_eff, x_le_mm=rl["x_le"], x_te_mm=x_te,
                        alpha_set_deg=alpha_ok, torque_ok=bool(ok), tip_to_tip_mm=2 * (rl["y_te"] + s),
                        theta_deg=None, pivot_chord_frac=None, clear_min_mm=None, feasible=None)
             rows.append(row)
@@ -1938,31 +2022,36 @@ def fin_design(ri: dict, x_rotor: float, pk: Pockets, rule: str = FIN_FOLD_RULE,
         except (TypeError, ValueError):
             alt = dict(rule=o, feasible=False)
     c, s, x_le, x_te = pick["chord_mm"], pick["span_mm"], fg["x_le"], fg["x_te"]
+    s_eff = pick["span_eff_mm"]
     inc = pick["alpha_set_deg"]
-    # tow case (2.5 m/s): drag for the nose load and root bending
+    # tow case (2.5 m/s): drag for the nose load and root bending (mean span: the root follows the skin)
     vt = upstream_factor(x_te - c / 2, x_rotor, ri["r_tip"]) * V_TOW
     pol = fin_polar(vt * c / 1000 / NU)
     a0 = pol["a0_per_rad"]
-    AR = s / c
+    AR = s_eff / c
     ar = a0 / (math.sqrt(1 + (a0 / (math.pi * AR)) ** 2) + a0 / (math.pi * AR))
     CL = ar * math.radians(inc - pol["alpha_L0_deg"])
     cd0 = float(np.interp(inc, pol["alpha"], pol["CD"]))
     CD = cd0 + CL ** 2 / (math.pi * FIN_E_OSWALD * AR)
-    D2 = 2 * 0.5 * RHO * vt ** 2 * (c * s / 1e6) * CD
-    L1 = 0.5 * RHO * vt ** 2 * (c * s / 1e6) * CL
-    M_root = L1 * FIN_CP_SPAN * s / 1000
+    D2 = 2 * 0.5 * RHO * vt ** 2 * (c * s_eff / 1e6) * CD
+    L1 = 0.5 * RHO * vt ** 2 * (c * s_eff / 1e6) * CL
+    M_root = L1 * FIN_CP_SPAN * s_eff / 1000
     t = 0.117 * c
     Z = 0.6 * c * t ** 2 / 6                              # ESTIMATE, airfoil ~ 0.6 x rectangle
     src = sources()
     sxy = (src.get("prusament_petg_tds", {}).get("tensile_yield_xy_MPa") or [47])[0]
     x_cl = ri["hinge_x"] - math.sqrt(max((blade_sweep_len(ri) + FIN_TIP_CLEAR) ** 2
                                          - (rl["y_te"] - ri["hinge_r"]) ** 2, 0.0))
-    # pad footprint and volumes (per pad): outer volume above the hull, the dovetail groove (filled
-    # by the fin's root block when the fin is on)
-    xq = np.linspace(x_le, fg["x_end"], 200)
-    h_q = np.maximum(np.asarray(_pad_top(fg, xq)) - np.asarray(r_out(xq)), 0.0)
-    pad_V = RAIL_W / fg["ci"] * float(np.trapezoid(h_q, xq))
-    groove_V = GROOVE_W * RAIL_H * c
+    # recessed rail: nothing outside the hull (pad volume 0); the groove is filled by the fin tongue or
+    # the blanking strip, so the hull envelope (displacement) is unchanged; the boss is dry shell material
+    rs = fg["rail"]
+    uq = np.linspace(rs["u_entry"], rs["u_stop"], 200)
+    dq = np.maximum(np.asarray(_a_hull(fg, uq, 0.0)) - (RAIL_FLOOR_A_STOP + RAIL_SLOPE * (uq - rs["u_stop"])), 0.0)
+    groove_area = float(np.trapezoid(dq, uq))                     # mm2, groove depth x length at w = 0
+    pad_V = 0.0
+    groove_V = 0.0
+    slot_V = groove_area * (SLOT_W + 0.5 * (GROOVE_W - SLOT_W))   # filled groove (tongue / blanking strip)
+    boss_V = groove_area * 0.5 * 2 * BOSS_SIDE_T + (GROOVE_W + 2 * BOSS_SIDE_T) * BOSS_FLOOR_T * rs["length_mm"]
     xs_fp, lat_fp = pad_footprint(fg)
     pocket_cl = b["pocket_clear_mm"]
     fold_c = b["fold"]
@@ -1992,56 +2081,69 @@ def fin_design(ri: dict, x_rotor: float, pk: Pockets, rule: str = FIN_FOLD_RULE,
         torque_change_per_deg_Nm=md["ratio_per_deg"] * md["Q_gen_Nm"],
         fin_box_shift_max_mm=far * math.sin(math.radians(FIN_TRIM_DEG)),
         how="print fin variants whose root tongue is turned +-%g deg about the yaw pivot relative to the chord: "
-            "the shell's yawed pad and groove stay, the incidence changes by +-%g deg (%.0f %% of the "
+            "the shell's yawed groove stays, the incidence changes by +-%g deg (%.0f %% of the "
             "torque per degree); the fin box moves by at most %.2f mm at its far end, inside the fold "
             "clearance" % (FIN_TRIM_DEG, FIN_TRIM_DEG, 100 * md["ratio_per_deg"],
                            far * math.sin(math.radians(FIN_TRIM_DEG))))
     return dict(
-        section=FIN_SECTION + " (flat lower surface, t/c 0.117), printed flat, no supports",
+        section=FIN_SECTION + " (flat lower surface, t/c 0.117), printed tip down (span vertical), no supports",
         polars="NeuralFoil large, n_crit 5, cached in out/work/layout_internal/polars_fin.json",
         n=2, theta_deg=[phi, phi + 180.0], fold_rule=rule,
-        layout="identical parts at theta %g and %g (diametrically opposite, %g deg off +-Y so the "
-               "yawed rail pads clear the asymmetric pockets); each fin and its rail pad are yawed by the "
+        layout="identical parts at theta %g and %g (diametrically opposite, %g deg off +-Y); each fin and "
+               "its recessed rail are yawed by the "
                "incidence about the radial line through the pivot at %.2f c, TE toward -theta; the second "
                "fin is the first turned 180 deg about X, so the lifts are opposite and form a pure couple"
                % (phi, phi + 180.0, abs(90.0 - phi), b["pivot"]),
         torque_sense=("rotor omega %s: the generator reaction turns the hull the same way (+X), "
                       "so the +Y fin lifts toward -Z and the -Y fin toward +Z (fin couple -X)"
                       % ri.get("omega_vector", "+X")),
-        chord_mm=c, span_mm=s, AR=AR, area_each_cm2=c * s / 100,
-        root=rl, r_root_mean_mm=rl["y_mean"], r_tip_max_mm=rl["y_te"] + s, r_cp_mm=pick["r_cp_mm"],
+        chord_mm=c, span_mm=s, span_eff_mm=s_eff, AR=AR, area_each_cm2=c * s_eff / 100,
+        span_note="span_mm = datum root line (through the skin at the chord ends) to the straight tip; the root "
+                  "follows the skin, which bulges %.2f mm above the datum on average (%.2f max), so the mean span "
+                  "is %.2f mm (area, AR and r_cp use it)" % (rl["span_loss_mm"], rl["sag_max_mm"], s_eff),
+        root=rl, r_root_mean_mm=rl["root_mean_mm"], r_tip_max_mm=rl["y_te"] + s, r_cp_mm=pick["r_cp_mm"],
         tip_to_tip_mm=2 * (rl["y_te"] + s),
         x_le_mm=x_le, x_te_mm=x_te, incidence_deg=inc, margins=res, torque_basis=torque_basis, trim=trim,
         yaw=dict(pivot_chord_frac=b["pivot"], pivot_x_mm=fg["x_p"], te_side="-theta" if fg["sense"] < 0 else "+theta",
-                 offset_per_mm_x=fg["si"] / fg["ci"], pad_half_width_at_constant_x_mm=RAIL_W / 2 / fg["ci"],
+                 offset_per_mm_x=fg["si"] / fg["ci"], pad_half_width_at_constant_x_mm=SLOT_W / 2 / fg["ci"],
                  offset_at_le_mm=off_le, offset_at_te_mm=off_te, offset_at_pad_end_mm=off_end,
                  offset_sign="+ = toward +theta, at the hull, from the fin angle line",
                  x_extent_note="the yawed root chord spans x %.2f-%.2f (c cos i)" % (x_le, x_te)),
         drag_tow_N=D2, lift_tow_each_N=L1, root_moment_tow_Nm=M_root,
         root_stress_tow_MPa=M_root * 1000 / Z, root_util_xy=M_root * 1000 / Z / sxy,
-        root_note="lift bends the fin about its chord; printed flat, the span-wise bending "
-                  "stress lies in the layer plane (XY strength)",
-        rail=dict(type="half dovetail (flat on the fin's flat side, 45 deg flank on the other): male tongue "
-                       "on the fin root, female groove (mean width %g, depth %g) in a %g mm raised pad on the front "
-                       "shell; the pad is yawed with the fin, so the rail runs along the fin chord"
-                       % (GROOVE_W, RAIL_H, RAIL_W),
-                  x_mm=[x_le, x_te], pad_x_mm=[float(xs_fp.min()), fg["x_end"]], pad_w_mm=RAIL_W,
-                  pad_h_mm=[rl["pad_min_mm"], float(_pad_top(fg, fg["x_end"]) - r_out(fg["x_end"]))
-                            if not fg["chamfer"] else rl["pad_max_mm"]],
-                  pad_aft_end=("45 deg chamfer from the TE to x %.1f" % fg["x_end"]) if fg["chamfer"] else
-                              ("runs down to the equator face (x %.1f): the front shell prints on that face, so "
-                               "the pad's aft end stands on the bed (a 45 deg chamfer from the rail stop would "
-                               "need %.1f mm, past the equator)" % (fg["x_end"], fg["h_te"])),
+        root_interlayer_MPa=18.0, root_util_interlayer=M_root * 1000 / Z / 18.0,
+        root_note="lift bends the fin about its chord; printed tip down, the span-wise bending stress runs "
+                  "across the layers (interlayer strength, ESTIMATE 18 MPa PETG; XY utilisation listed too)",
+        rail=dict(type="recessed half dovetail (owner decision 2026-10-05): a straight groove sunk into a boss on "
+                       "the inside of the front shell wall, flat wall on the fin's flat side (w %.2f), %.1f mm neck "
+                       "from %.1f mm above the floor up through the skin, 45 deg undercut to %.1f mm at the floor; "
+                       "the rail runs along the yawed fin chord and climbs inward going aft (slope %.2f), so the "
+                       "fin slides aft and in onto the end stop; the fin root sits on the skin (+%.1f), the tongue "
+                       "(the groove inset by CLEAR_SLIDE) fills the groove; a flush blanking strip of the same "
+                       "section closes it when the fins are off"
+                       % (GROOVE_W0, SLOT_W, GROOVE_UC_H, GROOVE_W, RAIL_SLOPE, ROOT_GAP),
+                  x_mm=[x_le, x_te], pad_x_mm=[float(xs_fp.min()), float(xs_fp.max())], pad_w_mm=0.0,
+                  pad_h_mm=[0.0, 0.0], slot_w_mm=SLOT_W, groove_w_floor_mm=GROOVE_W, groove_w0_mm=GROOVE_W0,
+                  undercut_h_mm=GROOVE_UC_H, slope_da_du=RAIL_SLOPE, stop_x_mm=RAIL_STOP_X,
+                  floor_a_at_stop_mm=RAIL_FLOOR_A_STOP, u_entry_mm=rs["u_entry"], u_stop_mm=rs["u_stop"],
+                  length_mm=rs["length_mm"], depth_at_stop_mm=rs["depth_at_stop_mm"], x_mouth_mm=rs["x_mouth"],
+                  boss=dict(floor_t_mm=BOSS_FLOOR_T, side_t_mm=BOSS_SIDE_T, magnet_t_mm=BOSS_MAG_T,
+                            cone_x_mm=BOSS_CONE_X, r_min_in_bay_mm=rs["boss_r_min_in_bay_mm"],
+                            bay_clear_mm=rs["bay_clear_mm"], volume_each_cc_estimate=boss_V / 1000),
+                  pad_aft_end="none: no pad (the fin root ends at its TE on the skin)",
                   inclination_deg=rl["incl_deg"], pad_outer_volume_each_cc=pad_V / 1000,
-                  groove_volume_each_cc=groove_V / 1000,
-                  retention="the fin slides aft onto the end stop at x %.1f (drag pushes it home); one M3 grub "
-                            "screw in a heat-set insert for handling" % x_te),
+                  groove_volume_each_cc=groove_V / 1000, filled_groove_volume_each_cc=slot_V / 1000,
+                  magnet=dict(FIN_MAGNET, u_mm=rs["u_magnet"]),
+                  retention="the fin slides aft and inward onto the end stop at x %.1f (drag pushes it home); an "
+                            "N52 4 x 2 x 2 block in the tongue bottom over a second one in the groove floor holds it "
+                            "(and the blanking strip) for handling" % RAIL_STOP_X),
         clearance=dict(blade_sweep_len_mm=blade_sweep_len(ri), torus_te_limit_x_mm=x_cl,
                        tip_clear_mm=FIN_TIP_CLEAR,
                        stowed_pockets=dict(min_clear_mm=pocket_cl, ok=bool(b["ok_pocket"]), limit_mm=FIN_POCKET_CLEAR,
-                                           model="yawed pad footprint (pad_footprint, 0.25 mm x 11 samples; planar "
-                                                 "pad walls meet the hull at theta + asin(lat / R)) vs each pocket's "
-                                                 "theta span at the sample x, arc at the hull radius"),
+                                           model="slot mouth footprint (pad_footprint: entry to stop, full groove "
+                                                 "width, 0.25 mm x 11 samples; planar slot walls meet the hull at "
+                                                 "theta + asin(lat / R)) vs each pocket's theta span at the sample x, "
+                                                 "arc at the hull radius"),
                        fold_at_index=(dict(rule="blades fold at the stowing index (blade i at psi 120 i), fold 0 to "
                                                 "%.0f deg in %.0f deg steps, rotor surface from ovo.layout"
                                                 % (_fold_cloud_near()["fold_deg"], _fold_cloud_near()["fold_step_deg"]),
@@ -2050,9 +2152,9 @@ def fin_design(ri: dict, x_rotor: float, pk: Pockets, rule: str = FIN_FOLD_RULE,
                                            pad_clear_min_mm=fold_c["pad_clear_min_mm"],
                                            fin_clear_min_mm=fold_c["fin_clear_min_mm"], per_fin=fold_c["per_fin"],
                                            fin_half_thickness_mm=FIN_T_HALF * c, limit_mm=FIN_FOLD_CLEAR,
-                                           model="3D distance to the yawed pad box (|w| <= %g, up to the pad top) "
-                                                 "and fin box (|w| <= t/2, root line to tip) in the yawed frame"
-                                                 % (RAIL_W / 2),
+                                           model="3D distance to the slot mouth box (groove width, entry to stop, up "
+                                                 "to the skin) and the fin box (|w| <= t/2, datum root line to tip) in "
+                                                 "the yawed frame",
                                            ok=bool(b["ok_fold"])) if fold_c else None),
                        search=dict(theta_range_deg=list(FIN_THETA_SEARCH), theta_step_deg=FIN_THETA_STEP,
                                    pivot_step=FIN_PIVOT_STEP, evaluated_fold_checks=b["n_eval"]),
@@ -2062,10 +2164,10 @@ def fin_design(ri: dict, x_rotor: float, pk: Pockets, rule: str = FIN_FOLD_RULE,
                                 "with the fins on can touch a fin (fins come off for transport)"
                                 % (FIN_TE_EQ_MARGIN, FIN_FOLD_CLEAR)) if rule == "index" else
                                "torus: TE root point >= sweep length + clearance from the hinge circle",
-                       rule="yawed rail pad >= %.1f mm (arc) from any pocket edge" % FIN_POCKET_CLEAR),
+                       rule="recessed rail slot mouth >= %.1f mm (arc) from any pocket edge" % FIN_POCKET_CLEAR),
         alternative_rule=alt,
         selection="smallest fin-tip diameter (handling, stowage) among fins whose couple at %.1f m/s is "
-                  "%.2f-%.3f x the %s load-line torque (CL <= %.2f CLmax_3D at %s m/s) AND whose yawed pads / "
+                  "%.2f-%.3f x the %s load-line torque (CL <= %.2f CLmax_3D at %s m/s) AND whose rail slots / "
                   "fins clear the pockets and the blades folding at the stowing index; candidates evaluated in "
                   "that order; the least-area feasible fin is listed for comparison"
                   % (FIN_DESIGN_V, 1 + FIN_TORQUE_MARGIN, (1 + FIN_TORQUE_MARGIN) * (1 + FIN_RATIO_BAND),
@@ -2223,9 +2325,8 @@ def mass_buoyancy(J, bay, DT, fins, ri, hw, pk: Pockets, nose_d) -> dict:
     xcar = bay["pick"]["x_fwd_mm"] - CARRIER_T / 2
     add("carrier ring", "F", 2 * math.pi * float(r_in(xcar)) * CARRIER_RING * 7.0, xcar)
     rail = fins["rail"]
-    pad_net = (rail["pad_outer_volume_each_cc"] - rail["groove_volume_each_cc"]) * 1000
-    add("fin rail pads x2 (outside the hull, minus the wet groove)", "F", 2 * pad_net,
-        0.5 * sum(rail["pad_x_mm"]), V_disp_mm3=2 * pad_net)
+    add("fin rail bosses x2 (inside the dry front shell; the groove is filled by the tongue or the strip)", "F",
+        2 * rail["boss"]["volume_each_cc_estimate"] * 1000, 0.5 * sum(rail["pad_x_mm"]), V_disp_mm3=0.0)
     xp0 = max(pk.x0, 0)
 
     def pocket_wall_vol(xa, xb):
@@ -2542,8 +2643,9 @@ def assembly(J, bay, DT, nose_d, fins, hw, ri_rot: dict | None = None) -> list:
                    "free rotor. FLAG for the prototype"
                    % (2 * J["r_spigot_in"], max(0.0, g["x_aft_mm"] - J["x_tip"]), g["D_mm"],
                       J["r_spigot_in"] - g["D_mm"] / 2), flag=True),
-        dict(step=13, sub="fins", action="Slide each fin aft onto its rail to the stop, set the grub "
-             "screw. Remove for transport. To stow the blades, turn the rotor to its index (blades over "
+        dict(step=13, sub="fins", action="Pull the blanking strip forward out of its slot, slide the fin's "
+             "tongue in at the slot entry and push it aft and in to the stop: the magnet pair clicks it home. "
+             "For transport the fins come off and the blanking strips go back in (flush egg). To stow the blades, turn the rotor to its index (blades over "
              "their pockets) first, then fold.", check="at the index the folding blades clear the fins "
              "by >= %.1f mm; at other azimuths they can touch. FLAG for the user guide" % FIN_FOLD_CLEAR,
              flag=True),
@@ -2564,8 +2666,8 @@ def part_split(J, bay, fins, nose_d, ri) -> list:
              orientation="equator face on the bed, nose up",
              supports="none: outer dome self-supporting; forward of x %.1f the tip is an infilled "
                       "plug whose aft face bridges %.1f mm; socket ring, lip underside and carrier-slot "
-                      "ceilings chamfered 45 deg; eye hole teardrop; rail grooves run near-vertical; the fin "
-                      "pads run down to the equator face, so their aft ends stand on the bed (no ledge); the "
+                      "ceilings chamfered 45 deg; eye hole teardrop; the recessed fin rail grooves run near-vertical "
+                      "and their inner bosses thicken downward (45 deg aft cone, no ledge); the "
                       "raised gland seat block and its bore lean %.0f deg from vertical and nothing of the gland "
                       "stands in the nose cavity; pocket floors rise <= %.0f deg"
                       % (nose_d["nose_plug"]["x_45_mm"], nose_d["nose_plug"]["bridge_d_mm"],
@@ -2593,8 +2695,10 @@ def part_split(J, bay, fins, nose_d, ri) -> list:
              [bay["pick"]["L_mm"]], orientation="base down", supports="none"),
         dict(part="fin x2", material="PETG", bbox_mm=[round(fins["span_mm"] + RAIL_H + 2, 1),
              round(fins["chord_mm"] / math.cos(math.radians(fins["root"]["incl_deg"])) + 2, 1), 8.0],
-             orientation="flat side of the Clark Y on the bed (the yawed root tongue lies in the fin "
-                         "plane)", supports="none"),
+             orientation="tip down (span vertical, the root tongue on top)", supports="none"),
+        dict(part="fin blanking strip x2", material="PLA / PETG (shell colour)",
+             bbox_mm=[round(fins["rail"]["length_mm"] + 2, 1), GROOVE_W, round(fins["rail"]["depth_at_stop_mm"] + 1, 1)],
+             orientation="outer face down", supports="none"),
         dict(part="ballast tray (v2)", material="PETG", bbox_mm=[30, 20, 40],
              orientation="open side up", supports="none"),
     ]
@@ -3093,10 +3197,10 @@ def figures(res: dict) -> list:
         ax.add_patch(Polygon(poly, closed=True, fc="#D9DCE0", ec=COL_BRG, lw=1.0,
                              label="fin (Clark Y, %.0f x %.0f, incidence %.2f deg)" %
                                    (fins["chord_mm"], s_, fins["incidence_deg"]) if sg > 0 else None))
-        xq = np.linspace(rl["x_le"], pad_x1, 60)
-        ax.fill_between(xq, sg * np.array(r_out(xq)), sg * (rl["y_le"] + (xq - rl["x_le"]) * k_rl),
+        xq = np.linspace(fins["rail"]["pad_x_mm"][0], pad_x1, 60)
+        ax.fill_between(xq, sg * np.array(r_out(xq)), sg * (np.array(r_out(xq)) - 1.2),
                         color="#8a8a8a", lw=0,
-                        label="rail pad + dovetail (runs to the equator face)" if sg > 0 else None)
+                        label="recessed rail slot (flush, inner boss)" if sg > 0 else None)
         ax.plot([rl["x_le"], rl["x_te"]], [sg * (rl["y_le"] + FIN_CP_SPAN * s_ + 0 * s_),
                                            sg * (rl["y_te"] + FIN_CP_SPAN * s_)], color=COL_INK2, lw=0.6,
                 ls=(0, (2, 2)))
@@ -3155,8 +3259,8 @@ def figures(res: dict) -> list:
         a2.set_yticks([])
         for sp in a2.spines.values():
             sp.set_visible(False)
-        a2.set_title("Seen from aft, looking upstream (+Y right), x %.1f-%.1f: yawed pads and fins (at the TE)\n"
-                     "vs blades folding 0-90 deg at the stowing index; 3D min clearance pad %.1f / fin %.1f mm"
+        a2.set_title("Seen from aft, looking upstream (+Y right), x %.1f-%.1f: rail slots (flush) and fins (at the TE)\n"
+                     "vs blades folding 0-90 deg at the stowing index; 3D min clearance slot %.1f / fin %.1f mm"
                      % (fins["x_le_mm"], fins["rail"]["pad_x_mm"][1], fc.get("pad_clear_min_mm") or float("nan"),
                         fc.get("fin_clear_min_mm") or float("nan")), fontsize=8, loc="left")
     else:
@@ -3341,10 +3445,16 @@ def summarize(res: dict) -> dict:
                  incidence_deg=fins["incidence_deg"], x_le=fins["x_le_mm"], x_te=fins["x_te_mm"],
                  theta_deg=fins["theta_deg"], yaw_pivot_chord_frac=fins["yaw"]["pivot_chord_frac"],
                  yaw_pivot_x=fins["yaw"]["pivot_x_mm"], te_side=fins["yaw"]["te_side"],
-                 root_r_le=rl_["y_le"], root_r_te=rl_["y_te"], rail_w=RAIL_W, rail_h_min=RAIL_H,
-                 groove_w_mean=GROOVE_W, groove_depth=RAIL_H, groove_form="half dovetail, 45 deg flank",
-                 pad_x=fins["rail"]["pad_x_mm"], end_stop_x=fins["x_te_mm"],
-                 retention="M3 grub in a heat-set insert", trim_variant_deg=FIN_TRIM_DEG),
+                 root_r_le=rl_["y_le"], root_r_te=rl_["y_te"], root_gap=ROOT_GAP,
+                 rail="recessed (groove in an inner boss of the front shell, flush blanking strip when the fins "
+                      "are off)",
+                 rail_w=SLOT_W, groove_w_floor=GROOVE_W, groove_w0=GROOVE_W0, groove_undercut_h=GROOVE_UC_H,
+                 groove_form="half dovetail, 45 deg flank on +w", rail_slope=RAIL_SLOPE,
+                 rail_stop_x=RAIL_STOP_X, rail_floor_a_stop=RAIL_FLOOR_A_STOP,
+                 boss_floor_t=BOSS_FLOOR_T, boss_side_t=BOSS_SIDE_T, boss_magnet_t=BOSS_MAG_T, boss_cone_x=BOSS_CONE_X,
+                 pad_x=fins["rail"]["pad_x_mm"], end_stop_x=RAIL_STOP_X,
+                 retention="N52 4 x 2 x 2 block pair (tongue bottom / groove floor), %.1f mm ahead of the stop"
+                           % FIN_MAGNET["u_from_stop"], trim_variant_deg=FIN_TRIM_DEG),
         GLAND=dict(thread="M12x1.5", x=gl_["seat_x_mm"], theta_deg=GLAND_THETA,
                    tilt_from_normal_deg=gl_["axis_tilt_from_normal_deg"],
                    axis_angle_from_x_deg=gl_["axis_angle_from_x_deg"], seat_lift=gl_["seat_lift_mm"],
@@ -3391,10 +3501,10 @@ def summarize(res: dict) -> dict:
                        % (LUG_W_DEG, "/".join("%.1f" % v for v in b["lock_theta_deg"]), b["engage_deg"],
                           b["channel_to_pocket_edge_mm"] or float("nan"), JS["util_lug"]),
         FIN_reason="smallest tip-to-tip fin pair whose couple at %.1f m/s is %.3f x the %s load-line torque "
-                   "(%.4f N m at TSR %.2f; %.0f %% margin) with CL <= %.2f CLmax_3D, and whose YAWED rail pads (pad "
-                   "yawed with the fin about the pivot at %.2f c, TE toward %s) clear the pockets; fins on the front "
-                   "shell (TE x %.1f) at theta %g/%g, pad-to-pocket %.2f mm; blades folding at the stowing index "
-                   "clear pads and fins by %.2f mm. The any-azimuth fold-torus rule would force %g x %g fins at x "
+                   "(%.4f N m at TSR %.2f; %.0f %% margin) with CL <= %.2f CLmax_3D; the root sits on the skin and the "
+                   "recessed rail (yawed with the fin about the pivot at %.2f c, TE toward %s) clears the pockets; "
+                   "fins on the front shell (TE x %.1f) at theta %g/%g, slot-to-pocket %.2f mm; blades folding at "
+                   "the stowing index clear slots and fins by %.2f mm. The any-azimuth fold-torus rule would force %g x %g fins at x "
                    "%.1f-%.1f, %.0f mm tip to tip"
                    % (FIN_DESIGN_V, fins["torque_basis"]["ratio"], fins["torque_basis"]["generator"],
                       fins["torque_basis"]["Q_design_Nm"], fins["torque_basis"]["tsr"] or float("nan"),
@@ -3711,7 +3821,7 @@ def merged(res: dict, summ: dict) -> dict:
                   nose_d["gland"]["solid_x_max_mm"], "internal",
                   note="outside the hull and in the wall / nose plug; the bore opens into the cavity up to this x"),
         _interval("fins (theta %g / %g)" % tuple(fins["theta_deg"]), fins["x_le_mm"], fins["x_te_mm"], "internal"),
-        _interval("fin rail pads (yawed, to the equator face)", *fins["rail"]["pad_x_mm"], "internal"),
+        _interval("fin rail slots (recessed, inner boss)", *fins["rail"]["pad_x_mm"], "internal"),
         _interval("motor carrier", g["x_fwd_mm"] - CARRIER_T, g["x_fwd_mm"], "internal", r=g["r_carrier_mm"]),
         _interval("generator bay D%g x L%g" % (g["D_mm"], g["L_mm"]), g["x_fwd_mm"], g["x_aft_mm"], "internal",
                   r=g["D_mm"] / 2),
@@ -3789,21 +3899,27 @@ def merged(res: dict, summ: dict) -> dict:
              passed=bay_floor_gap >= C_GEN),
         dict(check="yawed fin rail pads to pocket edges (arc)", value_mm=fins["clearance"]["stowed_pockets"]["min_clear_mm"],
              limit_mm=FIN_POCKET_CLEAR, passed=bool(fins["clearance"]["stowed_pockets"]["ok"]),
-             note="pad yawed with the fin about the pivot at %.2f c, run to the equator face"
-                  % fins["yaw"]["pivot_chord_frac"]),
+             note="recessed rail: slot mouth (entry to stop, full groove width) yawed with the fin about the pivot "
+                  "at %.2f c" % fins["yaw"]["pivot_chord_frac"]),
+        dict(check="recessed fin rail boss to the generator bay (radial)", value_mm=fins["rail"]["boss"]["bay_clear_mm"],
+             limit_mm=C_GEN, passed=bool(fins["rail"]["boss"]["bay_clear_mm"] >= C_GEN),
+             note="boss bottom %.1f mm under the floor (%.1f at the magnet seat), smallest radius %.2f"
+                  % (BOSS_FLOOR_T, BOSS_MAG_T, fins["rail"]["boss"]["r_min_in_bay_mm"])),
         dict(check="yawed fins and pads to blades folding at the stowing index (3D)",
              value_mm=fold_min if fold_min < 1e9 else None,
              limit_mm=FIN_FOLD_CLEAR, passed=bool(fold_c.get("ok", True)),
              note="pad %.2f, fin %.2f" % (fold_c.get("pad_clear_min_mm") or float("nan"),
                                          fold_c.get("fin_clear_min_mm") or float("nan"))),
-        dict(check="fin pad aft end printable (runs to the equator face or 45 deg chamfer)", value_mm=fins["rail"]["pad_x_mm"][1],
-             limit_mm=J["x_eq"], passed=bool(fins["rail"]["pad_x_mm"][1] <= J["x_eq"] + 1e-9)),
+        dict(check="fin rail slot between the carrier ring and the socket (x of the slot mouth)",
+             value_mm=fins["rail"]["pad_x_mm"], limit_mm=[P.CARRIER["ring"]["x"][1], J["x_ring0"]],
+             passed=bool(fins["rail"]["pad_x_mm"][0] >= P.CARRIER["ring"]["x"][1]
+                         and fins["rail"]["pad_x_mm"][1] <= J["x_ring0"] - 1.0)),
         dict(check="pocket floor overhang (printed +x down, rotor half)", value_mm=None,
              limit_mm=None, passed=bool((ri.get("floor_overhang_max_deg") or 90.0) <= P.MAX_OVERHANG + 1e-6),
              note="max %.1f deg from vertical vs MAX_OVERHANG %.0f" % (ri.get("floor_overhang_max_deg") or float("nan"),
                                                                        P.MAX_OVERHANG)),
         dict(check="claw B (rotating) to the static tube mouth, radial", value_mm=DT["coupler"]["tube_mouth"]["min_radial_clear_mm"],
-             limit_mm=P.CLEAR_ROTATE, passed=DT["coupler"]["tube_mouth"]["min_radial_clear_mm"] >= P.CLEAR_ROTATE),
+             limit_mm=P.RUN_CLEAR, passed=DT["coupler"]["tube_mouth"]["min_radial_clear_mm"] >= P.RUN_CLEAR),
         dict(check="bearing span rule (span >= 4 d, tip runout, s0, shaft deflection)", value_mm=br["spacing_mm"],
              limit_mm=SPAN_MIN, passed=bool(br["ok"]),
              note="span/overhang %.2f vs %.2f rule of thumb (reported, not enforced)"

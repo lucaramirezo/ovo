@@ -75,6 +75,10 @@ WORK = ROOT / "out" / "work" / "cad" / "drivetrain"
 HW_JSON = ROOT / "data" / "hardware.json"
 
 S, CP, CR, BT, B8 = P.SHAFT, P.COUPLER, P.CARRIER, P.BEARING, P.BEARING_ALT
+# Engineering call 2026-10-05: CLEAR_ROTATE is RADIAL per side for rotating fits (the knuckle on its
+# pin, 0.15); swept / running clearances between moving bodies are a separate RUN_CLEAR 0.3. The
+# replica bell journal (PLA on PLA) keeps its 0.3 per side, so it reads RUN_CLEAR (params).
+RUN_CLEAR = float(P.RUN_CLEAR)
 G, LS, OR, J = P.GENERATOR, P.LIP_SEAL, P.ORING_EQUATOR, P.JOINT
 
 
@@ -115,23 +119,24 @@ PAD_BLOCK = {"r0": _PAD.get("radial_from_mm", 12.93), "r1": _PAD.get("r_range_mm
 # --------------------------------------------------------------------------
 DESIGN = dict(
     # claw coupling (interleaved dogs)
-    claw_a_flange_t=2.0,          # flange on the rotor face, under the screw heads
-    claw_a_od=32.4,               # flange / dog lobes: counterbore D6 at r 12 + 1.2 wall
+    claw_a_flange_t=CP["claw_a_flange_t"],   # 2.0 flange on the rotor face, under the screw heads
+    claw_a_od=CP["claw_a_od"],               # 32.4 flange / dog lobes: counterbore D6 at r 12 + 1.2 wall
     claw_dog_r_in=4.6,            # dog inner radius (shaft r 4 + 0.6)
     claw_dog_half_deg=45.0,       # 2 dogs per claw, 90 deg pitch between A and B dogs
     claw_flank_gap=0.30,          # total gap between facing flanks (0.15 per flank)
     claw_tip_chamfer=0.6,         # V lead-in on every dog tip
-    claw_b_floor_t=1.2,           # claw B floor ahead of the collar (MIN_WALL)
-    claw_b_cone_x=(60.5, 61.5),   # OD 22 -> OD 20 cone (45 deg, prints aft face down)
+    claw_b_floor_t=CP["claw_b_floor_t"],     # 1.2 claw B floor ahead of the collar (MIN_WALL)
+    claw_b_cone_x=tuple(CP["claw_b_cone_x"]),   # (60.5, 61.5) OD 22 -> OD 20 cone (45 deg, prints aft face down)
     collar_pocket_d=16.2,         # collar pocket, 3 crush ribs to D 15.9 (PRESS_FIT per side)
     crush_rib_r=0.5,
     setscrew_access_d=4.0,        # teardrop access hole for the collar set screw key
     setscrew_theta=0.0,           # assembled azimuth of the collar set screw / shaft flat
-    collar_flat_x=(55.0, 62.0),   # shaft flat under the collar set screw (x 58.5)
-    hub_flat_x0=108.4,            # hub D-flat from here to the shaft end (hub front 108.6)
+    collar_flat_x=tuple(S["collar_flat_x"]),    # (55, 62) shaft flat under the collar set screw (x 58.5)
+    hub_flat_x0=S["hub_flat_x"][0],          # 108.4 hub D-flat from here to the shaft end (hub front 108.6)
     shaft_chamfer=0.5,
     # carrier
-    carrier_cbore=(6.2, 1.7),     # ISO 7380 M3 button head (dk 5.7, k 1.65): D x depth
+    carrier_cbore=(6.0, 1.7),     # ISO 7380 M3 button head (dk 5.7, k 1.65): D x depth (review P9: was 6.2,
+                                  # with the bore's 0.4 face chamfer the web to the D16 bore was 0.56 mm at the face)
     carrier_clear_d=3.4,          # M3 clearance
     carrier_slot=(38.14, 40.0, 3.2),   # radial slots for PCD 38.14 (GM4108H) .. PCD 40 (GL40 M2.5)
     carrier_window_corner_r=2.0,
@@ -155,7 +160,7 @@ DESIGN = dict(
     bell_boss_d=7.2,              # M3 insert boss (hole 4.0 + 2 x 1.6)
     bell_boss_x0=40.5,
     insert_hole_depth=6.0,
-    stator_pilot_d=2.5,           # M3 self-tapping pilot in the replica stator (T21)
+    stator_pilot_d=P.INSERT_M3["stator_pilot_d"],   # 2.5 M3 self-tapping pilot in the replica stator (T21)
     spacer_od=46.0,
 )
 
@@ -351,7 +356,7 @@ def shaft() -> Solid:
     th_c = DESIGN["setscrew_theta"]
     n2 = Vector(0, math.sin(math.radians(th_c)), math.cos(math.radians(th_c)))
     fa, fb = DESIGN["collar_flat_x"]
-    body = body - flat_cut(fa, fb, n2, r - 0.5)
+    body = body - flat_cut(fa, fb, n2, r - S["collar_flat_depth"])
     # M3 x 8 tapped aft end: 2.5 tap drill 10 deep with a 118 deg point (thread not modelled)
     # M3 x 8 tapped end: thread modelled at the major diameter (3.02, so the spinner screw fits with no
     # overlap), 2.5 tap drill to 10 deep with a 118 deg point (0.05 flat, no apex)
@@ -524,8 +529,10 @@ def carrier() -> Solid:
     x1 = x0 + t
     R = CR["r"]
     plate = tube(x0, x1, CR["centre_bore_d"] / 2, R, ch=0.0)
-    plate = rev([(x0, CR["centre_bore_d"] / 2 + 0.4), (x0 + 0.4, CR["centre_bore_d"] / 2),
-                 (x1, CR["centre_bore_d"] / 2), (x1, R - 0.5), (x1 - 0.5, R), (x0 + 0.3, R), (x0, R - 0.3)])
+    # review P9: no 0.4 chamfer on the centre bore at the front (counterbore) face: it thinned the web between
+    # the bore and the four counterbores to 0.56 mm in the top layer (now 1.0, non-structural, T23)
+    plate = rev([(x0, CR["centre_bore_d"] / 2), (x1, CR["centre_bore_d"] / 2), (x1, R - 0.5), (x1 - 0.5, R),
+                 (x0 + 0.3, R), (x0, R - 0.3)])
     L = carrier_lock()
     t0, t1 = L["tab_x"]
     Rt, h = L["tab_r_out"], L["tab_front_chamfer_45"]
@@ -599,9 +606,9 @@ def adapter_spacer() -> Solid:
 
 def gen_stator() -> Solid:
     """Static half of the printed GL40 stand-in: flange (front face x 25 = the real stator face),
-    stator stack with 24 slots, journal post for the bell; M3 insert holes on PCD 24 and the
-    PCD 40 M2.5 holes as on the real motor; the solder-pad block is engraved (not raised) so the
-    face prints flat on the bed."""
+    stator stack with 24 slots, journal post for the bell; D2.5 pilots for the carrier's M3 screws on PCD 24
+    and D1.6 x 0.6 dimples on PCD 39 marking the real motor's M2.5 holes (PCD 40 left a 0.74 mm rim, P9); the
+    solder-pad block is engraved (not raised) so the face prints flat on the bed."""
     D = DESIGN
     xf = G["motor_body_x"][0]                        # 25.0
     fd, ft = D["stator_base"]
@@ -631,7 +638,9 @@ def gen_stator() -> Solid:
         st = st - blind_hole(xf, xf + D["insert_hole_depth"] + 0.5, rp, th, r24)
         st = st - rev([(xf - 0.1, 0), (xf - 0.1, rp + 0.5), (xf + 0.4, rp), (xf + 0.4, 0)]).moved(
             Location((0, *uv(r24, th))))                                    # 45 deg lead-in, no ledge
-        st = st - blind_hole(xf, xf + 3.5, 1.25, th, 20.0)
+        # review P9: the real motor's M2.5 holes on PCD 40 left 0.74 mm (0.24 in the chamfered first layer) to the
+        # replica's rim; on the replica they are cosmetic: D1.6 x 0.6 dimples on PCD 39
+        st = st - blind_hole(xf, xf + 0.6, 0.8, th, 19.5)
     # engraved solder-pad block outline and its three pads (0.4 deep) at theta 180
     pb = PAD_BLOCK
     outer = _rounded_window(PX(xf - 0.1), THETA_PAD, pb["r0"], pb["r1"], pb["hw"], 1.0, 0.5)
@@ -658,7 +667,7 @@ def gen_bell() -> Solid:
     # decorative magnet-ring line on the can
     xg = x_rim + 3.0                                  # V groove, faces 37 deg from vertical when printed
     cup = cup - rev([(xg, ro + 0.1), (xg + 0.4, ro - 0.3), (xg + 0.8, ro + 0.1)])
-    jb = D["post_d"][1] / 2 + P.CLEAR_ROTATE         # journal bore radius
+    jb = D["post_d"][1] / 2 + RUN_CLEAR              # journal bore radius
     sl = rev([(D["bell_sleeve_x0"], jb), (D["bell_sleeve_x0"], D["bell_sleeve_od"] / 2 - 0.4),
               (D["bell_sleeve_x0"] + 0.4, D["bell_sleeve_od"] / 2), (xface + 0.01, D["bell_sleeve_od"] / 2),
               (xface + 0.01, jb)])
@@ -724,6 +733,68 @@ def cable_gland() -> Solid:
     return _place_on_axis(body, c, u)
 
 
+# Display M12 blanking plug (owner decision 2026-10-05: the display build carries a low plug, the
+# gland only shows in the cutaway and the v2 documentation). Dimensions: params GLAND_PLUG.
+_GP = P.GLAND_PLUG
+PLUG = dict(
+    base_r=_GP["base_r"],                  # 8.5: on the seat's flat, inside its 0.5 x 45 chamfer
+    band=_GP["band"],                      # 0.4 short vertical band above the seat face
+    dome_r=_GP["dome_r"],                  # 6.0 shoulder arc: vertical at the band, 45 deg at the flat face
+    spigot_r=_GP["spigot_d"] / 2,          # D10.0 core in the D10.5 tap-drill bore (0.25 radial)
+    spigot_len=_GP["spigot_len"],          # 6.0 into the bore (9.6 deep from the spot face)
+    spigot_chamfer=_GP["spigot_chamfer"],
+    rib_r=_GP["rib_r"],                    # 3 half-round crush ribs, tips at D10.5 - 2 PRESS_FIT = D10.6
+    slot=tuple(_GP["slot_l_w_d"]),         # coin slot across the flat face: length, width, depth
+)
+
+
+def gland_plug_local() -> Solid:
+    """Low domed M12 blanking plug in its own frame: axis +X outward, x = 0 on the spot face. A
+    push-in plug: D10.0 spigot with 3 half-round crush ribs to D10.6 in the D10.5 tap-drill bore
+    (it also grips a tapped M12x1.5 thread on its crests), a 0.4 mm band on the seat, then a shoulder
+    arc from vertical to 45 deg and a flat outer face with a coin slot. Printed outer face down: every
+    face is within 45 deg of vertical, the slot roof is a 1.2 mm bridge."""
+    from build123d import BuildLine, BuildPart, BuildSketch, CenterArc, Polyline, make_face
+    G = PLUG
+    R0, b, Ra, rs, L, ch = G["base_r"], G["band"], G["dome_r"], G["spigot_r"], G["spigot_len"], G["spigot_chamfer"]
+    a = math.radians(45.0)
+    s_top, r_top = b + Ra * math.sin(a), R0 - Ra * (1 - math.cos(a))
+    with BuildPart() as bp:
+        with BuildSketch(Plane.XZ):
+            with BuildLine():
+                Polyline((s_top, 0.0), (-L, 0.0), (-L, rs - ch), (-L + ch, rs), (0.0, rs), (0.0, R0), (b, R0))
+                CenterArc((b, R0 - Ra), Ra, 90.0, -45.0)
+                Polyline((s_top, r_top), (s_top, 0.0))
+            make_face()
+        revolve(axis=Axis.X)
+    body = bp.part
+    rr = G["rib_r"]
+    rc = GLAND_DRILL_D / 2 - P.PRESS_FIT - rr               # rib axis radius: tip at r 5.30
+    for k in range(3):
+        th = math.radians(90.0 + 120.0 * k)
+        e = Vector(0.0, math.sin(th), math.cos(th))
+        p0, p1 = Vector(-L + 1.2, 0, 0) + e * rc, Vector(-0.6, 0, 0) + e * rc
+        rib = Solid.make_cylinder(rr, (p1 - p0).length, Plane(origin=p0, z_dir=(1, 0, 0)))
+        lead = Solid.make_cone(0.02, rr, 0.6, Plane(origin=p0 - Vector(0.6, 0, 0), z_dir=(1, 0, 0)))
+        body = body.fuse(rib).fuse(lead)
+    ln, w, d = G["slot"]
+    body = body - Solid.make_box(d + 0.1, ln, w, Plane(origin=(s_top - d, -ln / 2, -w / 2)))
+    return body.clean()
+
+
+GLAND_DRILL_D = P.GLAND["tap_drill_d"]   # 10.5 M12x1.5 tap drill (shells.GLAND_DRILL_D)
+
+
+def gland_plug() -> Solid:
+    c, u = gland_frame()
+    return _place_on_axis(gland_plug_local(), c, u)
+
+
+def gland_plug_print() -> Solid:
+    """Outer (flat) face on the bed, spigot up: +X (outward) maps to -Z."""
+    return on_bed(gland_plug_local(), (0, 90, 0))
+
+
 def _place_on_axis(shape: Shape, origin: Vector, axis: Vector) -> Shape:
     """Move a shape built along +X (origin at 0) so +X maps to `axis` through `origin`."""
     ax = axis.normalized()
@@ -771,14 +842,14 @@ def parts() -> list[dict]:
                     "stainless shim 8.1 x 12 x 0.5 on the 608 inner race (clears the seals). DIN 988 lists 8 x 14; "
                     "an 8 x 12 precision shim or a DIN 988 S 8x14x0.5 both work (the 608 seals are recessed)."))
     cb = claw_b()
-    out.append(_bom("claw_b", cb, on_bed(claw_b_print(), (0, 90, 0)), "hub", "internal", True, 1, False, [-2, 0, 0],
+    out.append(_bom("claw_b", cb, on_bed(claw_b_print(), (0, 90, 0)), "drive", "internal", True, 1, False, [-2, 0, 0],
                     "PETG, aft face on the bed (dogs up), no supports: 45 deg OD cone at the step, teardrop "
                     "set-screw access; the floor bridges the collar pocket as a full D16.2 disc over a 0.2 mm "
                     "sacrificial membrane across the D8.4 bore (every bridge line anchored), drill the membrane "
                     "out with an 8.4 drill after printing. Press the collar in (3 crush ribs to D 15.9) with its "
                     "set screw under the access hole; a drop of CA locks it."))
     ca = claw_a()
-    out.append(_bom("claw_a", ca, on_bed(ca, (0, -90, 0)), "hub", "internal", True, 1, False, [-12, 0, 0],
+    out.append(_bom("claw_a", ca, on_bed(ca, (0, -90, 0)), "drive", "internal", True, 1, False, [-12, 0, 0],
                     "PETG, flange on the bed (rotor-face side down), dogs up, no supports. 2 x M3 x 4 ISO 4762 "
                     "into the rotor-face holes at 0 / 180 (heads in the dog counterbores)."))
     out.append(_bom("screws_claw_a_m3x4", claw_a_screws(), None, "steel", "internal", True, 2, True, [-12, 0, 0],
@@ -806,7 +877,7 @@ def parts() -> list[dict]:
                     "ISO 3601 / AS568 -141 NBR 70 (ID 58.42 x 2.62), modelled as installed: stretched onto the "
                     "groove bottom D 59.88 and squeezed into the 2.105 gland (elliptic section, same area)."))
     car = carrier()
-    out.append(_bom("motor_carrier", car, on_bed(car, (0, 90, 0)), "hub", "internal", False, 1, False,
+    out.append(_bom("motor_carrier", car, on_bed(car, (0, 90, 0)), "drive", "internal", False, 1, False,
                     [-56, 0, 0],
                     "PETG, AFT face on the bed (tabs flush with it, counterbores open upward), no supports; the "
                     "tabs' 45 deg front chamfer faces up. Twist-lock per "
@@ -816,7 +887,7 @@ def parts() -> list[dict]:
                     [-66, 0, 0], "4 x ISO 7380 M3 x 8 A2 button head (3.2 mm into the motor; self-tapped into "
                     "the replica stator's D2.5 pilots)."))
     sp = adapter_spacer()
-    out.append(_bom("adapter_spacer", sp, on_bed(sp, (0, -90, 0)), "hub", "internal", False, 1, False,
+    out.append(_bom("adapter_spacer", sp, on_bed(sp, (0, -90, 0)), "drive", "internal", False, 1, False,
                     [-46, 0, 0], "PETG, flat, no supports. GL40-specific: PCD 24 M3 + PCD 40 M2.5 clearance, "
                     "solder-pad window open to the rim at theta 180 (leads run out to the carrier notch)."))
     stt = gen_stator()
@@ -836,7 +907,15 @@ def parts() -> list[dict]:
                     "only. Modelled at the hole size."))
     gl = cable_gland()
     out.append(_bom("cable_gland_m12", gl, None, "default", "body", False, 1, True, [-90, 0, -14],
-                    "Hummel HSK-K M12x1.5 PA grey (1.209.1200.50), thread in the tapped nose seat (v2)."))
+                    "Hummel HSK-K M12x1.5 PA grey (1.209.1200.50), thread in the tapped nose seat. v2 / cutaway "
+                    "hardware: v2=True, shown only in the CUTAWAY state and the viewer's v2 mode; the display build "
+                    "carries gland_plug instead.", v2=True))
+    out.append(_bom("gland_plug", gland_plug(), gland_plug_print(), "shell", "body", False, 1, False, [-90, 0, -14],
+                    "Display M12 blanking plug, PLA in the shell colour: low dome on the D18 gland seat, push-in "
+                    "(D10.0 spigot, 3 crush ribs to D10.6 in the D10.5 tap-drill bore; grips a tapped M12 thread "
+                    "too), coin slot to twist it out. Print the flat outer face on the bed, spigot up, no supports "
+                    "(shoulder arc ends at 45 deg, slot roof a 1.2 mm bridge), 100 % infill. v2=False: hidden in "
+                    "the CUTAWAY state and the viewer's v2 mode, where the gland shows.", v2=False))
     out.append(_bom("tool_seal_sleeve", seal_sleeve(), None, "steel", "hidden", False, 1, True, [0, 0, 0],
                     "assembly tool: K&S brass tube 9 x 0.45 mm (ID 8.1) x 25 with a filed lead-in; slid over the "
                     "protruding shaft end while the lip seal is pushed home. Parked aft of the model."))
@@ -904,9 +983,20 @@ def preview_in_shells() -> list[dict]:
     return out
 
 
+def preview_plug() -> list[dict]:
+    """Close-up: the blanking plug on the front shell's gland seat (front shell from the newest
+    shells cache) and, beside it, the plug in its print orientation."""
+    out = [dict(name="gland_plug", shape=gland_plug(), material="shell", role="body")]
+    out += [dict(d, material="stand") for d in _latest_shells(("front_shell",))]
+    c, u = gland_frame()
+    pr = gland_plug_print().moved(Location((c.X + 30.0, c.Y, c.Z - 25.0)))
+    out.append(dict(name="gland_plug_print", shape=pr, material="blade", role="body"))
+    return out
+
+
 def preview_carrier() -> list[dict]:
     """The carrier alone (front face toward the camera with view=front)."""
-    return [dict(name="motor_carrier", shape=carrier(), material="hub", role="body")]
+    return [dict(name="motor_carrier", shape=carrier(), material="drive", role="body")]
 
 
 def preview_print() -> list[dict]:
@@ -1028,7 +1118,7 @@ def checks(parts_list=None) -> dict:
                    ("generator_stator", "generator_bell"), ("generator_bell", "claw_a")):
         v = interference(by[a_]["shape"], by[b_]["shape"])
         add(f"{a_} vs {b_} overlap (mm3)", round(v, 4), v < 1e-3)
-    add("bell journal: radial running clearance per side (mm)", P.CLEAR_ROTATE, True)
+    add("bell journal: radial running clearance per side (mm)", RUN_CLEAR, True)
     add("stator to bell min gap (mm)", round(min_distance(stt, bel), 3), min_distance(stt, bel) >= 0.29)
     for nm in ("screws_carrier_m3x8", "inserts_m3_bell", "screws_claw_a_m3x4"):
         for host in ("motor_carrier", "adapter_spacer", "generator_stator", "generator_bell", "claw_a"):
@@ -1094,11 +1184,13 @@ def assembly_sequence() -> list[dict]:
              "and the cable notch face theta 180.", ok=True),
         dict(step=3, sub="generator (bench)", action="Slide the bell onto the stator journal; bolt claw A to the bell "
              "face with 2 x M3 x 4 ISO 4762 at 0 / 180 (2.5 mm key down the dog counterbores).",
-             check="journal 12.0 in 12.6 (CLEAR_ROTATE per side), 7.5 mm long; v2: claw A bolts to the GL40 rotor "
+             check="journal 12.0 in 12.6 (RUN_CLEAR 0.3 per side, PLA on PLA), 7.5 mm long; v2: claw A bolts to the GL40 rotor "
              "face (rotor holes 2.5 deep, 2.0 engaged).", ok=True),
-        dict(step=4, sub="front shell", action="Screw the M12 gland into the tapped seat, pass the cable, leave the "
-             "slack loop; solder the leads (v2) and lay the cable in the carrier notch.", check="cable OD <= 6.5 in "
-             "a 7.5 notch; the pad window (r 12-20.5) opens into the notch.", ok=True),
+        dict(step=4, sub="front shell", action="Display build: push the M12 blanking plug into the nose seat (crush "
+             "ribs, coin slot outward). v2: tap the seat M12x1.5, screw the gland in, pass the cable, leave the slack "
+             "loop, solder the leads and lay the cable in the carrier notch.", check="plug ribs D10.6 in the D10.5 "
+             "tap-drill bore; v2 cable OD <= 6.5 in a 7.5 notch, the pad window (r 12-20.5) opens into the notch.",
+             ok=True),
         dict(step=5, sub="front shell", action=f"Push carrier + generator + claw A in through the socket with the tabs "
              f"at theta {entry[0]:.0f} / {entry[1]:.0f} / {entry[2]:.0f}, through the ring notches, then twist "
              f"{L['twist_deg']:.0f} deg toward -theta to lock at {L['lock_theta_deg'][0]:.0f} / "
@@ -1127,18 +1219,22 @@ def assembly_sequence() -> list[dict]:
         dict(step=10, sub="rotor", action="Rotor per ovo.cad.rotor: glue the blade magnets and the 3 hub "
              "magnets; slide the hub onto the D-flat until its flat aft face is flush with the shaft end (straightedge "
              "across both), tighten the grub; drop each blade radially into its slot and press its pin through the "
-             "D3.5 channel into both ears; the 3 x 4 filler dowels; spinner over the hub with the blades folded "
-             ">= 15 deg; M3 x 8 into the shaft end; push the tip cap in.",
+             "D3.5 channel into both ears; the 3 x 4 filler dowels; spinner over the hub with the blades fully "
+             "folded (stowed: the tight windows of review V1 pass the stowed roots only); M3 x 8 into the shaft "
+             "end; push the tip cap in.",
              check="one axial datum: the shaft end (the hub gap follows the shaft setting, check it with the 0.6 "
              "feeler); thrust path: hub -> spinner wall -> M3 screw -> shaft -> collar -> shim -> 608 inner race.",
              ok=True),
         dict(step=11, sub="aft shell", action="Grease the -141 O-ring and roll it into the spigot groove.",
              check="installed: stretched 2.5 % onto D 59.88, squeezed into the 2.105 gland.", ok=True),
-        dict(step=12, sub="close", action="Unfold the blades (fold <= 80 deg: the stowed blades lie in pockets of "
-             "both shells, 35 deg off at bayonet entry). Align the bayonet entry marks and push the shells together; "
-             "the claws find each other on the V lead-ins (turn the rotor a little if two dog tips meet), twist 35 "
-             "deg to the hard stop; only then fold the blades home. Nothing stops the shaft toward -X but the hub "
-             "on the static tail: after stowing, pull the spinner aft so the hub runs free.",
+        dict(step=12, sub="close", action="Take the fins off (blanking strips out too) and unfold the blades before "
+             "joining the shells: the stowed blades lie in pockets of both shells, 35 deg apart at the bayonet entry. "
+             "The largest fold that closes cleanly is measured on the real solids by ovo.cad.assembly.closing_sweep "
+             "(entry, push, twist; assembly.json key clearance 'closing path' and assembly_steps, which restates "
+             "this step with the numbers). Align the bayonet entry marks and push the shells together; the claws "
+             "find each other on the V lead-ins (turn the rotor a little if two dog tips meet), twist 35 deg to the "
+             "hard stop; only then fold the blades home and refit the fins or strips. Nothing stops the shaft "
+             "toward -X but the hub on the static tail: after stowing, pull the spinner aft so the hub runs free.",
              check=f"dogs 2 x 90 deg each side, flank gap {D['claw_flank_gap']} mm, tips chamfered "
              f"{D['claw_tip_chamfer']} x 45; float {CP['float']} mm both ways.", ok=True),
     ]

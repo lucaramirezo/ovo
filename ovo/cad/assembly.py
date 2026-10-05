@@ -8,8 +8,12 @@ detent magnets no builder models, poses the rotor in its states and checks the w
   DEPLOYED  blades rotated by their pivot (blade module) to fold 0
   FOLD_30 / FOLD_60  intermediate folds (fold angle as in blade.blade_world: 0 deployed)
   CUTAWAY   cutaway shells + internals, blades deployed (display variant)
-  PACKED    STOWED with the fins and their cross pins taken off and the blanking strips in the pad
-            grooves (finding T08: the brief's "clean egg"; used for the stowed STEP and render)
+  PACKED    STOWED with the fins taken off and the flush blanking strips in the rail grooves
+            (finding T08 / owner decision: the clean 75 mm egg; used for the stowed STEP and render)
+
+Variants: a part flagged v2=True (the M12 cable gland) exists only in CUTAWAY (and the viewer's v2
+mode); v2=False (the display blanking plug) everywhere else. packed=False parts (fins) leave the
+PACKED state, packed=True parts (blanking strips) exist only there.
 
 Outputs (scripts/build.py runs this after the part modules):
   out/cad/checks/assembly.json              interference matrix, key clearances, STL audit, BOM
@@ -51,10 +55,15 @@ OUT_WEB = REPO / "out" / "web"
 
 MODULES = ("shells", "rotor", "blade", "drivetrain", "fins", "coupon")
 MESH_TOL = {"default": (0.02, 0.1), "shell": (0.03, 0.1)}
-WEB_TOL = {"default": (0.05, 0.25), "shell": (0.05, 0.25), "blade": (0.08, 0.3)}   # sub-pixel at 1600 px
+# web meshes: ABSOLUTE chord deflection (export_web.occ_mesh), sub-pixel at 1600 px; blades finer so
+# the trailing edge reads straight (recheck R1)
+WEB_TOL = {"default": (0.05, 0.25), "shell": (0.05, 0.25), "blade": (0.03, 0.2)}
 SEARCH = 3.0                       # min_gap search length (mm): gaps above it read as ">= 3"
 DEFECT_MM3 = 0.5                   # unexpected overlap above this is a defect
 FOLD_STATES = {"stowed": 90.0, "fold_60": 60.0, "fold_30": 30.0, "deployed": 0.0, "packed": 90.0}
+# Engineering call 2026-10-05: CLEAR_ROTATE is radial per side for rotating fits (knuckle on pin 0.15);
+# swept / running clearances between moving bodies are RUN_CLEAR 0.3 (params).
+RUN_CLEAR = float(P.RUN_CLEAR)
 
 
 # --------------------------------------------------------------------------
@@ -118,12 +127,13 @@ def _build_fresh(cdir: Path) -> None:
                            T_deployed=BL.blade_transform(i, 0.0).tolist(), pivot=BL.pivot(i)))
         export_brep(BL.blade_world(i, 0.0), str(cdir / f"blade_{i}.deployed.brep"))
     extras = dict(blade_seats=_jsonable({k: info[k] for k in ("deployed_seat", "stowed_seat")}),
-                  blades=blades, stow_detent=_jsonable(SH.stow_detent_geometry()),
+                  blades=blades, stow_detent=_jsonable({k: v for k, v in SH.stow_detent_geometry().items() if k != "top_grid"}),
                   blade_theta=list(SH.BLADE_THETA), timing_s=timing)
     (cdir / "meta.json").write_text(json.dumps(dict(parts=meta, extras=extras), indent=1))
 
 
 _COLLECTED: dict = {}
+_ACTIVE_CDIR: Path | None = None
 
 
 def collect(force: bool = False) -> tuple[list[dict], dict]:
@@ -149,6 +159,8 @@ def collect(force: bool = False) -> tuple[list[dict], dict]:
         parts.append(p)
     extras = data["extras"]
     extras["cache_dir"] = str(cdir.relative_to(REPO))
+    global _ACTIVE_CDIR
+    _ACTIVE_CDIR = cdir           # meshes go next to these BREPs even if a source changes mid-run
     extras["deployed_ref"] = [import_brep(str(cdir / f"blade_{i}.deployed.brep"))
                               for i in range(len(extras["blades"]))]
     mo = extras["stow_detent"]["mouth"]
@@ -243,8 +255,10 @@ def magnets(extras: dict) -> list[dict]:
             material="magnet", role="shell" if lo <= boss <= hi else "body",   # boss cut away in CUTAWAY
             rotor=False, qty=1, bought=True, explode=[0, 0, 0],
             module="assembly", has_print=False, theta_deg=th,
-            notes="N52 disc 4 x 2 axial, CA-glued in the aft shell's stowed-detent boss (D4.1 x 2.05, face "
-                  "0.05 below the boss face, 45 deg from radial); holds blade %d stowed." % i))
+            notes="N52 disc 4 x 2 axial, CA-glued in the aft shell's stowed-detent boss (D4.1 x 2.05, axis on the "
+                  "blade face normal, 49 deg from radial; face 0.05 below the lowest blade-driven boss top over the "
+                  "hole, so it may stand up to ~0.2 mm proud of the boss top on one side); holds blade %d stowed "
+                  "(pair ~0.42 mm apart, ~1.7 deg, ~2.3 N)." % i))
     return out
 
 
@@ -327,15 +341,19 @@ def posed_shape(part: dict, fold_deg: float) -> Shape:
 
 def state_parts(parts: list[dict], state: str) -> list[dict]:
     """Parts present in a state (no hidden parts; cutaway shells only in CUTAWAY; parts flagged
-    packed=True only in PACKED, packed=False never in PACKED)."""
+    packed=True only in PACKED, packed=False never in PACKED; v2=True only in CUTAWAY / v2,
+    v2=False never there)."""
     cut = state == "cutaway"
     packed = state == "packed"
+    v2 = cut or state == "v2"
     out = []
     for p in parts:
         r = p.get("role", "body")
         if r == "hidden" or (r == "shell" and cut) or (r == "shell_cutaway" and not cut):
             continue
         if (p.get("packed") is True and not packed) or (p.get("packed") is False and packed):
+            continue
+        if (p.get("v2") is True and not v2) or (p.get("v2") is False and v2):
             continue
         out.append(p)
     return out
@@ -362,7 +380,7 @@ def part_mesh(p: dict):
     n = p["name"]
     if n in _MESH:
         return _MESH[n]
-    cdir = CACHE / cache_key()
+    cdir = _ACTIVE_CDIR or CACHE / cache_key()
     tol, ang = MESH_TOL.get(p.get("material") if p.get("material") == "shell" else "default")
     f = cdir / f"{n}.mesh_{tol:g}_{ang:g}.npz"
     if f.exists():
@@ -432,7 +450,7 @@ EXPECTED = [
     ("spinner_screw", "shaft", "thread", "M3 x 8 in the shaft's tapped end"),
     ("hub_grub", "hub", "thread", "M3 grub tapped into the PLA hub"),
     ("cable_gland_m12", "front_shell*", "thread", "M12x1.5 gland thread in the tapped seat"),
-    ("fin_cross_pins", "front_shell*", "press", "2 mm cross pin snug in the D2.0 pad hole"),
+    ("gland_plug", "front_shell*", "press", "display blanking plug: 3 crush ribs (tips D10.6) in the D10.5 bore"),
     ("bearing_608", "shaft", "contact", "inner race on the shaft (zero clearance)"),
     ("bearing_688", "shaft", "contact", "inner race on the shaft (slip fit)"),
     ("bearing_*_seals", "bearing_*", "part", "rubber seals of the same bearing"),
@@ -561,6 +579,10 @@ def _force(gap: float) -> float:
     return float(np.interp(gap, d["gap_mm"], d["force_N"]))
 
 
+BOSS_ZONE_R = float(P.DETENTS["stowed_rest_zone_r"])   # 8.25: the stowed rest (leaned boss + chin) around
+                                                       # the boss face centre (shells.stow_detent_geometry)
+
+
 def key_clearances(parts: list[dict], extras: dict) -> list[dict]:
     B = _by(parts)
     lay_checks = {c["check"]: c for c in json.loads((REPO / "data" / "layout.json").read_text())["interface_checks"]}
@@ -598,8 +620,8 @@ def key_clearances(parts: list[dict], extras: dict) -> list[dict]:
         fc = R[:3, :3] @ face0
         mb = part_manifold(b)
         span = mb.trim_by_plane((-1.0, 0.0, 0.0), -100.0)          # x < 100
-        rt = mb.trim_by_plane((1.0, 0.0, 0.0), 100.0) - _sphere(fc, 5.0)
-        bs = mb ^ _sphere(fc, 5.0)
+        rt = mb.trim_by_plane((1.0, 0.0, 0.0), 100.0) - _sphere(fc, BOSS_ZONE_R)
+        bs = mb ^ _sphere(fc, BOSS_ZONE_R)
         aero.append(min(float(shells_m[k].min_gap(span, SEARCH)) for k in shells_m))
         root.append(float(shells_m["aft_shell"].min_gap(rt, SEARCH)))
         boss.append(float(shells_m["aft_shell"].min_gap(bs, SEARCH)))
@@ -607,10 +629,12 @@ def key_clearances(parts: list[dict], extras: dict) -> list[dict]:
         f"{min(aero):.3f} mm (blades {', '.join(f'{v:.3f}' for v in aero)})", min(aero) >= P.POCKET_CLEAR - 0.05,
         0.300, f">= {P.POCKET_CLEAR} (-0.05 tessellation)",
         note="real CAD blade vs real shells, 0.02 / 0.03 mm meshes (chord error lowers the reading up to 0.05)")
-    add("stowed root (x > 100, outside the detent boss) to the static tail",
+    add(f"stowed root (x > 100, more than {BOSS_ZONE_R:g} mm from the detent boss face centre) to the static tail",
         f"{min(root):.3f} mm (blades {', '.join(f'{v:.3f}' for v in root)})", min(root) >= P.ROOT_CLEAR - 0.05,
-        P.ROOT_CLEAR, f">= {P.ROOT_CLEAR}")
-    add("stowed blade to its detent boss face",
+        P.ROOT_CLEAR, f">= {P.ROOT_CLEAR}",
+        note="the leaned (49 deg) boss top follows the blade face about 0.09 mm off it out to about 7 mm from its "
+             "centre, so that zone is the boss check below, not root clearance")
+    add(f"stowed blade to its detent boss (blade within {BOSS_ZONE_R:g} mm of the boss face centre)",
         f"{min(boss):.3f} mm (blades {', '.join(f'{v:.3f}' for v in boss)})", min(boss) > 0.0,
         None, "> 0 (shells design 0.1 to the layout surface)")
 
@@ -628,13 +652,15 @@ def key_clearances(parts: list[dict], extras: dict) -> list[dict]:
     lat = float(np.linalg.norm(np.cross(bf - tf, n)))
     mg = [_gap(B[f"blade_magnet_stow_{i}"], B[f"tail_magnet_{i}"]) for i in range(P.N_BLADES)]
     lr = json.loads((REPO / "data" / "layout_rotor.json").read_text())["detents"]
+    f_st = _force(face_gap)
     add("stowed detent magnet pair (blade shank / tail boss): face-centre gap, min gap, axis angle, lateral",
-        f"{face_gap:.3f} / {min(mg):.3f} mm, {ang:.1f} deg, {lat:.2f} mm; about {_force(face_gap):.2f} N "
+        f"{face_gap:.3f} / {min(mg):.3f} mm, {ang:.2f} deg, {lat:.2f} mm; about {f_st:.2f} N "
         f"(layout {lr['stowed']['force_N']:.2f} N at {lr['stowed']['gap_mm']} mm)",
-        face_gap <= lr["stowed"]["gap_mm"] + 0.1, lr["stowed"]["gap_mm"], "<= 0.5 face gap (design 0.4)",
-        note="known open item (blade + shells): the stowed blade's inner face leans ~50 deg from radial, the "
-             "printable boss leans 45 deg; holding torque about %.1f N mm vs the %.2f N mm gravity moment"
-             % (_force(face_gap) * lr["stowed"]["lever_mm"], lr["gravity_moment_max_Nmm"]))
+        face_gap <= 0.45 and ang <= 2.0 and f_st >= 2.0, lr["stowed"]["gap_mm"],
+        "owner call T15: face gap <= 0.45 mm, axis angle <= 2.0 deg, force >= 2.0 N",
+        note="owner call T15 built: the aft-shell boss leans %.2f deg from radial on the blade face normal (the blade "
+             "seat stays where it is); holding torque about %.1f N mm vs the %.2f N mm gravity moment"
+             % (float(g_det.get("lean_deg", float("nan"))), f_st * lr["stowed"]["lever_mm"], lr["gravity_moment_max_Nmm"]))
     dg = [_gap(B[f"blade_magnet_heel_{i}"], B[f"hub_magnet_{i}"], 0.0) for i in range(P.N_BLADES)]
     add("deployed detent magnet pair (blade heel / hub stop face): min gap",
         f"{min(dg):.3f} mm, about {_force(min(dg)):.2f} N", abs(min(dg) - lr["deployed"]["gap_mm"]) <= 0.15,
@@ -648,9 +674,10 @@ def key_clearances(parts: list[dict], extras: dict) -> list[dict]:
     #    symmetric, so blade 0 stands for all three there (its root, inside a 26 mm ball around
     #    the hinge, against hub / spinner / pins); the fins and pads are not, so all 3 blades go there.
     import manifold3d as m3
-    side = m3.Manifold.cube((50.0, 40.0, 40.0)).translate((10.0, 22.0, -20.0))     # fin pads at theta 93 / 273
+    side = m3.Manifold.cube((50.0, 40.0, 40.0)).translate((10.0, 22.0, -20.0))     # fins at theta ~90 / 270
     pads = (part_manifold(front) - hull_outset(0.05)) ^ (side + side.mirror((0.0, 1.0, 0.0)))
-    fins = m3.Manifold.batch_boolean([part_manifold(B["fin_0"]), part_manifold(B["fin_1"])], m3.OpType.Add)
+    fin_parts = [q for q in parts if q.get("packed") is False and q.get("print") is not None]
+    fins = m3.Manifold.batch_boolean([part_manifold(q) for q in fin_parts], m3.OpType.Add)
     pins = m3.Manifold.batch_boolean([part_manifold(B[f"hinge_pin_{i}"]) for i in range(3)], m3.OpType.Add)
     hinge0 = np.asarray(blades[0]["pivot"]["origin"], float)
     root0 = part_manifold(blades[0]) ^ _sphere(hinge0, 26.0)
@@ -681,7 +708,8 @@ def key_clearances(parts: list[dict], extras: dict) -> list[dict]:
                                     part_manifold(b).transform(T[i][:3, :4] @ np.linalg.inv(fold_T(b, P.FOLD_DEG))))
             upd("fins", float(fins.min_gap(mi, far["fins"])), f)
             k = "fin pads (front shell proud of the hull)"
-            upd(k, float(pads.min_gap(mi, far[k])), f)
+            if not pads.is_empty():
+                upd(k, float(pads.min_gap(mi, far[k])), f)
     print(f"  fold sweep {len(folds)} folds: {time.time() - t0:.0f} s", flush=True)
 
     def fmt(k):
@@ -693,12 +721,17 @@ def key_clearances(parts: list[dict], extras: dict) -> list[dict]:
     add("blades folding 0..90 deg at the stowing index to the fins", fmt("fins"),
         sweep["fins"][0] >= 2.0, 8.44, ">= 2.0", note="layout: " + fin_l["note"])
     k = "fin pads (front shell proud of the hull)"
-    add("blades folding 0..90 deg at the stowing index to the fin pads", fmt(k),
-        sweep[k][0] >= 2.0, fin_l["value_mm"], ">= 2.0")
+    pad_mm3 = float(pads.volume())
+    if pad_mm3 > 1.0:
+        add("blades folding 0..90 deg at the stowing index to the fin pads", fmt(k),
+            sweep[k][0] >= 2.0, fin_l["value_mm"], ">= 2.0")
+    else:
+        add("front shell material proud of the hull at the fin rails (recessed rail, owner decision)",
+            f"{pad_mm3:.3f} mm3 more than 0.05 mm outside the hull", True, None, "flush egg (75 mm stowed)")
     add("blades folding 6..90 deg to the hub (run clearance; below 6 deg the heel lifts off its stop)", fmt("hub"),
-        sweep["hub"][0] >= P.CLEAR_ROTATE - 0.01, None, f">= {P.CLEAR_ROTATE} (-0.01 tessellation)")
+        sweep["hub"][0] >= RUN_CLEAR - 0.01, None, f">= RUN_CLEAR {RUN_CLEAR} (-0.01 tessellation)")
     add("blades folding 0..90 deg to the spinner", fmt("spinner"),
-        sweep["spinner"][0] >= P.CLEAR_ROTATE - 0.01, None, f">= {P.CLEAR_ROTATE}")
+        sweep["spinner"][0] >= RUN_CLEAR - 0.01, None, f">= RUN_CLEAR {RUN_CLEAR}")
     add("blades folding 0..90 deg to the hinge pins (knuckle bore)", fmt("hinge pins"),
         sweep["hinge pins"][0] > 0.1, 0.15, "> 0.1 (bore 3.3 on a 3.0 pin)")
     add("blades folding 0..90 deg to the shells (minimum is the stowed boss)",
@@ -714,6 +747,11 @@ def key_clearances(parts: list[dict], extras: dict) -> list[dict]:
         gap_location(part_mesh(B["claw_b"]), part_mesh(aft)))
     g = _gap(B["claw_a"], B["claw_b"])
     add("claw A to claw B dog flanks", f"{g:.3f} mm", g >= 0.25, 0.3, ">= 0.25")
+    pl = B.get("gland_plug")
+    if pl is not None:
+        ov_p = float((part_manifold(pl) ^ part_manifold(front)).volume())
+        add("display blanking plug in the gland seat: rib press overlap, seat face", f"{ov_p:.3f} mm3, "
+            f"{_gap(pl, front) if ov_p < 1e-3 else 0.0:.3f} mm", ov_p < 3.0, None, "crush ribs only (< 3 mm3)")
     g = float(part_manifold(B["cable_gland_m12"]).min_gap(part_manifold(B["motor_carrier"]), 10.0))
     gl = lay_checks["gland seat block and bore (cable exit) ahead of the carrier plate"]
     add("cable gland to motor carrier", f"{g:.3f} mm" if g < 10.0 else ">= 10 mm", g >= gl["limit_mm"],
@@ -725,7 +763,71 @@ def key_clearances(parts: list[dict], extras: dict) -> list[dict]:
     ov = float((part_manifold(front) ^ part_manifold(aft)).volume())
     add("front / aft shell locked: overlap, gap", f"{ov:.4f} mm3, {_gap(front, aft):.3f} mm (lugs on the hard stop)",
         ov < DEFECT_MM3, 0.0, "no overlap")
+
+    # 6. closing the shells (recheck R3): the front shell enters at the bayonet entry (rotated by the
+    #    twist about X, both senses), is pushed on from 40 mm and twisted to the lock, against the three
+    #    blades at a range of folds, without and with the fins fitted
+    cs = closing_sweep(parts)
+    out.append(dict(check="closing path (bayonet entry, push, twist) vs the blades", value=cs["summary"], ok=True,
+                    layout=None, limit="0 mm3 overlap", where=None, note=cs["note"], detail=cs))
+    print("  INFO closing path: " + cs["summary"], flush=True)
     return out
+
+
+CLOSE_FOLDS = (90.0, 85.0, 80.0, 78.0, 75.0, 72.0, 70.0, 65.0, 60.0, 50.0, 45.0, 30.0, 0.0)
+
+
+def closing_sweep(parts: list[dict], twist: float | None = None) -> dict:
+    """Peak overlap (mm3) between the front shell (alone, then with the fins fitted) and the three blades
+    while the shells close: entry at +-twist about X, pushed on along X from 40 mm, then twisted to
+    the lock in 2.5 deg steps; at each fold of CLOSE_FOLDS (rotor at the stowing index). Reports the
+    most folded blade angle that closes with 0 mm3 in both twist senses."""
+    import manifold3d as m3
+    B = _by(parts)
+    if twist is None:
+        twist = float(getattr(P, "BAYONET", {}).get("twist_deg", 35.0))
+    blades = [B[f"blade_{i}"] for i in range(P.N_BLADES)]
+    front = part_manifold(B["front_shell"])
+    fins = [q for q in parts if q.get("packed") is False and q.get("rotor") is not True]
+    with_fins = m3.Manifold.batch_boolean([front] + [part_manifold(q) for q in fins], m3.OpType.Add)
+    res = {"no_fins": {}, "with_fins": {}}
+    for label, F in (("no_fins", front), ("with_fins", with_fins)):
+        for fold in CLOSE_FOLDS:
+            Bu = m3.Manifold.batch_boolean([part_manifold(b, fold) for b in blades], m3.OpType.Add)
+            worst = (0.0, None)
+            for sg in (1.0, -1.0):
+                for dx in (40.0, 25.0, 15.0, 10.0, 6.0, 3.0, 1.0, 0.0):
+                    T = rot_T((0, 0, 0), (1, 0, 0), -sg * twist)
+                    T[0, 3] -= dx
+                    v = float((F.transform(T[:3, :4]) ^ Bu).volume())
+                    if v > worst[0]:
+                        worst = (v, f"push dx {dx:g}, sense {sg:+g}")
+                for a in np.arange(twist, -0.01, -2.5):
+                    T = rot_T((0, 0, 0), (1, 0, 0), -sg * a)
+                    v = float((F.transform(T[:3, :4]) ^ Bu).volume())
+                    if v > worst[0]:
+                        worst = (v, f"twist {a:g} deg to lock, sense {sg:+g}")
+            res[label][f"{fold:g}"] = dict(peak_overlap_mm3=round(worst[0], 3), at=worst[1])
+    ok_n = [f for f in CLOSE_FOLDS if res["no_fins"][f"{f:g}"]["peak_overlap_mm3"] < 0.01]
+    ok_f = [f for f in CLOSE_FOLDS if res["with_fins"][f"{f:g}"]["peak_overlap_mm3"] < 0.01]
+    # the most folded angle below which every tested fold closes cleanly
+    def limit(oks):
+        lim = None
+        for f in sorted(CLOSE_FOLDS):
+            if f in oks:
+                lim = f
+            else:
+                break
+        return lim
+    ln, lf = limit(ok_n), limit(ok_f)
+    res.update(twist_deg=twist, close_fold_max_no_fins=ln, close_fold_max_with_fins=lf,
+               fins_in_check=[q["name"] for q in fins])
+    res["summary"] = (f"fins off: closes at fold <= {ln:g} deg (unfold >= {P.FOLD_DEG - ln:g} deg); fins on: fold "
+                      f"<= {lf:g} deg (unfold >= {P.FOLD_DEG - lf:g} deg)" if ln is not None and lf is not None
+                      else f"fins off limit {ln}, fins on limit {lf}")
+    res["note"] = ("manifold meshes; overlap > 0.01 mm3 at any push or twist step fails that fold; the fold "
+                   "sweep is 0 / 30 / 45 / 50 / 60 / 65 / 70 / 72 / 75 / 78 / 80 / 85 / 90 deg")
+    return res
 
 
 # --------------------------------------------------------------------------
@@ -767,90 +869,159 @@ def spin_sweep(parts: list[dict], step: float = 10.0) -> dict:
 
 
 # --------------------------------------------------------------------------
-# Exploded view: along the axis in assembly order, internals pulled out of the shells,
-# blades radial (applied by the viewer as explode * vector, in the deployed pose)
+# Exploded view (finding T29 / polish): one compact axial line in assembly order, applied by the
+# viewer as explode * vector in the DEPLOYED pose. Each station is placed behind the previous one
+# (its front face GAP mm behind the previous station's aft face, extents measured on the real parts),
+# so a geometry change never makes two stations collide. Nested on purpose: the shaft stays in the aft
+# shell (its aft end shows behind the tail, with the lip seal on it), screws beside their holes on
+# their own axes, pins out of their ears, magnets out of their seats, blades radially out.
 # --------------------------------------------------------------------------
 
-# Two-level explode (finding T29: the old chain spread ~500 mm along X, the parts were small in frame
-# and one blade hid behind the hub). The shells move apart just far enough to bare what they hold;
-# the drivetrain stays near its own place, opened up along its install axis between them; the rotor
-# follows the aft shell; blades go out radially, pins along the pin axis, fins along their normals.
-# (group, member patterns, dx mm)
-EXPLODE_GROUPS = [
-    ("front", ["front_shell*", "fin_0", "fin_1", "fin_blank_*", "fin_cross_pins", "cable_gland_m12"], -52.0),
-    ("carrier_screws", ["screws_carrier_m3x8"], -22.0),
-    ("carrier", ["motor_carrier"], -12.0),
-    ("spacer", ["adapter_spacer"], -7.0),
-    ("stator", ["generator_stator"], -3.0),
-    ("bell", ["generator_bell", "inserts_m3_bell"], 4.0),
-    ("claw_a", ["claw_a"], 9.0),
-    ("claw_a_screws", ["screws_claw_a_m3x4"], 15.0),
-    ("claw_b", ["claw_b"], 17.0),
-    ("collar", ["shaft_collar"], 22.0),
-    ("shaft", ["shaft", "shim_8x12x0p5", "bearing_608*", "bearing_688*"], 24.0),
-    ("oring", ["oring_141*"], 47.0),
-    ("aft", ["aft_shell*", "tail_magnet_*"], 62.0),
-    ("lip", ["lip_seal_*"], 70.0),
-    ("hub", ["hub", "hub_magnet_*", "hinge_pin_*", "pin_filler_*", "hub_grub", "blade_*"], 78.0),
-    ("spinner", ["spinner"], 100.0),
-    ("spinner_screw", ["spinner_screw"], 122.0),
-    ("cap", ["spinner_cap"], 112.0),
+# (station, member patterns, gap in front of it mm; None = anchor). Front to aft.
+EXPLODE_STATIONS = [
+    ("front", ["front_shell*", "fin_*", "rail_magnet_*", "gland_plug", "cable_gland_m12"], None),
+    ("carrier", ["motor_carrier"], 15.0),           # room for the carrier screws in front of it
+    ("spacer", ["adapter_spacer"], 2.5),
+    ("stator", ["generator_stator"], 2.5),
+    ("bell", ["generator_bell", "inserts_m3_bell"], 2.5),
+    ("claw_a", ["claw_a"], 2.5),
+    ("claw_b", ["claw_b"], 10.0),                   # room for claw A's screws behind it
+    ("collar", ["shaft_collar"], 2.5),
+    ("shim", ["shim_*"], 2.5),
+    ("b608", ["bearing_608*"], 2.5),
+    ("b688", ["bearing_688*"], 2.5),
+    ("oring", ["oring_141*"], 3.0),
+    ("aft", ["aft_shell*", "tail_magnet_*", "shaft"], 3.0),
+    ("hub", ["hub", "hub_magnet_*", "hinge_pin_*", "pin_filler_*", "hub_grub", "blade_*"], -6.0),
+    ("spinner", ["spinner"], 3.0),
+    ("spinner_screw", ["spinner_screw"], 2.5),
+    ("cap", ["spinner_cap"], 2.5),
 ]
-BLADE_OUT = 40.0          # blades radial
-PIN_OUT = 15.0            # pins along the pin axis
-FIN_OUT = 26.0            # fins outward along their normals
-ON_SHAFT = {"shim_8x12x0p5": 0.0, "bearing_608": 6.0, "bearing_608_seals": 6.0,
-            "bearing_688": 10.0, "bearing_688_seals": 10.0}     # slid along the shaft (mm aft)
+# station whose extent is measured without some of its members (they stick out on purpose)
+EXTENT_ONLY = {"aft": ["aft_shell"], "hub": ["hub"], "front": ["front_shell"]}
+FRONT_DX = -60.0          # the anchor: front shell forward
+BLADE_OUT = 60.0          # blades radially out of the hub slots (review V3: at 34 the deployed blades
+                          # were drawn across the aft shell rim)
+PIN_OUT = 13.0            # hinge pins along the pin axis out of the ears
+FILLER_OUT = 9.0          # pin fillers beyond their pin
+HUB_MAGNET_OUT = 16.0     # hub magnets radially out of the stop-face seats (through the open slot)
+BLADE_MAGNET_OUT = 6.0    # blade magnets out of their seats along the seat axis
+TAIL_MAGNET_OUT = 8.0     # tail magnets out of the bosses along the boss axis
+SCREW_OUT = {"screws_carrier_m3x8": -11.0, "screws_claw_a_m3x4": 8.0}   # along X from their station
+PLUG_OUT = 28.0           # plug / gland out of the nose seat along the gland axis (V3: 16 barely separated)
+LIP_GAP = 3.0             # lip seal this far behind the static tail end, on the protruding shaft
+
+
+def _x_extent(ps: list[dict], fold: float = 0.0) -> tuple[float, float]:
+    lo, hi = np.inf, -np.inf
+    for p in ps:
+        V = np.asarray(part_mesh(p).vertices)
+        T = fold_T(p, fold)
+        if T is not None:
+            V = V @ T[:3, :3].T + T[:3, 3]
+        lo, hi = min(lo, float(V[:, 0].min())), max(hi, float(V[:, 0].max()))
+    return lo, hi
 
 
 def explode_map(parts: list[dict], extras: dict) -> dict:
-    member, dx = {}, {}
-    for g, pats, d in EXPLODE_GROUPS:
-        dx[g] = d
-        for p in parts:
-            if p["name"] not in member and any(fnmatch.fnmatch(p["name"], pt) for pt in pats):
-                member[p["name"]] = g
-    out = {}
+    """{part name: [dx, dy, dz]} for the viewer's explode slider (deployed pose)."""
     from .. import layout as LY
+    member: dict = {}
+    for st, pats, _ in EXPLODE_STATIONS:
+        for p in parts:
+            if p["name"] not in member and p.get("role") != "hidden" and any(fnmatch.fnmatch(p["name"], pt)
+                                                                           for pt in pats):
+                member[p["name"]] = st
+    B = _by(parts)
+    dx, prev_hi = {}, None
+    for st, pats, gap in EXPLODE_STATIONS:
+        ps = [B[n] for n, s_ in member.items() if s_ == st]
+        if not ps:
+            continue
+        keep = EXTENT_ONLY.get(st)
+        ext = [p for p in ps if keep is None or p["name"] in keep] or ps
+        lo, hi = _x_extent(ext)
+        if gap is None:
+            d = FRONT_DX
+        else:
+            d = prev_hi + gap - lo
+        if st == "hub":
+            # the hub's bore takes the last -gap mm of the shaft end (it sticks out of the tail with the lip
+            # seal on it), and stays 2 mm behind the lip seal
+            sh_hi = _x_extent([B["shaft"]])[1] if "shaft" in B else lo
+            d = sh_hi + dx.get("aft", 0.0) + gap - lo
+            if "lip_seal_tc8x16x5" in B and "aft_shell" in B:
+                l_lo, l_hi = _x_extent([B["lip_seal_tc8x16x5"]])
+                lip_hi = dx["aft"] + _x_extent([B["aft_shell"]])[1] + LIP_GAP + (l_hi - l_lo)
+                d = max(d, lip_hi + 2.0 - lo)
+        dx[st] = d
+        prev_hi = hi + d
+        if st == "hub":
+            prev_hi = max(prev_hi, _x_extent([p for p in ps if p["name"] in ("hub",)] or ps)[1] + d)
+    out = {}
+    aft_hi = _x_extent([B["aft_shell"]])[1] if "aft_shell" in B else 0.0
     for p in parts:
         n = p["name"]
-        if n not in member:
+        st = member.get(n)
+        if st is None and not n.startswith(("screws_", "lip_seal")):
             continue
-        v = np.array([dx[member[n]], 0.0, 0.0])
-        if n.startswith(("fin_0", "fin_1", "fin_blank_")):
-            th = math.radians(float(p.get("theta_deg", 90.0)))
-            v += FIN_OUT * np.array([0.0, math.sin(th), math.cos(th)])
-        elif n == "cable_gland_m12":
+        v = np.array([dx.get(st, 0.0), 0.0, 0.0])
+        if n in SCREW_OUT:
+            host = "carrier" if "carrier" in n else "claw_a"
+            v = np.array([dx[host] + SCREW_OUT[n], 0.0, 0.0])
+        elif n.startswith("lip_seal"):
+            lo, _ = _x_extent([B["lip_seal_tc8x16x5"]]) if "lip_seal_tc8x16x5" in B else _x_extent([p])
+            v = np.array([dx["aft"] + aft_hi + LIP_GAP - lo, 0.0, 0.0])
+        elif n.startswith(("fin_", "rail_magnet_")):
+            v += np.asarray(p.get("explode") or [0.0, 0.0, 0.0], float)      # the fins module's slide-out path
+        elif n in ("gland_plug", "cable_gland_m12"):
             g = P.GLAND
             t = math.radians(g["theta_deg"])
             a = math.radians(g["axis_angle_from_x_deg"])
-            v += 22.0 * np.array([math.cos(a), math.sin(a) * math.sin(t), math.sin(a) * math.cos(t)])
+            v += PLUG_OUT * np.array([math.cos(a), math.sin(a) * math.sin(t), math.sin(a) * math.cos(t)])
         elif n.startswith("tail_magnet_"):
             th = float(p.get("theta_deg", 0.0))
-            v += 10.0 * (rot_T((0, 0, 0), (1, 0, 0), -th)[:3, :3] @ np.asarray(extras["stow_detent"]["n"], float))
-        elif n in ON_SHAFT:
-            v += np.array([ON_SHAFT[n], 0.0, 0.0])
+            v += TAIL_MAGNET_OUT * (rot_T((0, 0, 0), (1, 0, 0), -th)[:3, :3] @ np.asarray(extras["stow_detent"]["n"], float))
         elif n.startswith(("blade_", "hinge_pin_", "pin_filler_", "hub_magnet_")):
             i = int(n.split("_")[-1][0])
             _, e_r, e_t = LY.rotor_axes(120.0 * i)
             if n.startswith(("blade_magnet_heel", "blade_magnet_stow")):
                 ax = rot_T((0, 0, 0), *_pivot_axis(p))[:3, :3] @ (np.asarray(extras["blades"][i]["T_stowed"])[:3, :3]
                                                                    @ np.asarray(p["axis_blade_frame"]))
-                v += BLADE_OUT * e_r + 7.0 * ax
+                v += BLADE_OUT * e_r + BLADE_MAGNET_OUT * ax
             elif n.startswith("blade_"):
                 v += BLADE_OUT * e_r
             elif n.startswith("hinge_pin_"):
                 v += PIN_OUT * e_t
             elif n.startswith("pin_filler_"):
                 side = 1.0 if n.endswith("a") else -1.0
-                v += PIN_OUT * e_t + side * 9.0 * e_t
+                v += PIN_OUT * e_t + side * FILLER_OUT * e_t
             elif n.startswith("hub_magnet_"):
-                v += np.array([8.0, 0.0, 0.0])                   # out of the stop-face seat (+X)
+                v += HUB_MAGNET_OUT * e_r
         elif n == "hub_grub":
             psi = math.radians(float(P.ROTOR_HUB["grub_psi_deg"]))
-            v += 14.0 * np.array([0.0, -math.sin(psi), math.cos(psi)])
+            v += 12.0 * np.array([0.0, -math.sin(psi), math.cos(psi)])
         out[n] = [round(float(c), 3) for c in v]
+    for n, st in member.items():                      # any remaining member keeps its station offset
+        out.setdefault(n, [round(float(dx.get(st, 0.0)), 3), 0.0, 0.0])
     return out
+
+
+def exploded_extent(parts: list[dict], extras: dict) -> dict:
+    """Axial extent of the exploded deployed scene vs the egg's own length (target <= ~2.2 x)."""
+    ex = explode_map(parts, extras)
+    S = [p for p in state_parts(parts, "deployed") if p["name"] in ex]
+    lo, hi = np.inf, -np.inf
+    for p in S:
+        V = np.asarray(part_mesh(p).vertices)
+        T = fold_T(p, 0.0)
+        if T is not None:
+            V = V @ T[:3, :3].T + T[:3, 3]
+        V = V + np.asarray(ex[p["name"]])
+        lo, hi = min(lo, float(V[:, 0].min())), max(hi, float(V[:, 0].max()))
+    e_lo, e_hi = _x_extent([p for p in S if p["name"] in ("front_shell", "spinner_cap")])
+    return dict(exploded_x_mm=[round(lo, 1), round(hi, 1)], exploded_length_mm=round(hi - lo, 1),
+                egg_length_mm=round(e_hi - e_lo, 1), ratio=round((hi - lo) / (e_hi - e_lo), 3))
 
 
 def _pivot_axis(p: dict):
@@ -863,12 +1034,39 @@ def _pivot_axis(p: dict):
 # Web scene (GLB + manifest) and its browser check
 # --------------------------------------------------------------------------
 
+_WEBQ: dict = {}
+_WEBM: dict = {}
+
+
 def web_mesh(p: dict):
+    """Viewer mesh: absolute chord deflection, sliver-free (export_web.clean_mesh), area-weighted
+    normals; its clean-up report goes to _WEBQ[name]."""
     from ..export_web import to_trimesh
+    if p["name"] in _WEBM:
+        return _WEBM[p["name"]]
     mat = p.get("material", "default")
     tol, ang = WEB_TOL.get(mat if mat in WEB_TOL else "default")
+    if p["name"].startswith("blade"):
+        tol, ang = WEB_TOL["blade"]
     _clean(p["shape"])
-    return to_trimesh(p["shape"], tol, ang)
+    rep: dict = {}
+    m = to_trimesh(p["shape"], tol, ang, relative=False, report=rep)
+    _WEBQ[p["name"]] = dict(rep.get("output", {}), input_folded_pairs=rep.get("input", {}).get("folded_pairs_gt170"),
+                            flips=rep.get("flips"), collapses=rep.get("collapses"))
+    _WEBM[p["name"]] = m
+    return m
+
+
+def glb_quality(path: Path) -> dict:
+    """Folded pairs (> 170 deg) per mesh of a written GLB (float32 positions, welded)."""
+    import trimesh
+    from ..export_web import mesh_quality
+    sc = trimesh.load(str(path))
+    per = {n: mesh_quality(g) for n, g in sc.geometry.items()}
+    bad = {n: q["folded_pairs_gt170"] for n, q in per.items() if q["folded_pairs_gt170"]}
+    return dict(meshes=len(per), triangles=int(sum(q["triangles"] for q in per.values())),
+                folded_pairs_gt170_total=int(sum(bad.values())), meshes_with_folds=bad,
+                min_corner_angle_deg=min(q["min_corner_angle_deg"] for q in per.values()))
 
 
 SECTION_MATERIAL = {"color": "#C98B5E", "roughness": 0.7, "metalness": 0.0}   # cut faces of the cutaway shells
@@ -925,6 +1123,8 @@ def write_web(parts: list[dict], extras: dict) -> dict:
             e["pivot"] = p["pivot"]
         if p.get("packed") is not None:
             e["packed"] = p["packed"]
+        if p.get("v2") is not None:
+            e["v2"] = p["v2"]
         e["mesh"] = web_mesh(p)
         scene.append(e)
     for e in section_meshes(parts):
@@ -933,32 +1133,78 @@ def write_web(parts: list[dict], extras: dict) -> dict:
     path = write_scene(scene, OUT_WEB, glb_name="ovo.glb", materials=dict(MATERIALS, section=SECTION_MATERIAL),
                        extra={"generated_by": "ovo.cad.assembly", "cache": extras["cache_dir"],
                               "states": {"stowed": "fold=0", "packed": "fold=0&packed=1", "deployed": "fold=1",
-                                         "cutaway": "cutaway=1", "exploded": "explode=1"},
+                                         "cutaway": "cutaway=1", "exploded": "explode=1", "v2": "v2=1"},
                               "stowing_index": "spin 0: blade i (psi 120 i) over the pocket at theta -psi"})
     glb = OUT_WEB / "ovo.glb"
+    gq = glb_quality(glb)
     return dict(glb=str(glb.relative_to(REPO)), manifest=str(path.relative_to(REPO)),
                 glb_mb=round(glb.stat().st_size / 1e6, 2), n_parts=len(scene),
-                triangles=int(sum(len(e["mesh"].faces) for e in scene)), explode=ex)
+                triangles=int(sum(len(e["mesh"].faces) for e in scene)), explode=ex,
+                mesh_quality=dict(glb=gq, per_part={k: v for k, v in _WEBQ.items()}))
+
+
+def _flat_pose(m) -> np.ndarray:
+    """4x4 that lays a loose part on the largest flat facet of its convex hull (the face it rests on),
+    long side of the footprint along X."""
+    h = m.convex_hull
+    n, a = np.asarray(h.face_normals), np.asarray(h.area_faces)
+    best, best_a = None, -1.0
+    for i in np.argsort(-a):
+        tot = float(a[n @ n[i] > 0.99995].sum())         # coplanar hull faces = one facet
+        if tot > best_a:
+            best, best_a = n[i], tot
+    z = np.array([0.0, 0.0, -1.0])
+    v = np.cross(best, z)
+    s_, c_ = np.linalg.norm(v), float(best @ z)
+    if s_ < 1e-12:
+        T0 = np.eye(4) if c_ > 0 else rot_T((0, 0, 0), (1, 0, 0), 180.0)
+    else:
+        T0 = rot_T((0, 0, 0), v / s_, math.degrees(math.atan2(s_, c_)))
+    V = np.asarray(m.vertices) @ T0[:3, :3].T
+    xy = V[:, :2] - V[:, :2].mean(0)
+    w, U = np.linalg.eigh(xy.T @ xy)
+    ang = math.atan2(U[1, -1], U[0, -1])                 # main axis of the footprint -> X
+    return rot_T((0, 0, 0), (0, 0, 1), -math.degrees(ang)) @ T0
 
 
 def write_kit_scene(parts: list[dict]) -> dict:
-    """Finding T08: the packed egg (fins off, blanking strips in) with the two fins and their cross
-    pins laid out in front of the nose, for out/renders/packed_kit.png (a separate light scene)."""
+    """Finding T08 / R5: the packed egg (fins off, blanking strips in) with the loose fins (and the magnets
+    glued in them) lying flat on the ground in front of the nose, for out/renders/packed_kit.png (a
+    separate light scene). Each fin lies on its most stable face, long side along the egg axis, its
+    lowest point on the egg's ground plane (the egg's lowest point)."""
+    import trimesh
     from ..export_web import MATERIALS, write_scene
     keep = [p for p in state_parts(parts, "packed") if p.get("role") in ("body", "shell")]
-    B = _by(parts)
     scene = []
     for p in keep:
-        scene.append(dict(name=p["name"], material=p.get("material", "default"), role="body",
-                          mesh=web_mesh(dict(p, material=p.get("material")))))
-    for k, n in enumerate(("fin_0", "fin_1")):
-        if n in B:
-            q = dict(B[n])
-            q["shape"] = B[n]["shape"].moved(Location((-95.0 - 52.0 * k, -70.0 if k == 0 else 70.0, 0.0)))
-            scene.append(dict(name=n + "_loose", material=q.get("material", "fin"), role="body", mesh=web_mesh(q)))
+        scene.append(dict(name=p["name"], material=p.get("material", "default"), role="body", mesh=web_mesh(p)))
+    egg = trimesh.util.concatenate([e["mesh"] for e in scene])
+    z_ground, x_nose = float(egg.bounds[0][2]), float(egg.bounds[0][0])
+    loose = [p for p in parts if p.get("packed") is False and p.get("role") != "hidden"]
+    hosts = [p for p in loose if p.get("print") is not None]
+    placed = []
+    for k, h in enumerate(sorted(hosts, key=lambda q: q["name"])):
+        mh = web_mesh(h)
+        T = _flat_pose(mh)
+        V = np.asarray(mh.vertices) @ T[:3, :3].T + T[:3, 3]
+        lo, hi = V.min(0), V.max(0)
+        # side by side in front of the nose, 14 mm clear of it and 10 mm apart
+        dy = (hi[1] - lo[1] + 10.0) * (k - (len(hosts) - 1) / 2.0)
+        sh = np.array([x_nose - 14.0 - hi[0], dy - 0.5 * (lo[1] + hi[1]), z_ground - lo[2]])
+        T[:3, 3] += sh
+        members = [h] + [q for q in loose if q is not h and q.get("print") is None
+                         and abs(float(q.get("theta_deg", 1e9)) - float(h.get("theta_deg", -1e9))) < 1e-6]
+        for q in members:
+            m = (mh if q is h else web_mesh(q)).copy()
+            m.apply_transform(T)
+            scene.append(dict(name=q["name"] + "_loose", material=q.get("material", "fin"), role="body", mesh=m))
+        placed.append(dict(name=h["name"], lowest_z=round(float(z_ground), 3),
+                           footprint_mm=[round(float(hi[0] - lo[0]), 1), round(float(hi[1] - lo[1]), 1)],
+                           height_mm=round(float(hi[2] - lo[2]), 1), with_parts=[q["name"] for q in members]))
     path = write_scene(scene, OUT_WEB, glb_name="packed_kit.glb", materials=MATERIALS,
                        extra={"generated_by": "ovo.cad.assembly.write_kit_scene"})
-    return dict(manifest=str(path.relative_to(REPO)), n_parts=len(scene))
+    return dict(manifest=str(path.relative_to(REPO)), n_parts=len(scene), loose=placed,
+                ground_z=round(z_ground, 3))
 
 
 def verify_viewer_fold(parts: list[dict], extras: dict) -> dict:
@@ -1033,33 +1279,58 @@ def stl_path(name: str) -> Path:
 
 
 def stl_audit(parts: list[dict]) -> list[dict]:
-    """Every printed part's STL: present (regenerated from the print shape if missing),
-    watertight, volume vs the BREP print solid, print size, fits the bed."""
+    """Every printed part's STL: present, watertight, free of folded sliver pairs (recheck R1: adjacent
+    normals more than 170 deg apart); a missing STL, or one with folded pairs, is (re)written from the
+    print shape through export_web.write_clean_stl (absolute 0.03 mm deflection). Then volume vs the
+    BREP print solid, print size, fits the bed."""
     import trimesh
-    from build123d import export_stl
+    from ..export_web import mesh_quality, write_clean_stl
     rows = []
+    done: dict = {}
     for p in parts:
         if p.get("print") is None:
             continue
         f = stl_path(p["name"])
-        regenerated = False
-        if not f.exists():
-            export_stl(p["print"], str(f), tolerance=0.02, angular_tolerance=0.15)
-            regenerated = True
+        regenerated, q0 = False, None
+        if f in done:
+            q0, regenerated = done[f]
+        elif not f.exists():
+            if not write_clean_stl(p["print"], f, tol=0.03, angular=0.2)["watertight"]:
+                write_clean_stl(p["print"], f, tol=0.05, angular=0.25)
+            regenerated = "missing"
+        else:
+            q0 = mesh_quality(trimesh.load(f))
+            if q0["folded_pairs_gt170"] or not q0["watertight"]:
+                old_bytes = f.read_bytes()
+                q1 = write_clean_stl(p["print"], f, tol=0.03, angular=0.2)
+                if not q1["watertight"]:                        # OCC gap at 0.03: the 0.05 mesh closes
+                    q1 = write_clean_stl(p["print"], f, tol=0.05, angular=0.25)
+                if (q0["watertight"] and not q1["watertight"]) or q1["folded_pairs_gt170"] > q0["folded_pairs_gt170"]:
+                    f.write_bytes(old_bytes)            # the rewrite is not better: keep the module's file
+                    regenerated = "kept the module STL (rewrite: folded %d, watertight %s)" % (
+                        q1["folded_pairs_gt170"], q1["watertight"])
+                else:
+                    regenerated = "rewritten (module STL: folded pairs %d, watertight %s)" % (
+                        q0["folded_pairs_gt170"], q0["watertight"])
+        done[f] = (q0, regenerated)
         m = trimesh.load(f)
+        mq = mesh_quality(m)
         bb = m.bounds
         v_brep = float(p["print"].volume) / 1000.0
         v_stl = float(m.volume) / 1000.0
         sh = p["shape"]
         rows.append(dict(
             name=p["name"], module=p["module"], stl=str(f.relative_to(REPO)), regenerated=regenerated,
+            module_stl_folded_pairs=None if q0 is None else q0["folded_pairs_gt170"],
+            folded_pairs_gt170=mq["folded_pairs_gt170"], min_corner_angle_deg=round(mq["min_corner_angle_deg"], 4),
             valid=bool(sh.is_valid), n_solids=len(sh.solids()), watertight=bool(m.is_watertight),
             winding_consistent=bool(m.is_winding_consistent), stl_volume_cm3=round(float(m.volume) / 1000, 3),
             brep_volume_cm3=round(v_brep, 3), area_cm2=round(float(m.area) / 100, 2),
             volume_match=bool(abs(v_stl - v_brep) <= 0.01 * max(v_brep, 1e-9)),
             print_size_mm=[round(float(v), 2) for v in (bb[1] - bb[0])],
             on_bed=bool(abs(bb[0][2]) < 0.05), fits_bed=bool(C.fits_bed(p["print"])),
-            role=p.get("role"), material=p.get("material"), notes=p.get("notes", "")))
+            role=p.get("role"), material=p.get("material"), print_with=p.get("print_with"), qty=p.get("qty", 1),
+            notes=p.get("notes", "")))
     return rows
 
 
@@ -1081,36 +1352,48 @@ DENSITY = {"PLA": 1.24, "PETG": 1.27}          # g/cm3
 LINE_W = 0.42                                    # mm, 0.4 nozzle
 # display build (v1). Walls and infill follow the module notes where they give them.
 PLATE_COUPON = "0 tolerance coupon (PLA; print a PETG copy too)"
-PLATE_SHELLS = "1 shells + generator replica (PLA)"
-PLATE_ROTOR = "2 rotor (PLA, tree supports under the blades)"
+PLATE_SHELLS = "1 shells, strips and plug (ivory PLA)"
+PLATE_GEN = "5 generator replica (blue PLA)"
+PLATE_ROTOR = "2 rotor (PLA, each blade on its cradle)"
 PLATE_PETG = "3 drivetrain + fins (PETG)"
 PLATE_CUT = "4 cutaway shells (PLA, optional display variant)"
 PRINT_SETTINGS = {
     "front_shell": dict(mat="PLA", walls=6, infill=0.15, supports="none (38.6 mm nose-plug bridge)", brim=0, plate=PLATE_SHELLS),
-    "aft_shell": dict(mat="PLA", walls=6, infill=0.15, supports="none (0.6 mm seal stop ring)", brim=0, plate=PLATE_SHELLS),
+    "aft_shell": dict(mat="PLA", walls=6, infill=0.15, supports="none (0.6 mm seal stop ring; detent boss + chin tops "
+                      "lean <= 49 deg, no island at 0.05 / 0.1 / 0.15 layer phases; click tines bridge to breakaway "
+                      "ties: cut the 3 ties through the slits after printing)", brim=0, plate=PLATE_SHELLS),
     "front_shell_cutaway": dict(mat="PLA", walls=6, infill=0.15, supports="none", brim=0, optional=True, plate=PLATE_CUT),
     "aft_shell_cutaway": dict(mat="PLA", walls=6, infill=0.15, supports="none", brim=0, optional=True, plate=PLATE_CUT),
     "hub": dict(mat="PLA", walls=4, infill=0.40, supports="none (bridges <= 14.6 mm)", brim=0, plate=PLATE_ROTOR),
-    "spinner": dict(mat="PLA", walls=3, infill=0.30, supports="none (D22.6 seat bridge on a full cone ring; "
-                    "window tops: 15 mm bridges between 45 deg flanks)", brim=5, plate=PLATE_ROTOR),
+    "spinner": dict(mat="PLA", walls=3, infill=0.30, supports="none (D22.6 seat bridge on a full cone ring, pierced "
+                    "by 4 holes: face the clamp ring flat; window tops: rounded, a ~12 mm bridge)", brim=5,
+                    plate=PLATE_ROTOR),
     "spinner_cap": dict(mat="PLA", walls=3, infill=1.0, supports="none (45 deg shoulder)", brim=3, plate=PLATE_ROTOR),
-    "fin_blank": dict(mat="PLA", walls=3, infill=1.0, supports="none", brim=0, plate=PLATE_SHELLS),
-    "blade": dict(mat="PLA", walls=4, infill=0.40, supports="tree, build plate only (TE, heel, shank ramp); "
-                  "top Z distance 0.2, dense interface", brim=5, plate=PLATE_ROTOR),
+    "fin_blank": dict(mat="PLA", walls=3, infill=1.0, supports="none (floor face down, magnet seat on the bed; "
+                      "0.08 to 0.12 mm layers for the sloped flush face)", brim=0, plate=PLATE_SHELLS),
+    "blade": dict(mat="PLA", walls=4, infill=0.40, supports="none: print on blade_cradle.stl (TE, shank ramp, heel; "
+                  "top 0.2 under the blade); fallback tree supports, top Z 0.2", brim=5, plate=PLATE_ROTOR),
+    "blade_cradle": dict(mat="PLA", walls=2, infill=0.15, supports="none (it is the support)", brim=0,
+                         plate=PLATE_ROTOR),
+    "gland_plug": dict(mat="PLA", walls=3, infill=1.0, supports="none (flat face down; slot roof 1.2 mm bridge)",
+                       brim=0, plate=PLATE_SHELLS),
     "claw_a": dict(mat="PETG", walls=4, infill=0.40, supports="none", brim=0, plate=PLATE_PETG),
     "claw_b": dict(mat="PETG", walls=4, infill=0.40, supports="none (D16.2 bridge on a 0.2 mm membrane, drill it out)",
                    brim=0, plate=PLATE_PETG),
     "motor_carrier": dict(mat="PETG", walls=4, infill=0.40, supports="none", brim=0, plate=PLATE_PETG),
     "adapter_spacer": dict(mat="PETG", walls=3, infill=0.40, supports="none", brim=0, plate=PLATE_PETG),
-    "generator_stator": dict(mat="PLA", walls=3, infill=0.15, supports="none", brim=0, plate=PLATE_SHELLS),
-    "generator_bell": dict(mat="PLA", walls=3, infill=0.15, supports="none", brim=0, plate=PLATE_SHELLS),
-    "fin": dict(mat="PETG", walls=3, infill=0.25, supports="none (brim ears at the two root ends)", brim=5,
-                plate=PLATE_PETG),
+    "generator_stator": dict(mat="PLA", walls=3, infill=0.15, supports="none", brim=0, plate=PLATE_GEN),
+    "generator_bell": dict(mat="PLA", walls=3, infill=0.15, supports="none", brim=0, plate=PLATE_GEN),
+    "fin": dict(mat="PETG", walls=3, infill=0.25, supports="none (tip down, tongue up: 73.7 mm on a 3.6 mm wide first "
+                "layer: 5 mm brim all round, outer walls <= 50 mm/s, 6-8 s minimum layer time; on an A1 (bed moves in "
+                "Y) the chord runs along Y)", brim=5, plate=PLATE_PETG, chord_along_y=True),
     "tolerance_coupon": dict(mat="PLA", walls=3, infill=0.15, supports="none", brim=0, first=True, plate=PLATE_COUPON),
     "tolerance_coupon_key_lug": dict(mat="PLA", walls=3, infill=1.0, supports="none", brim=0, first=True,
                                      plate=PLATE_COUPON),
     "tolerance_coupon_key_tongue": dict(mat="PLA", walls=3, infill=1.0, supports="none", brim=0, first=True,
                                         plate=PLATE_COUPON),
+    "tolerance_coupon_key_tongue_up": dict(mat="PLA", walls=3, infill=1.0, supports="none (stands on its 10 mm stub, "
+                                           "tongue up, as the fin)", brim=3, first=True, plate=PLATE_COUPON),
     "tolerance_coupon_b": dict(mat="PLA", walls=3, infill=0.15, supports="none", brim=0, first=True, plate=PLATE_COUPON),
 }
 BED_MARGIN, BED_SPACING = 5.0, 8.0
@@ -1148,21 +1431,34 @@ def print_plan(stl_rows: list[dict]) -> dict:
     rows = []
     for r in stl_rows:
         st = _settings(r["name"])
+        if r.get("print_with"):
+            st = dict(st, plate=_settings(r["print_with"]).get("plate"))
         V = r["stl_volume_cm3"] * 1000.0
         A = r["area_cm2"] * 100.0
         w = st["walls"] * LINE_W
         solid = min(V, A * w)
         g_est = DENSITY[st["mat"]] * (solid + st["infill"] * max(0.0, V - solid)) / 1000.0
+        n_copies = int(r.get("qty", 1)) if r.get("print_with") else 1       # one cradle per blade
         rows.append(dict(name=r["name"], material=st["mat"], plate=st.get("plate"), walls=st["walls"], infill=st["infill"],
+                         print_with=r.get("print_with"),
                          supports=st["supports"], brim_mm=st["brim"], optional=bool(st.get("optional")),
                          first=bool(st.get("first")), print_size_mm=r["print_size_mm"],
-                         grams_solid=round(DENSITY[st["mat"]] * V / 1000.0, 1), grams_est=round(g_est, 1),
+                         copies=n_copies, grams_solid=round(n_copies * DENSITY[st["mat"]] * V / 1000.0, 1),
+                         grams_est=round(n_copies * g_est, 1),
                          stl=r["stl"], notes=r["notes"]))
     groups = {}
     for r in rows:
+        if r.get("print_with"):
+            continue                       # printed under its host part (same footprint), not packed apart
         key = _settings(r["name"]).get("plate", r["material"])
         b = 2 * r["brim_mm"]
         sx, sy = r["print_size_mm"][0] + b, r["print_size_mm"][1] + b
+        if _settings(r["name"]).get("chord_along_y"):
+            # review P4: tall slender part, its long footprint side along Y (an A1's bed moves in Y): packed with
+            # its short side along the shelf (x), turned 90 deg when the STL's long side is along X
+            groups.setdefault(key, []).append(dict(name=r["name"], w=min(sx, sy), d=max(sx, sy), h=r["print_size_mm"][2],
+                                                    rotated=sx > sy, chord_along_y=True))
+            continue
         groups.setdefault(key, []).append(dict(name=r["name"], w=max(sx, sy), d=min(sx, sy), h=r["print_size_mm"][2],
                                                 rotated=sy > sx))
     plates = []
@@ -1181,6 +1477,33 @@ def print_plan(stl_rows: list[dict]) -> dict:
                 total_grams_est=round(sum(by_mat.values()), 1),
                 method="ESTIMATE: grams = density x (min(V, A x walls x %.2f mm) + infill x rest); PLA %.2f, "
                        "PETG %.2f g/cm3; excludes supports, brims and purge" % (LINE_W, DENSITY["PLA"], DENSITY["PETG"]))
+
+
+def assembly_steps(kc: list[dict]) -> list[dict]:
+    """drivetrain.assembly_sequence() with step 12 restated with the measured closing limits."""
+    from . import drivetrain as DT
+    steps = DT.assembly_sequence()
+    cs = next((k.get("detail") for k in kc if k["check"].startswith("closing path")), None)
+    if cs and cs.get("close_fold_max_no_fins") is not None:
+        lf0 = 0.0 if cs["close_fold_max_with_fins"] is None else cs["close_fold_max_with_fins"]
+        # instruct one sweep step below each measured limit (the sweep only proves its own grid)
+        below = lambda f: max([c for c in CLOSE_FOLDS if c < f] or [0.0])
+        ln, lf = below(cs["close_fold_max_no_fins"]), below(lf0)
+        for st in steps:
+            if st["step"] == 12:
+                st["action"] = (f"Take the fins off and unfold every blade by at least {P.FOLD_DEG - ln:g} deg (fold "
+                                f"{ln:g} deg or less; with the fins left on, at least {P.FOLD_DEG - lf:g} deg, "
+                                f"fold {lf:g} deg or less; the closing sweep is clean from fold "
+                                f"{cs['close_fold_max_no_fins']:g} / {lf0:g} down, one sweep step of margin) before "
+                                "joining the shells: the stowed blades lie in pockets "
+                                "of both shells, 35 deg apart at the bayonet entry. Align the bayonet entry marks and "
+                                "push the shells together; the claws find each other on the V lead-ins (turn the rotor "
+                                "a little if two dog tips meet), twist 35 deg to the hard stop; only then fold the "
+                                "blades home and refit the fins or the blanking strips. Nothing stops the shaft toward "
+                                "-X but the hub on the static tail: after stowing, pull the spinner aft so the hub "
+                                "runs free.")
+                st["check"] = (st.get("check", "") + f" Closing path measured (assembly.closing_sweep): {cs['summary']}.")
+    return steps
 
 
 # --------------------------------------------------------------------------
@@ -1238,11 +1561,14 @@ def run(force: bool = False, web: bool = True, verify: bool = True, steps: bool 
                                  bought=p.get("bought")))
     rep["stl"] = stl_audit(ps)
     rep["print_plan"] = print_plan(rep["stl"])
+    rep["exploded_extent"] = exploded_extent(ps, ex)
+    print(f"  exploded: {rep['exploded_extent']}", flush=True)
     rep["interference"] = interference(ps)
     rep["cutaway_crossers_r_gt_25"] = cutaway_crossers(ps)
     rep["key_clearances"] = key_clearances(ps, ex)
     rep["spin_sweep"] = spin_sweep(ps)
     rep["bom"] = bom(ps)
+    rep["assembly_steps"] = assembly_steps(rep["key_clearances"])
     if steps:
         rep["step_assemblies"] = export_assembly_steps(ps)
     if web:

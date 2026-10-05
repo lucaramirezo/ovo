@@ -1,7 +1,8 @@
 """Regenerate every Ovo CAD output from scratch with one command.
 
   .venv/bin/python scripts/build.py                 # part modules, assembly, renders, summary table
-  .venv/bin/python scripts/build.py --fresh         # also drop the shells and assembly BREP caches
+  .venv/bin/python scripts/build.py --fresh         # also drop the shells and assembly BREP caches and every
+                                                    # output file that the current parts no longer produce
   .venv/bin/python scripts/build.py --only-assembly # reuse the part modules' outputs (out/cad/*)
   .venv/bin/python scripts/build.py --summary       # only print the table from the existing checks
   .venv/bin/python scripts/build.py --no-render     # skip out/renders
@@ -15,6 +16,8 @@ Steps (each geometry job goes through scripts/cadrun.sh, at most 2 OCC jobs mach
      out/cad/step/ovo_assembly_{stowed,deployed}.step, out/web/ovo.glb + manifest.json,
      viewer fold check, out/cad/checks/assembly.json
   3. renders through the viewer (1600 x 1000): out/renders/{hero_deployed,stowed,packed_kit,cutaway,exploded,side,front}.png
+  4. --fresh only: prune out/cad/step, out/cad/stl, out/cad/checks, out/web and out/renders of files the
+     build did not produce (parts removed since, test artefacts, files from before the rename)
 """
 
 from __future__ import annotations
@@ -36,13 +39,21 @@ MODULES = [("shells", ["--no-render"]), ("blade", ["--no-render"]), ("rotor", ["
            ("drivetrain", ["--no-render"]), ("fins", ["--no-render"]), ("coupon", ["--no-render"])]
 
 VIEWS = [  # out/renders/<name>.png, viewer query (manifest out/web/manifest.json unless m= is given)
-    ("hero_deployed", "view=hero&fold=1&zoom=1.45"),
-    ("stowed", "view=hero&fold=0&packed=1&zoom=1.55"),          # PACKED: fins off, blanking strips in (T08)
-    ("packed_kit", "m=../out/web/packed_kit.json&view=hero&zoom=1.4"),   # the packed egg with its fins beside it
-    ("cutaway", "view=hero&fold=1&cutaway=1&zoom=1.45"),
-    ("exploded", "view=55,24&fold=1&explode=1&zoom=1.15"),       # all three blades in view (T29)
-    ("side", "view=side&fold=1&zoom=1.5"),
-    ("front", "view=front&fold=1&zoom=1.4"),
+    # fit=tight frames the projected parts (fill = share of the frame they span); shadow=1 frames the
+    # ground shadow too (the level side and front views, whose shadow otherwise runs off the bottom);
+    # ground=0 drops the ground shadow (the exploded cloud would cast a scattered one).
+    # theme=studio (review V7): a mid warm-grey backdrop for this portfolio set, so the all-ivory egg, its
+    # strips and the fins separate from it (the light theme stays the viewer's default for the docs).
+    # Review V5: the hero and cutaway cameras sit at azimuth -40, elevation 22: the two fins read as a level
+    # pair across the egg instead of the near fin filling the foreground.
+    ("hero_deployed", "view=-40,22&fold=1&fit=tight&fill=0.86&theme=studio"),
+    ("stowed", "view=hero&fold=0&packed=1&fit=tight&fill=0.8&theme=studio"),   # PACKED: fins off, strips in (T08)
+    ("packed_kit", "m=../out/web/packed_kit.json&view=hero&fit=tight&fill=0.86&theme=studio"),   # loose fins
+    ("cutaway", "view=-40,22&fold=1&cutaway=1&fit=tight&fill=0.86&theme=studio"),
+    # review V3: one horizontal line in build order, blades radially up and down, the bottom half used
+    ("exploded", "view=20,18&spin=30&fold=1&explode=1&fit=tight&fill=0.92&ground=0&theme=studio"),
+    ("side", "view=side&fold=1&fit=tight&fill=0.88&shadow=1&theme=studio"),
+    ("front", "view=front&fold=1&fit=tight&fill=0.9&shadow=1&theme=studio"),
 ]
 
 DENSITY = {"PLA": 1.24, "PETG": 1.27}
@@ -123,6 +134,44 @@ def summary(timing: list | None = None) -> None:
             print(f"  {dt:7.0f} s  {label}")
 
 
+def produced_outputs() -> set[Path]:
+    """Every output file the current build writes: one STEP per module part (print pose for the
+    blade and coupon), one STL per printed part (the blades share blade.stl), the module checks,
+    the assembly STEPs, the web scenes and the renders."""
+    meta = sorted((REPO / "out/work/cad/integrate/cache").glob("*/meta.json"), key=lambda f: f.stat().st_mtime)
+    keep: set[Path] = set()
+    if meta:
+        parts = json.loads(meta[-1].read_text())["parts"]
+        for d in parts:
+            if d.get("module") == "assembly":
+                continue
+            n = d["name"]
+            stem = "blade" if n.startswith("blade_") and n != "blade_cradle" else n
+            keep.add(REPO / "out/cad/step" / f"{stem}.step")
+            if d.get("has_print"):
+                keep.add(REPO / "out/cad/stl" / f"{stem}.stl")
+    keep |= {REPO / "out/cad/checks" / f"{m}.json" for m, _ in MODULES} | {REPO / "out/cad/checks/assembly.json"}
+    keep |= {REPO / "out/cad/step" / f"ovo_assembly_{s}.step" for s in ("stowed", "deployed")}
+    keep |= {REPO / "out/web" / f for f in ("ovo.glb", "manifest.json", "packed_kit.glb", "packed_kit.json")}
+    keep |= {REPO / "out/renders" / f"{n}.png" for n, _ in VIEWS}
+    return keep
+
+
+def prune_outputs() -> list[str]:
+    """--fresh: delete files in the output folders that the build did not produce (parts removed since,
+    test artefacts such as out/web/test.glb and manifest_test.json, names from before the rename)."""
+    keep = produced_outputs()
+    if not any(p.parent.name == "step" for p in keep):
+        return []                                         # no part cache: never prune blindly
+    removed = []
+    for d in ("out/cad/step", "out/cad/stl", "out/cad/checks", "out/web", "out/renders"):
+        for f in sorted((REPO / d).glob("*")):
+            if f.is_file() and f not in keep:
+                f.unlink()
+                removed.append(str(f.relative_to(REPO)))
+    return removed
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--fresh", action="store_true")
@@ -154,6 +203,9 @@ def main() -> None:
         jf.write_text(json.dumps(jobs, indent=1))
         step("renders", [PY, str(REPO / "scripts" / "render.py"), "--batch", str(jf), "-W", "1600", "-H", "1000"],
              logs / "renders.log", timing)
+    if a.fresh:
+        removed = prune_outputs()
+        print(f"\npruned {len(removed)} stale output file(s)" + "".join(f"\n  {r}" for r in removed))
     summary(timing)
     print(f"\nbuild done in {time.time() - t0:.0f} s")
 

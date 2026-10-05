@@ -48,19 +48,20 @@ from .. import profile
 
 
 # --------------------------------------------------------------------------
-# Detent magnets shared by rotor.py, blade.py, shells.py and assembly.py (findings T03 / T15).
-# params.DETENTS still describes the layout's 4 x 2 discs; the values below are the built
-# geometry and are PROPOSED for params (out/cad/checks/*.json, docs/notes/cad.md).
+# Detent magnets shared by rotor.py, blade.py, shells.py and assembly.py (findings T03 / T15),
+# from params.DETENTS (written back 2026-10-05).
 # --------------------------------------------------------------------------
 # Deployed pair (blade heel / hub stop face): N52 BLOCK 6 x 2 x 2, 6 along the pin (tau = blade c),
 # 2 radial (r_e = blade s), magnetised through 2 along x (= blade n deployed). Glued seats +0.1.
-DEP_MAGNET = dict(size_tau_re_x=(6.0, 2.0, 2.0), seat_tau_re=(6.1, 2.1), r_e=8.2, recess=0.2,
-                  gap=0.4, grade="N52", source="e.g. supermagnete Q-06-02-02-N52 (VERIFY)")
+_DM = P.DETENTS["deployed_magnet"]
+DEP_MAGNET = dict(size_tau_re_x=tuple(_DM["size_tau_re_x"]), seat_tau_re=tuple(_DM["seat_tau_re"]),
+                  r_e=_DM["r_e"], recess=_DM["recess"], gap=_DM["gap"], grade=_DM["grade"],
+                  source=_DM["source"])
 # Stowed pair (blade shank inner face / aft-shell boss): N52 disc 4 x 2 (params.MAGNET) on the
 # face normal; blade magnet face STOW_BLADE_BELOW_MOUTH below the seat mouth, static magnet face
 # STOW_BOSS_RECESS below the boss face.
-STOW_BLADE_BELOW_MOUTH = 0.1
-STOW_BOSS_RECESS = 0.05
+STOW_BLADE_BELOW_MOUTH = P.DETENTS["stowed_blade_below_mouth"]
+STOW_BOSS_RECESS = P.DETENTS["stowed_boss_recess"]
 
 
 # --------------------------------------------------------------------------

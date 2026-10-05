@@ -260,9 +260,9 @@ class Layout:
     ear_t: float = 3.5              # hub ear thickness along the pin
     ear_clear: float = 0.3          # knuckle <-> ear axial clearance (each side)
     ear_cover: float = 2.0          # target material around the pin
-    spinner_wall: float = 1.2       # spinner shell over the hub (MIN_WALL)
+    spinner_wall: float = P.ROTOR_HUB["spinner_wall"]   # spinner shell over the hub (1.25: MIN_WALL as meshed)
     spinner_gap: float = 0.2        # radial gap hub core <-> spinner shell
-    run_clear: float = 0.3          # running clearance blade <-> hub (Prusa: >= 0.3)
+    run_clear: float = P.RUN_CLEAR  # running clearance blade <-> hub (Prusa: >= 0.3)
     magnet_recess: float = 0.2      # magnet face below its contact face (each side)
     shaft_end_dx: float = 12.0      # shaft end (hub aft face) aft of the hinge plane
     # deployed stop: heel tab under the knuckle
@@ -1568,16 +1568,17 @@ def hub_concept(lay: Layout, surf: BladeSurface, ev: dict, slot: dict, loads: di
             "D-flat; one M3 cup-point grub (ISO 4029) radial on the D-flat, between two blades.",
             "Clevis per blade: the blade root ends in a full-width knuckle (cylinder about the pin) that "
             "sits in a slot between two hub ears; the 3 mm pin runs TANGENTIALLY through ear, knuckle, ear.",
-            "Pins: ISO 8734 parallel pins pressed into the ears (printed 3.0 hole), knuckle bore 3.0 + "
-            "CLEAR_ROTATE. They go in along e_t through a 3 mm channel from the hub core surface; the "
-            "spinner shell covers both channel ends and retains the pins (folding-prop practice).",
+            "Pins: ISO 8734 parallel pins pressed into the ears (printed PIN_D + 2 PRESS_FIT hole), knuckle "
+            "bore PIN_D + 2 CLEAR_ROTATE (radial per side). They go in along e_t through a 3 mm channel "
+            "from the hub core surface; the spinner shell covers both channel ends and retains the pins "
+            "(folding-prop practice).",
             "Deployed stop: a heel tab under the knuckle; under thrust its leading face lands on the hub "
             "front ring (stop face at x = hinge_x - heel_t/2), which takes the flapwise moment.",
-            "Spinner (printed, rotating): 1.2 mm shell from the hub front to the blunt tip with three slots "
-            "(slot table). Slides on from aft, keys on the slots, and is held by one axial M3 screw into a "
-            "tapped hole in the shaft end; the hub's aft face bears on the spinner's inner aft wall, so "
-            "rotor thrust goes hub -> spinner -> M3 screw -> shaft (the grub only locks rotation and "
-            "holds the hub during assembly).",
+            ("Spinner (printed, rotating): %g mm shell from the hub front to the blunt tip with three slots "
+             "(slot table). Slides on from aft, keys on the slots, and is held by one axial M3 screw into a "
+             "tapped hole in the shaft end; the hub's aft face bears on the spinner's inner aft wall, so "
+             "rotor thrust goes hub -> spinner -> M3 screw -> shaft (the grub only locks rotation and "
+             "holds the hub during assembly)." % lay.spinner_wall),
             "Detents: N52 4x2 magnet pairs, heel face <-> stop face (deployed) and root inner face <-> "
             "boss on the static notch floor (stowed). No springs.",
         ],
@@ -1593,7 +1594,7 @@ def hub_concept(lay: Layout, surf: BladeSurface, ev: dict, slot: dict, loads: di
                  "outer_face_tau_mm": lay.pin_l / 2, "material_around_pin_in_core_min_mm": hr["pin_cover_to_hub_core_min_mm"],
                  "knuckle_side_clearance_mm": lay.ear_clear},
         "pin": {"d_mm": lay.pin_d, "l_mm": lay.pin_l, "standard": "ISO 8734 parallel pin 3 x 22 (VERIFY stock length)",
-                "ear_hole_d_mm": lay.pin_d, "knuckle_bore_d_mm": lay.pin_d + P.CLEAR_ROTATE,
+                "ear_hole_d_mm": lay.pin_d + 2 * P.PRESS_FIT, "knuckle_bore_d_mm": lay.pin_d + 2 * P.CLEAR_ROTATE,
                 "insertion_channel_tau_mm": [lay.pin_l / 2, tau_exit],
                 "channel_to_neighbour_swept_roots_min_mm": dch - lay.pin_d / 2,
                 "retention": "spinner shell covers both channel ends"},

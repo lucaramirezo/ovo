@@ -8,6 +8,8 @@
   :root { --bg0: #f4f2ee; --bg1: #dcd8d0; --ink: #1d1d1b; }
   html, body { margin: 0; height: 100%; background: radial-gradient(ellipse at 50% 35%, var(--bg0), var(--bg1)); overflow: hidden; font: 13px/1.4 system-ui, sans-serif; color: var(--ink); }
   body.dark { --bg0: #2a2d31; --bg1: #121315; --ink: #e8e6e1; }
+  /* review V7: mid warm grey for the portfolio renders, so the ivory egg separates from the backdrop */
+  body.studio { --bg0: #d9d4cb; --bg1: #b8b2a8; --ink: #1d1d1b; }
   body.flat { background: var(--bg0); }
   canvas { display: block; }
   #ui { position: fixed; left: 12px; bottom: 12px; display: none; gap: 14px; align-items: center; background: color-mix(in srgb, var(--bg0) 85%, transparent); padding: 8px 12px; border-radius: 10px; }
@@ -25,7 +27,9 @@
 <div id="ui">
   <label>fold <input id="s-fold" type="range" min="0" max="1" step="0.01" value="1"></label>
   <label>explode <input id="s-explode" type="range" min="0" max="1" step="0.01" value="0"></label>
+  <label title="fins off, blanking strips in (the egg as carried)"><input id="c-packed" type="checkbox"> packed</label>
   <label><input id="c-cutaway" type="checkbox"> cutaway</label>
+  <label title="v2 hardware: the M12 cable gland instead of the display blanking plug"><input id="c-v2" type="checkbox"> v2 gland</label>
   <label><input id="c-spin" type="checkbox"> spin</label>
 </div>
 <script type="module">
@@ -34,8 +38,12 @@
 // CAD frame is Z-up with the flow along +X; three.js is Y-up, so the model root is
 // rotated -90 deg about X. URL params (all optional):
 //   m=<manifest url>  fold=0..1 (0 stowed, 1 deployed)  explode=0..1  cutaway=0|1  packed=0|1
+//   v2=0|1 (the M12 gland instead of the display blanking plug; cutaway=1 implies it)
 //   internals=0|1  stand=0|1  spin=<deg>  view=<az>,<el> | iso|side|front|back|top
-//   zoom=<factor>  w,h=<px>  dpr=<n>  theme=light|dark|flat  ui=1  only=<name,name>
+//   zoom=<factor>  fit=sphere|tight  fill=<0..1: with fit=tight, the share of the frame the parts span>
+//   shadow=1 (with fit=tight: the key light's ground shadow is framed too, for the level side / front views)
+//   ground=0 (no ground shadow, e.g. for the exploded view, where a cloud of floating parts casts a scattered one)
+//   w,h=<px>  dpr=<n>  theme=light|dark|flat|studio  ui=1  only=<name,name>
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -45,6 +53,7 @@ const q = new URLSearchParams(location.search);
 const num = (k, d) => (q.has(k) ? parseFloat(q.get(k)) : d);
 const state = {
   fold: num('fold', 1), explode: num('explode', 0), cutaway: q.get('cutaway') === '1', packed: q.get('packed') === '1',
+  v2: q.get('v2') === '1', fit: q.get('fit') || 'sphere', fill: num('fill', 0.9), shadow: q.get('shadow') === '1',
   internals: q.has('internals') ? q.get('internals') === '1' : null,
   stand: q.get('stand') === '1', spin: num('spin', 0),
   view: q.get('view') || 'iso', zoom: num('zoom', 1),
@@ -75,15 +84,18 @@ key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
 key.shadow.radius = 6;
 key.shadow.bias = -0.0004;
+key.shadow.normalBias = 0.5;   // review V6: offsets the depth test along the normal (mm); removes the self-shadow
+                               // stipple on the orange blade faces
 scene.add(key, key.target);
 const rim = new THREE.DirectionalLight(0xdfe8ff, 0.9);
 scene.add(rim);
 scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b2a6, 0.35));
 
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000),
-  new THREE.ShadowMaterial({ opacity: theme === 'dark' ? 0.35 : 0.16 }));
+  new THREE.ShadowMaterial({ opacity: theme === 'dark' ? 0.35 : theme === 'studio' ? 0.22 : 0.16 }));
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
+ground.visible = q.get('ground') !== '0';
 scene.add(ground);
 
 // CAD (Z-up) -> three (Y-up)
@@ -142,6 +154,10 @@ function visible(p) {
   // then, parts flagged packed:false (fins) only otherwise
   if (p.packed === true && !state.packed) return false;
   if (p.packed === false && state.packed) return false;
+  // v2:true parts (the cable gland) show with cutaway or v2, v2:false parts (the display plug) otherwise
+  const v2 = state.v2 || state.cutaway;
+  if (p.v2 === true && !v2) return false;
+  if (p.v2 === false && v2) return false;
   const internals = state.internals ?? (state.cutaway || state.explode > 0.01);
   switch (p.role) {
     case 'shell': return !state.cutaway;
@@ -167,6 +183,21 @@ function apply() {
 
 const presets = { iso: [-35, 22], side: [0, 0], front: [-90, 0], back: [90, 0], top: [0, 89], hero: [-28, 14] };
 let fitted = null;
+const KEY_DIR = new THREE.Vector3(-0.6, 1.4, 0.9);   // key light position relative to the view centre (x r)
+// World positions of (a stride of) the visible vertices, for the tight fit.
+function visiblePoints(maxPts = 60000) {
+  const pts = [], v = new THREE.Vector3();
+  let total = 0;
+  for (const { holder, mesh } of parts) if (holder.visible) total += mesh.geometry.attributes.position.count;
+  const stride = Math.max(1, Math.floor(total / maxPts));
+  for (const { holder, mesh } of parts) {
+    if (!holder.visible) continue;
+    const pos = mesh.geometry.attributes.position;
+    for (let i = 0; i < pos.count; i += stride) pts.push(v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld).clone());
+  }
+  return pts;
+}
+
 function frame() {
   root.updateMatrixWorld(true);
   const box = new THREE.Box3();
@@ -174,13 +205,39 @@ function frame() {
   const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
   ground.position.y = box.min.y - 0.5;
   const [az, el] = (presets[state.view] || state.view.split(',').map(Number)).map(THREE.MathUtils.degToRad);
-  const r = (0.5 * s.length()) / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) / state.zoom * 0.92;
+  let r = (0.5 * s.length()) / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) / state.zoom * 0.92;
   // az measured around the vertical axis from the side view (looking at the model's +Y side)
   const dir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
   camera.position.copy(c).addScaledVector(dir, r);
   camera.near = r / 50; camera.far = r * 50; camera.updateProjectionMatrix();
   camera.lookAt(c);
-  key.position.copy(c).add(new THREE.Vector3(-0.6, 1.4, 0.9).multiplyScalar(r));
+  if (state.fit === 'tight') {
+    // project the visible vertices, re-centre the view on their screen box and pull the camera in
+    // until that box spans `fill` of the frame (zoom still multiplies); a few passes for perspective
+    const pts = visiblePoints(), p = new THREE.Vector3();
+    if (state.shadow && ground.visible) {
+      // the shadow each point casts on the ground along the key light (fixed direction, see below)
+      const d = KEY_DIR.clone().normalize(), n = pts.length;
+      for (let i = 0; i < n; i++) {
+        const w = pts[i], t = (w.y - ground.position.y) / d.y;
+        if (t > 0) pts.push(w.clone().addScaledVector(d, -t));
+      }
+    }
+    const right = new THREE.Vector3(), up = new THREE.Vector3();
+    for (let pass = 0; pass < 4; pass++) {
+      camera.updateMatrixWorld(true);
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (const w of pts) { p.copy(w).project(camera); x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); }
+      const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      right.setFromMatrixColumn(camera.matrixWorld, 0); up.setFromMatrixColumn(camera.matrixWorld, 1);
+      c.addScaledVector(right, 0.5 * (x0 + x1) * r * tanV * camera.aspect).addScaledVector(up, 0.5 * (y0 + y1) * r * tanV);
+      r *= Math.max((x1 - x0) / 2, (y1 - y0) / 2) / (state.fill * state.zoom);
+      camera.position.copy(c).addScaledVector(dir, r);
+      camera.near = r / 50; camera.far = r * 50; camera.updateProjectionMatrix();
+      camera.lookAt(c);
+    }
+  }
+  key.position.copy(c).add(KEY_DIR.clone().multiplyScalar(r));
   key.target.position.copy(c);
   const ext = s.length();
   Object.assign(key.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext, near: 1, far: r * 4 });
@@ -213,8 +270,13 @@ apply(); frame();
 if (q.get('ui') === '1') {
   controls = new OrbitControls(camera, renderer.domElement);
   controls.target.copy(fitted); controls.enableDamping = true;
-  const bind = (id, k, f = v => +v) => document.getElementById(id).addEventListener('input', e => { state[k] = f(e.target.type === 'checkbox' ? e.target.checked : e.target.value); apply(); });
+  const bind = (id, k, f = v => +v) => {
+    const el = document.getElementById(id);
+    if (el.type === 'checkbox') el.checked = !!state[k]; else el.value = state[k];   // reflect the URL state
+    el.addEventListener('input', e => { state[k] = f(e.target.type === 'checkbox' ? e.target.checked : e.target.value); apply(); });
+  };
   bind('s-fold', 'fold'); bind('s-explode', 'explode'); bind('c-cutaway', 'cutaway', v => v);
+  bind('c-packed', 'packed', v => v); bind('c-v2', 'v2', v => v);
   let spinning = false; document.getElementById('c-spin').addEventListener('input', e => spinning = e.target.checked);
   renderer.setAnimationLoop(() => { if (spinning) { state.spin += 2; apply(); } controls.update(); render(); });
 } else {

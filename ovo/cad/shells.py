@@ -26,7 +26,11 @@ layout JSON; nothing below changes them):
   sections uniformly) sewn into one solid, ruled on the root-notch ramp. Shells print +X down, so
   in-slice undercuts cost nothing; the 45 deg widening rule between slices is kept. A matching
   "liner" (the deep cutter grown by POCKET_FLOOR_WALL normal to the floor and the side walls) is
-  added inside each shell first, so >= 2.0 mm of shell stays under every floor.
+  added inside each shell first, so >= 2.0 mm of shell stays under every floor. Forward end (review V4):
+  the CAD blade's tip rounds off over its last TIP_ZONE of span (the layout surface is square), so over
+  the tip zone the pocket takes the CAD blade's theta range + TIP_REVEAL (2 mm) instead of the table's,
+  and the 45 deg rule turns the narrowing into a chamfered corner that follows the rounded tip (the
+  liner keeps the full bounds). blade_cloud() is the stowed blade used for the rim and every pocket check.
 * Socket / spigot: JOINT and BAYONET as given. The lip's forward face is a 45 deg cone that
   matches the lug's 45 deg aft face (0.2 mm axial play), the lip's aft face is a 45 deg chamfer
   (it is an overhang when the front shell prints), the twist channel's forward wall is a 45 deg
@@ -38,35 +42,35 @@ layout JSON; nothing below changes them):
   through 3 notches in the ring's aft lip and turn 30 deg toward -theta (the generator's
   reaction torque drives them into the hard stop) inside a groove whose forward wall is a 45
   deg seat cone.
-* Fins: pads and half-dovetail grooves per FIN (yawed with the fin); the pad front is rounded R3 in
-  plan, its root blends into the hull with R2 (the side that runs 2.2 to 3.6 mm from a pocket rim
-  sets the radius) and the groove mouth has 0.5 x 45 deg chamfers (finding T07); the
-  groove is 0.8 deeper than FIN.groove_depth so both cross-pin ligaments reach 1.2 (T18). The pads
-  still stand ~9 mm proud: lowering them needs a lower fin root standoff (layout). Retention: the reviewer is
-  right that an M3 heat-set insert does not fit the 10 mm pad beside a 4 mm deep groove, so the
-  fin is held by a 2 mm cross pin through the pad and the tongue (FIN_RAIL), hole printed as a
-  teardrop; the groove is closed at the end stop, so drag pushes the fin home and the pin only
-  keeps it from sliding forward in handling.
-* Stowed detent: DETENTS gives a radial magnet axis at (x 104.25, az 18.75), but the stowed
-  blade's inner face there leans ~49-51 deg from radial, so a radial 4 mm pair cannot meet
-  face to face (the blade module puts its magnet on the face normal). The static magnet shares
-  the blade magnet's mouth point on that face and leans 45 deg from radial toward the normal
-  (the steepest support-free direction; boss face, hole and boss side all print at 45 deg),
-  5.7 deg off the blade magnet's axis. The boss face clears the stowed blade by 0.1 mm over its
-  whole 6.5 mm diameter (layout.py surface), which leaves ~1.0 mm between the magnet faces
-  (~1.3 N per the layout force table, ~7x the blade's gravity moment). Finding T15: the static
-  magnet now sits 0.05 below the boss face and the blade magnet 0.1 below its mouth: ~0.70 mm,
-  ~1.75 N. The boss's lowest tip still starts ~1.1 mm (print height) above the floor ramp: a chin
-  or a column would hit the stowed blade root, which runs right behind it (open issue). See
-  STOW_DETENT.
+* Fins (owner decision 2026-10-05): RECESSED rails, no pads. Per fin a straight half-dovetail groove
+  (FIN_RAIL, rail_frame) runs along the yawed fin chord, sunk into a boss on the inside of the wall: the
+  floor climbs inward going aft (slope -0.25) from the run-out through the skin (x ~27.6) to the end stop
+  (x 39.4), between the carrier (x <= 23.7) and the socket (x >= 41.7); an entry relief opens the undercut
+  where its lip would be thinner than MIN_WALL; a 4 x 2 x 2 N52 block sits under the floor (its pair in the
+  fin / blanking strip tongue holds them). The boss (1.6 under the floor, 3.45 under the magnet, 1.6 beside
+  the groove, + 2.5 on the side of the nearer pocket so it merges with that pocket's liner: +w for theta
+  87.5, -w for 267.5, review C7) ends on a 45 deg cone ahead of the spigot tip and stays 1.1+ mm off the
+  generator bay. The FIN block is the fin study's re-run (layout_internal.json).
+* Stowed detent (owner call T15): the static magnet shares the blade magnet's mouth point and axis (the
+  blade face normal, ~49 deg from radial); the boss top follows the blade's inner face face_clear below it
+  (cubic fit of the layout surface) on the side where that face comes toward the boss, flat elsewhere;
+  the magnet face sits C.STOW_BOSS_RECESS below the lowest blade-driven top point over the hole (pair gap
+  ~0.42 mm on the axis); a chin swept down the boss's face plane starts it on the root-notch ramp. Review
+  C2 / P2: boss and chin share ONE top surface (stow_top_grid: face_clear under the blade, never falling
+  going print-down), so no top face leans beyond the 49 deg boss plane and the boss rim never hangs above
+  a lower chin top as an island; the magnet face may stand up to ~0.2 mm proud of that top on one side.
+* Bayonet click (T17): BAYONET_CLICK tines and bumps on the spigot, dimples in the socket ring; the tines'
+  45 deg underside slots are 0.81 mm normal, and the PRINT solid (aft_shell_print) carries a breakaway tie
+  across each free-end slit at the tine's bottom (review C1 / P1), cut through the slit after printing.
 * Bearing tube: crush ribs (3 per seat) reach D21.9 / D15.9 (PRESS_FIT per side) in relieved
   bores D22.4 / D16.3; the seal shoulder's underside is a 0.6 mm flat ring (the seal's stop)
   plus a 45 deg cone, the only intentional sub-45 deg-rule face of the tube (reported).
 * Nose: plug forward of NOSE_PLUG.x_45 with a flat bridge (38.6 mm, reported as a bridge),
   tow eye (finding T06): a teardrop lug, its outer profile parallel to the hole's teardrop so the
   crown keeps TOW_EYE ring_w (5.0) normal to the 45 deg flanks, the hole apex cut to a 2 mm flat,
-  the root blended R2 into the nose; raised gland seat block, 10.5 mm tap-drill bore through
-  block, wall and plug (tapped M12x1.5 after printing, no modelled thread).
+  the root blended R2 into the nose; raised gland seat block (no rim chamfer, blended into the nose by
+  an R6 root fillet, review V2), 10.5 mm tap-drill bore through block, wall and plug (display build: the
+  push-in blanking plug in the plain bore; v2: tapped M12x1.5 for the gland, no modelled thread).
 """
 
 from __future__ import annotations
@@ -110,7 +114,7 @@ OUT_CHECKS = REPO / "out" / "cad" / "checks"
 
 TAN45 = 1.0
 DX_TAB = 0.5                               # pocket table row spacing (mm)
-FLOOR_PRINT_DEG = 44.5                     # CAD pocket floor rise limit (table: 45, see pocket_profile)
+FLOOR_PRINT_DEG = P.POCKETS["cad_floor_print_deg"]   # 44.5 CAD pocket floor rise limit (table: 45, see pocket_profile)
 # Pocket rim (finding T04). The table's side walls are radial planes at the blade's widest point
 # + 0.8 side clearance (min-filtered on a 0.5 deg raster): at the skin that left a serrated 1.4 to
 # 6.6 mm shadow gap. The rim at the skin now follows the blade's swept footprint (fold 0..90) in the
@@ -159,7 +163,7 @@ LUG_CHAMFER = 0.4                          # lug forward-outer edge (O-ring and 
 # D65.79, 2.62 long). It is cut AFTER the pocket liners (the liners had refilled it to 0.29 under
 # the three pockets); there the wall to the pocket floor drops to ~1.6 at the face (>= MIN_WALL,
 # reported separately from the 2.0 under-pocket rule).
-SEAL_LEAD = (0.85, 18.0)                   # seal bore lead-in at the equator: radial mm, deg
+SEAL_LEAD = tuple(J["seal_lead"])          # seal bore lead-in at the equator: radial mm, deg (0.85, 18)
 EQ_CHAMFER = 0.5                           # outer edge of the equator faces (parting V, elephant foot)
 TAIL_CHAMFER = 0.4                         # outer edge of the static tail end face
 
@@ -182,33 +186,82 @@ CARRIER_LOCK = dict(
 )
 CARRIER_LOCK["entry_theta_deg"] = [(t + CARRIER_LOCK["twist_deg"]) % 360.0 for t in CARRIER_LOCK["lock_theta_deg"]]
 
-# Fin rail (shell side): groove section in the yawed pad, cross pin retention.
-FIN = P.FIN
-# Finding T18: with groove depth 4, a 2 mm pin left ~1.0 mm of pad over the D2.0 hole and 0.55 mm of
-# tongue under its D2.3 hole. The groove and the tongue are 0.8 deeper (4.8, the 45 deg undercut kept:
-# neck 3.3) and the pin sits at depth 2.2: both ligaments reach 1.2 (PROPOSED FIN.groove_depth 4.8).
+# Fin rail (shell side), owner decision 2026-10-05: RECESSED. The fin root sits on the hull skin; a
+# straight half-dovetail groove is sunk into a boss on the inside of the front shell wall and closed by a
+# flush blanking strip (fins.py) when the fins are off, so the stowed egg keeps its 75 mm. The FIN block
+# is params.FIN (written back 2026-10-05 from the fin study re-run in ovo/layout_internal.py); any drift
+# of the study's proposal (data/layout_internal.json proposed FIN) from params is listed in shells.json
+# fin_block_vs_params as [params, layout proposal].
+
+
+def _fin_layout_proposal() -> dict:
+    try:
+        return json.loads((DATA / "layout_internal.json").read_text())["proposed_param_updates"]["FIN"]
+    except Exception:  # noqa: BLE001 (no layout file: nothing to compare)
+        return {}
+
+
+FIN = dict(P.FIN)
+FIN_VS_PARAMS = {k: [P.FIN.get(k), v] for k, v in _fin_layout_proposal().items() if P.FIN.get(k) != v}
 FIN_RAIL = dict(
-    pad_w=FIN["rail_w"], groove_depth=FIN["groove_depth"] + 0.8,
-    groove_w_top=4.5, groove_neck_h=2.5 + 0.8, groove_w_bottom=6.0,
-    groove_w_offset=-2.25,              # w of the flat (vertical) wall, on the fin's flat side (-w)
-    end_stop_u=FIN["chord"],            # groove closed at u = chord (fin TE at x_te 55.5)
-    pin_d=2.0, pin_hole_d=2.0, pin_l=10.0, pin_u=32.0, pin_depth=2.2,
-    tongue_pin_hole_d=2.3, mouth_chamfer=0.5,
-    note="u: along the yawed root chord from the LE (x_le 16.37 at w = 0), w: across, + toward +theta; "
-         "depth: radial at the fin angle below the root line (pad top). Groove: flat wall at w = -2.25 "
-         "full depth (the fin's flat Clark Y side faces -theta), +w wall vertical to depth 3.3 then a 45 "
-         "deg undercut to w = +3.75 at depth 4.8 (mean width 4.73); 0.5 x 45 deg chamfers on the mouth. "
-         "Cross pin: ISO 8734 2 x 10 (or a 1.75 mm filament stub) along w at u 32, depth 2.2, snug in the "
-         "pad (D2.0 teardrop), D2.3 in the tongue: 1.2 mm of pad over the hole, 1.2 of tongue under it.",
+    slot_w=FIN["rail_w"],                      # 5.2 neck = slot mouth
+    groove_w=FIN["groove_w_floor"],            # 6.5 at the floor (45 deg undercut on +w)
+    w0=FIN["groove_w0"],                       # -2.6 flat wall (the fin's flat Clark Y side faces -theta)
+    uc_h=FIN["groove_undercut_h"],             # 1.3 undercut height above the floor
+    slope=FIN["rail_slope"],                   # -0.25 da/du: the fin slides aft and inward onto the stop
+    stop_x=FIN["rail_stop_x"],                 # 39.4 end stop (groove aft face, a plane u = const) at w = 0
+    floor_a_stop=FIN["rail_floor_a_stop"],     # 29.6 floor at the stop, radial at the fin angle
+    boss_floor_t=FIN["boss_floor_t"], boss_side_t=FIN["boss_side_t"], boss_magnet_t=FIN["boss_magnet_t"],
+    boss_cone_x=FIN["boss_cone_x"],            # boss ends on r >= R_LIP - (43.1 - x), 45 deg, ahead of the spigot
+    root_gap=FIN["root_gap"],                  # fin root face 0.1 above the skin (tongue seated)
+    clear_side=P.CLEAR_SLIDE,                  # tongue / strip to the groove walls (normal)
+    clear_floor=FIN["clear_floor"],            # 0.05: the magnet pair pulls the tongue onto the floor
+    lip_min=P.MIN_WALL,                        # entry relief: the undercut lip starts >= MIN_WALL thick
+    magnet=dict(size=tuple(P.FIN_MAGNET["size"]), seat=tuple(P.FIN_MAGNET["seat"]),
+                depth=P.FIN_MAGNET["seat_depth"], recess=P.FIN_MAGNET["recess"],
+                u_from_stop=P.FIN_MAGNET["u_from_stop"], part=P.FIN_MAGNET["part"]),
+    note="fin frame (u along the yawed chord from the LE, w across + toward +theta, a radial at the fin "
+         "angle); floor a_f(u) = floor_a_stop + slope (u - u_stop); section above the floor: flat wall at "
+         "w0 full height, neck wall at w0 + slot_w from uc_h up through the skin, 45 deg undercut to "
+         "w0 + groove_w at the floor; entry relief (neck opened to the full width up through the skin) "
+         "where the undercut lip would be thinner than lip_min; floor magnet seat 1.75 ahead of the stop "
+         "(4.1 x 2.1 x 2.05 along the floor, its forward wall a 45 deg undercut so it prints); boss under "
+         "the floor: boss_floor_t, boss_magnet_t under the seat (45 deg aft end), boss_side_t beside it.",
 )
-PAD_FRONT_R = 3.0                          # DESIGN: rounded front of the rail pad (plan), finding T07
-PAD_ROOT_R = 2.0                           # DESIGN: pad-to-hull blend (falls back to 1.5 / 1.0)
-PAD_ROOT_USED = [None]
 
 # Finding T15: the static magnet now sits C.STOW_BOSS_RECESS (0.05) below the boss face (was 0.2) and
 # the blade magnet 0.1 below its seat mouth (blade.py), which takes the pair from 1.045 to ~0.70 mm.
-STOW_DETENT = dict(axis_lean_deg=45.0, boss_r=3.25, magnet_hole_d=P.MAGNET["D"] + 0.1,
-                   magnet_hole_depth=P.MAGNET["H"] + C.STOW_BOSS_RECESS, face_clear=0.1)
+# Owner call 2026-10-05 (T15): the boss leans with the blade face (up to 49.5 deg from radial; the boss face,
+# side and hole then face down ~47 deg when printed: a 2-4 deg overhang over a 4.1 mm hole, accepted) and
+# its tip starts from the root-notch ramp with a 45 deg chin (the boss swept down its own steepest
+# in-face direction into the ramp, chin_recess below the boss face), so no layer prints as an island.
+_DET = P.DETENTS
+STOW_DETENT = dict(axis_lean_deg=_DET["stowed_boss_lean_max_deg"], boss_r=_DET["stowed_boss_r"],
+                   magnet_hole_d=P.MAGNET["D"] + 0.1, chin_len=_DET["stowed_chin"]["len"],
+                   chin_hw=_DET["stowed_chin"]["half_width"], chin_clear=_DET["stowed_chin"]["clear_to_blade"],
+                   magnet_hole_depth=P.MAGNET["H"] + C.STOW_BOSS_RECESS, face_clear=_DET["stowed_face_clear"])
+
+BOSS_W_EXTRA = 2.5                         # DESIGN: rail boss side beyond boss_side_t toward the nearer pocket
+                                           # liner (merges with it; review C7: +w for theta 87.5, -w for 267.5)
+try:
+    FIN_LAYOUT_POCKET_CLEAR = json.loads((DATA / "layout_internal.json").read_text())["fins"]["clearance"][
+        "stowed_pockets"]["min_clear_mm"]
+except Exception:  # noqa: BLE001
+    FIN_LAYOUT_POCKET_CLEAR = float("nan")
+
+# Bayonet click (finding T17): only O-ring friction held the 35 deg twist, and the bearing / seal drag acts in
+# the unlock direction. Three circumferential flexure tines in the spigot wall between the lugs (x from the tip
+# to x_gap, the wall's full 2.36 mm, free at the end that carries a 0.5 mm bump); the bump rides the socket
+# ring ID (r R_LIP, 0.25 interference: the tine deflects) during the twist and drops into an axial dimple at
+# the lock angle. The tine's underside is a 45 deg slot (prints spigot-up), its free end a radial slit.
+# theta_lock: the bump's azimuth when locked; its twist path [theta - 35, theta] stays on the solid ring (off
+# the channels and entry gaps, and off the fin rail bosses).
+_CK = BY["click"]
+BAYONET_CLICK = dict(theta_lock=list(_CK["theta_lock_deg"]), tine_arc_deg=_CK["tine_arc_deg"],
+                     end_offset_deg=_CK["end_offset_deg"], x_gap=_CK["x_gap"], gap_w=_CK["gap_w"], tie_h=_CK["tie_h"],
+                     slit_w=_CK["slit_w"], bump_h=_CK["bump_h"], bump_top_hw=_CK["bump_top_hw"],
+                     flank_deg=_CK["flank_deg"], bump_x=tuple(_CK["bump_x"]), dimple_clear=_CK["dimple_clear"],
+                     dimple_x=tuple(_CK["dimple_x"]))
 
 CUTAWAY_THETA = (-73.0, 17.0)              # removed sector (theta), see cutaway_sector()
 # Seam azimuths of the full solids of revolution (windows free of every cutter that touches them):
@@ -383,6 +436,59 @@ def _smooth_outside(x: np.ndarray, v: np.ndarray, upper: bool, step: int = 3) ->
     return f
 
 
+TIP_REVEAL = 2.0          # DESIGN (review V4): pocket forward end = the CAD blade tip outline + this (the side reveal)
+
+
+def blade_cloud(S, step: float) -> np.ndarray:
+    """Blade-frame point cloud of the stowed blade for the pocket rim and the pocket checks: the layout's
+    aero rows up to the CAD tip zone, the CAD tip zone (blade.section_grid: the last aero row and the tip
+    sections, which shrink elliptically toward the TE over the last TIP_ZONE of span; the layout surface
+    keeps the full chord to the tip) and the layout shank (review V4: the pocket's forward end now follows
+    the real tip, so every check that measures the stowed blade against the pocket uses it too)."""
+    from .. import layout as RL
+    from . import blade as BL
+    n_main = len(BL.aero_main_radii())
+    sg = BL.section_grid()
+    it = int(np.nonzero(sg["zone"] == "tip")[0][0])
+    tip = sg["G"][it - 1:]
+    return np.vstack([RL.densify(S.aero[:n_main], step).reshape(-1, 3), RL.densify(tip, step).reshape(-1, 3),
+                      RL.densify(S.shank, step).reshape(-1, 3)])
+
+
+@functools.lru_cache(maxsize=1)
+def tip_footprint(step: float = 0.2) -> dict:
+    """Theta range (deg, blade at theta 0) of the stowed blade (blade_cloud, folds 87..90 deg: the tip comes
+    down radially at the end of the fold) per pocket table row (+-0.25 mm), every point under the skin
+    (r <= R + 0.1), and the x where the CAD tip zone ends (stowed)."""
+    from .. import layout as RL
+    from . import blade as BL
+    tab = json.loads((DATA / "layout_rotor.json").read_text())
+    X = np.array(tab["pocket_depth"]["x_mm"], float)
+    blade, lay = RL.load_blade(), RL.chosen_layout()
+    a = tab["axis"]
+    ax = RL.BladeAxis(np.array(a["r_mm"]), np.array(a["s_mm"]), np.array(a["lead_mm"]), np.array(a["aft_mm"]),
+                      np.array(a["slope_daft_ds"]), np.array(a["aft_poly_coef_mm"]),
+                      np.array(a["lead_poly_coef_mm"]), blade.r_root, blade.r_tip)
+    S = RL.blade_surface(blade, lay, ax)
+    cloud = blade_cloud(S, step)
+    sg = BL.section_grid()
+    it = int(np.nonzero(sg["zone"] == "tip")[0][0])
+    tipz = sg["G"][it:].reshape(-1, 3)
+    lo, hi = np.full(X.size, np.inf), np.full(X.size, -np.inf)
+    for f in (87.0, 88.0, 89.0, lay.fold_deg):
+        W = RL.apply(RL.blade_to_world(f, lay.psi(0), lay), cloud)
+        xx, r = W[:, 0], np.hypot(W[:, 1], W[:, 2])
+        th = np.degrees(np.arctan2(W[:, 1], W[:, 2]))
+        i = np.round((xx - X[0]) / DX_TAB).astype(int)
+        ic = np.clip(i, 0, X.size - 1)
+        R = profile.radius(np.clip(xx, 0.0, P.HULL_L))
+        k = (i >= 0) & (i < X.size) & (np.abs(xx - X[ic]) <= DX_TAB / 2 + 1e-9) & (r <= R + 0.1)
+        np.minimum.at(lo, i[k], th[k])
+        np.maximum.at(hi, i[k], th[k])
+    Wt = RL.apply(RL.blade_to_world(lay.fold_deg, lay.psi(0), lay), tipz)
+    return dict(x=X, lo=lo, hi=hi, x_tip_zone_end=float(Wt[:, 0].max()), x_tip=float(Wt[:, 0].min()))
+
+
 @functools.lru_cache(maxsize=1)
 def swept_rim(step: float = 0.3) -> dict:
     """Blade 0's swept azimuth range (theta, deg; theta_b = 0) in the lip band r in
@@ -398,7 +504,7 @@ def swept_rim(step: float = 0.3) -> dict:
                       np.array(a["slope_daft_ds"]), np.array(a["aft_poly_coef_mm"]),
                       np.array(a["lead_poly_coef_mm"]), blade.r_root, blade.r_tip)
     S = RL.blade_surface(blade, lay, ax)
-    cloud = np.vstack([RL.densify(S.aero, step).reshape(-1, 3), RL.densify(S.shank, step).reshape(-1, 3)])
+    cloud = blade_cloud(S, step)
     lo, hi = np.full(X.size, np.inf), np.full(X.size, -np.inf)
     lo_st, hi_st = lo.copy(), hi.copy()
     folds = np.concatenate([np.arange(0.0, 80.0, 1.0), np.arange(80.0, lay.fold_deg + 1e-9, 0.25)])
@@ -460,6 +566,23 @@ def pocket_profile() -> dict:
     th_lo[:i0], th_hi[:i0] = th_lo[i0], th_hi[i0]
     th_lo = _smooth_outside(x, _envelope(th_lo, POCKET_SMOOTH, upper=False), upper=False)
     th_hi = _smooth_outside(x, _envelope(th_hi, POCKET_SMOOTH, upper=True), upper=True)
+    # --- forward end (review V4): the table rows (layout surface) keep the full chord to the tip, but the
+    # CAD tip rounds off over its last TIP_ZONE of span (its LE side recedes ~6 mm along x), which left a
+    # triangle of open pocket ahead of the stowed tip, up to ~8 mm along x. Over the tip zone the pocket
+    # now takes the CAD blade's theta range (all depths, folds 87..90) + TIP_REVEAL, never wider than the
+    # table's; rows ahead of the tip take the first tip row's range. The 45 deg rule below then turns
+    # the narrowing into a 45 deg chamfered corner. The liner keeps the full table bounds (more wall).
+    th_lo_full, th_hi_full = th_lo.copy(), th_hi.copy()
+    tf_ = tip_footprint()
+    assert np.allclose(tf_["x"], x)
+    tlo, thi = tf_["lo"].copy(), tf_["hi"].copy()
+    okt = np.isfinite(tlo) & np.isfinite(thi)
+    jt = int(np.argmax(okt))
+    tlo[:jt], thi[:jt] = tlo[jt], thi[jt]
+    tip_rows = (x <= tf_["x_tip_zone_end"] + 0.5) & (np.arange(x.size) <= np.nonzero(okt)[0].max())
+    cdeg = np.degrees(TIP_REVEAL / r_arc)
+    th_lo = np.where(tip_rows, np.maximum(th_lo, tlo - cdeg), th_lo)
+    th_hi = np.where(tip_rows, np.minimum(th_hi, thi + cdeg), th_hi)
     # --- rim bounds at the skin (swept footprint in the lip band + POCKET_RIM_CLEAR), inside the deep ones
     sw = swept_rim()
     assert np.allclose(sw["x"], x)
@@ -469,11 +592,21 @@ def pocket_profile() -> dict:
     ok = np.isfinite(rlo) & np.isfinite(rhi)
     j0 = int(np.argmax(ok))
     rlo[:j0], rhi[:j0] = rlo[j0], rhi[j0]                     # pocket tip: square, as the deep bounds
-    rlo = _smooth_outside(x, _envelope(rlo, POCKET_SMOOTH, upper=False), upper=False)
-    rhi = _smooth_outside(x, _envelope(rhi, POCKET_SMOOTH, upper=True), upper=True)
+    rlo_full = _smooth_outside(x, _envelope(rlo, POCKET_SMOOTH, upper=False), upper=False)
+    rhi_full = _smooth_outside(x, _envelope(rhi, POCKET_SMOOTH, upper=True), upper=True)
+    # tip zone (V4): the raw swept range + TIP_REVEAL, unsmoothed (the +-2.5 mm smoothing window would widen
+    # the narrowing tip back toward the square end); the 45 deg rule below shapes it
+    ct = np.degrees(TIP_REVEAL / rr)
+    slo, shi = sw["lo"].copy(), sw["hi"].copy()
+    slo[:j0], shi[:j0] = slo[j0], shi[j0]
+    rlo = np.where(tip_rows, np.maximum(slo - ct, rlo_full), rlo_full)       # only ever narrower than before
+    rhi = np.where(tip_rows, np.minimum(shi + ct, rhi_full), rhi_full)
     rlo, rhi = _printable_bounds(rlo, rhi, rr, DX_TAB)
+    rlo_full, rhi_full = _printable_bounds(rlo_full, rhi_full, rr, DX_TAB)
     th_lo, th_hi = np.minimum(th_lo, rlo), np.maximum(th_hi, rhi)
     th_lo, th_hi = _printable_bounds(th_lo, th_hi, r_arc, DX_TAB, active=deep)
+    th_lo_full, th_hi_full = np.minimum(th_lo_full, rlo_full), np.maximum(th_hi_full, rhi_full)
+    th_lo_full, th_hi_full = _printable_bounds(th_lo_full, th_hi_full, r_arc, DX_TAB, active=deep)
 
     # --- floor rule check (the table must already rise <= 45 deg going forward), then the same
     # rule at FLOOR_PRINT_DEG: the ruled loft twists the table's exact 45 deg ramps to 45.34 deg,
@@ -491,6 +624,8 @@ def pocket_profile() -> dict:
     fl_e = np.concatenate([[fl[0] + kf], fl, [fl[-1]]])
     lo_e = np.concatenate([[th_lo[0] + 0.0], th_lo, [th_lo[-1]]])
     hi_e = np.concatenate([[th_hi[0]], th_hi, [th_hi[-1]]])
+    lo_f = np.concatenate([[th_lo_full[0]], th_lo_full, [th_lo_full[-1]]])
+    hi_f = np.concatenate([[th_hi_full[0]], th_hi_full, [th_hi_full[-1]]])
     rlo_e = np.concatenate([[rlo[0]], rlo, [rlo[-1]]])
     rhi_e = np.concatenate([[rhi[0]], rhi, [rhi[-1]]])
     assert fl_e[0] > r_out(x_e[0]), "forward pocket row must start outside the hull"
@@ -505,11 +640,13 @@ def pocket_profile() -> dict:
     for k in range(1, len(lf)):
         lf[k] = min(lf[k], lf[k - 1] + DX_TAB * TAN45)
     dth = np.degrees(W / fl_e)
-    l_lo, l_hi = lo_e - dth, hi_e + dth
+    l_lo, l_hi = lo_f - dth, hi_f + dth                            # full (pre-V4) bounds: more wall, never less
     l_lo, l_hi = _printable_bounds(l_lo, l_hi, np.array([r_in(v) for v in x_e]), DX_TAB)
     return dict(x=x_e, floor=fl_e, th_lo=lo_e, th_hi=hi_e, rim_lo=rlo_e, rim_hi=rhi_e, liner_floor=lf,
                 liner_lo=l_lo, liner_hi=l_hi, table=dict(x=x, floor=fl_table, az_lo=az_lo, az_hi=az_hi),
-                cad_floor=fl, tip_rows=i0, sample=dict(x=xs_, az=az_, r=rs_), swept=sw)
+                cad_floor=fl, tip_rows=i0, sample=dict(x=xs_, az=az_, r=rs_), swept=sw,
+                tip=dict(x_tip=tf_["x_tip"], x_tip_zone_end=tf_["x_tip_zone_end"], n_rows=int(tip_rows.sum()),
+                         lo_front=float(th_lo[0]), lo_front_full=float(th_lo_full[0])))
 
 
 def _sector_wire(x: float, r0: float, r1: float, th0: float, th1: float) -> Wire:
@@ -733,7 +870,9 @@ def _socket_cutters() -> list:
     out = []
     # lip forward cone: parallel to the lug's 45 deg aft face, BAY_AX_CLEAR behind it
     x_cone = lambda r: X_TIP + LUG_T + BAY_AX_CLEAR - (r - R_SPIG_LUG)       # noqa: E731
-    ch = [(X_RING0, R_LIP - 0.6), (X_RING0, R_LIP), (X_CH0, R_CH), (x_cone(R_CH), R_CH),
+    # the front face below R_LIP leans 45 deg (it was vertical): where a fin rail boss reaches past X_RING0 into a
+    # channel's sector the cut then leaves a 45 deg face instead of a flat ledge facing down in print
+    ch = [(X_RING0 + 0.6, R_LIP - 0.6), (X_RING0, R_LIP), (X_CH0, R_CH), (x_cone(R_CH), R_CH),
           (x_cone(R_LIP), R_LIP), (x_cone(R_LIP), R_LIP - 0.6)]
     # entry gap through the lip: its outer face (r = R_CH = the seal bore radius) stops exactly at
     # the bore edge and the cutter then drops 45 deg into the open bore, so it never shares a face
@@ -772,9 +911,9 @@ def _carrier_cutters() -> list:
     return out
 
 
-EYE_APEX_R = 1.5                           # DESIGN: round of the outer teardrop apex
-EYE_HOLE_FLAT = 2.0                        # DESIGN: hole apex truncated to this flat (short bridge)
-EYE_ROOT_R = 2.0                           # DESIGN: fillet where the ring meets the nose
+EYE_APEX_R = P.TOW_EYE["outer_apex_r"]       # 1.5 round of the outer teardrop apex
+EYE_HOLE_FLAT = P.TOW_EYE["hole_apex_flat"]   # 2.0 hole apex truncated to this flat (short bridge)
+EYE_ROOT_R = P.TOW_EYE["root_fillet_r"]       # 2.0 fillet where the ring meets the nose
 
 
 def eye_profile() -> dict:
@@ -859,23 +998,52 @@ def gland_frame() -> dict:
     return dict(S=S, A=A, e_r=e_r)
 
 
-GLAND_DRILL_D = 10.5                       # M12x1.5 tap drill
+GLAND_DRILL_D = P.GLAND["tap_drill_d"]     # 10.5 M12x1.5 tap drill
 GLAND_BORE_LEN = 9.6                       # from the spot face: fully through the plug into the cavity
 
 
 def _gland_block() -> Solid:
+    """Seat boss: a D seat_d cylinder on the gland axis up to the spot face. No rim chamfer (review V2):
+    the display plug's base covers the whole seat flush with its edge (GLAND_PLUG base_r = seat_d / 2), so
+    no groove shows between them; the boss blends into the nose through _gland_root_fillet."""
     G, F = P.GLAND, gland_frame()
     S, A = F["S"], F["A"]
     L = 14.0
     pl = Plane(origin=Vector(*(S - L * A)), z_dir=Vector(*A))
-    blk = Solid.make_cylinder(G["seat_d"] / 2, L, pl)
-    top = [e for e in blk.edges() if abs((e.position_at(0) - Vector(*S)).dot(Vector(*A))) < 1e-6
-           and abs((e.position_at(0) - Vector(*S)).length - G["seat_d"] / 2) < 1e-3]
-    try:
-        blk = blk.chamfer(0.5, None, top)
-    except Exception:  # noqa: BLE001
-        pass
-    return blk
+    return Solid.make_cylinder(G["seat_d"] / 2, L, pl)
+
+
+GLAND_FILLET = dict(r_wanted=P.GLAND["boss_root_fillet_r"], r_built=None)
+
+
+def _gland_root_fillet(body: Solid) -> Solid:
+    """Review V2: the seat boss stood 5.1 mm proud as a plain cylinder and, with the plug, read as a spigot.
+    Blend it into the nose with a fillet on its junction edge with the hull (boss_root_fillet_r, then smaller
+    radii if OCC refuses), so boss and plug read as one smooth bump. Concave, between two printable faces."""
+    F = gland_frame()
+    S, A = F["S"], F["A"]
+    rs = P.GLAND["seat_d"] / 2
+
+    def on_root(e) -> bool:
+        for t in (0.1, 0.5, 0.9):
+            p = e.position_at(t)
+            q = np.array([p.X, p.Y, p.Z]) - S
+            h = q @ A
+            if abs(np.linalg.norm(q - h * A) - rs) > 0.05 or abs(math.hypot(p.Y, p.Z) - r_out(p.X)) > 0.05:
+                return False
+        return True
+    edges = [e for e in body.edges() if on_root(e)]
+    if not edges:
+        return body
+    for r in (GLAND_FILLET["r_wanted"], 6.0, 5.0, 4.0, 3.0):
+        try:
+            out = body.fillet(r, edges)
+            if out.is_valid and len(out.solids()) == 1:
+                GLAND_FILLET["r_built"] = r
+                return out
+        except Exception:  # noqa: BLE001
+            continue
+    return body
 
 
 def _gland_bore() -> Solid:
@@ -919,97 +1087,179 @@ def fin_frame() -> dict:
                 phi=math.atan(k))
 
 
-def _pad_local() -> Solid:
-    """Rail pad at theta 0 (before at_azimuth): yawed 10 mm prism under the root line, from the
-    LE end to the equator plane (its aft end stands on the bed), top edges rounded."""
+def rail_frame() -> dict:
+    """Recessed fin rail (FIN_RAIL) of the theta-0 fin, world coordinates at theta 0 (rotate with
+    C.at_azimuth). A point at fin-frame station u (along the yawed chord from the LE), lateral w (+
+    toward +theta) and height h above the groove floor is Q(u, w, h) = o + u u_dir + w w_dir +
+    (a_f(u) + h) z, with the floor a_f(u) = floor_a_stop + slope (u - u_stop). The rail direction is
+    rv = u_dir + slope z (per unit u), the floor normal n_f (+a side). Also: the entry (where the floor
+    runs out through the skin, most forward w), the entry relief end (the undercut lip reaches
+    lip_min), the floor magnet seat stations."""
     F = fin_frame()
-    W = FIN["rail_w"]
-    u_len = 48.0
-    o = F["o"] - (W / 2) * F["w"] + np.array([0.0, 0.0, 18.0])
-    box = Solid.make_box(u_len, W, 40.0, Plane(origin=Vector(*o), x_dir=Vector(*F["u"]), z_dir=(0, 0, 1)))
-    phi = F["phi"]
-    top = halfspace((F["x_le"], 0.0, F["root_z"](F["x_le"])), (-math.sin(phi), 0.0, math.cos(phi)))
-    eq = halfspace((EQ, 0.0, 0.0), (1.0, 0.0, 0.0))
-    pad = inter(inter(box, top), eq)
-    # round the front vertical edges first, then the whole top boundary (except the bed edge at the
-    # equator) in one rolling-ball pass: filleting the top edges first left B-spline corner blends
-    # that tessellated with cracks
-    ud = Vector(*F["u"])
-    front = [e for e in pad.edges() if abs((e.position_at(0) - Vector(*F["o"])).dot(ud)) < 1e-3
-             and abs((e.position_at(1) - Vector(*F["o"])).dot(ud)) < 1e-3
-             and abs((e.position_at(1) - e.position_at(0)).normalized().Z) > 0.95]
-    pad = pad.fillet(PAD_FRONT_R, front)
-    nt = Vector(-math.sin(phi), 0.0, math.cos(phi))
-    topf = max(pad.faces(), key=lambda f: f.normal_at(f.center()).dot(nt))
-    edges = [e for e in topf.edges() if min(e.position_at(0).X, e.position_at(1).X, e.center().X) < EQ - 0.2]
-    pad = pad.fillet(1.0, edges)
-    return pad
+    R = FIN_RAIL
+    s = R["slope"]
+    ez = np.array([0.0, 0.0, 1.0])
+    u_stop = (R["stop_x"] - F["x_le"]) / F["ci"]
+    w0, w_n, w_b = R["w0"], R["w0"] + R["slot_w"], R["w0"] + R["groove_w"]
+
+    def a_f(u):
+        return R["floor_a_stop"] + s * (u - u_stop)
+
+    def Q(u, w, h=0.0):
+        q = F["o"] + u * F["u"] + w * F["w"]
+        return np.array([q[0], q[1], a_f(u) + h])
+
+    def a_hull(u, w, gap=0.0):
+        q = F["o"] + u * F["u"] + w * F["w"]
+        Rr = r_out(min(max(q[0], 0.0), P.HULL_L)) + gap
+        return math.sqrt(max(Rr * Rr - q[1] * q[1], 0.0))
+
+    rv = F["u"] + s * ez
+    k = float(np.linalg.norm(rv))
+    t = rv / k
+    n_f = (-s * F["u"] + ez) / k
+    # entry: the floor runs out through the skin
+    u_ent = []
+    for w in np.linspace(w0, w_b, 9):
+        u = u_stop
+        while u > u_stop - 60.0 and a_hull(u, w) > a_f(u):
+            u -= 0.02
+        u_ent.append(u)
+    u_entry = min(u_ent)
+
+    # entry relief: lip of shell over the 45 deg undercut flank, measured along the flank normal
+    def lip(u):
+        best = math.inf
+        for w in np.linspace(w_n, w_b, 7):
+            h = R["uc_h"] * (w_b - w) / (w_b - w_n)
+            d = 0.0
+            while d < 6.0 and a_hull(u, w + d / math.sqrt(2.0)) > a_f(u) + h + d / math.sqrt(2.0):
+                d += 0.02
+            best = min(best, d)
+        return best
+    uu = np.arange(u_entry, u_stop, 0.1)
+    thin = [u for u in uu if lip(u) < R["lip_min"]]
+    u_rel = (max(thin) + 0.2) if thin else u_entry
+    M = R["magnet"]
+    u_m1 = u_stop - M["u_from_stop"]                         # seat aft wall (u at the floor)
+    u_m0 = u_m1 - M["seat"][0] / k                           # seat forward wall at the floor mouth
+    return dict(F=F, R=R, s=s, k=k, rv=rv, t=t, n_f=n_f, u_stop=u_stop, u_entry=u_entry, u_relief=u_rel,
+                lip_at_relief_end=lip(u_rel), w0=w0, w_n=w_n, w_b=w_b, a_f=a_f, Q=Q, a_hull=a_hull,
+                u_mag=(u_m0, u_m1), lip=lip)
 
 
-def _groove_local() -> Solid:
-    """Half-dovetail groove (open at the pad's front, closed at the end stop) and the cross-pin
-    teardrop hole, at theta 0."""
-    F, R = fin_frame(), FIN_RAIL
-    w0 = R["groove_w_offset"]
-    wt, wb, hn, d = R["groove_w_top"], R["groove_w_bottom"], R["groove_neck_h"], R["groove_depth"]
-    ch = R["mouth_chamfer"]
-    sec = [(w0 - ch - 1.5, 1.5), (w0, -ch), (w0, -d), (w0 + wb, -d), (w0 + wt, -hn), (w0 + wt, -ch),
-           (w0 + wt + ch + 1.5, 1.5)]
-    u0, u1 = -1.0, R["end_stop_u"]
-    base = F["P"](u0)
-    pts = [Vector(*(base + w * F["w"] + np.array([0.0, 0.0, z]))) for w, z in sec]
-    face = Face(Wire.make_polygon(pts, close=True))
-    vec = F["P"](u1) - F["P"](u0)
-    groove = Solid.extrude(face, Vector(*vec))
-    # cross pin: along w through the whole pad, teardrop tip toward -X (up in print)
-    c = F["P"](R["pin_u"], 0.0, R["pin_depth"])
-    pin = teardrop(c, F["w"], (-1.0, 0.0, 0.0), R["pin_hole_d"] / 2, R["pad_w"] + 4.0)
-    return groove, pin
+def _prism_uwh(RF: dict, sec_wh, u0: float, u1: float) -> Solid:
+    """Prism along the rail (rv) from station u0 to u1 of a (w, h) section given at u0."""
+    face = Face(Wire.make_polygon([Vector(*RF["Q"](u0, w, h)) for w, h in sec_wh], close=True))
+    return Solid.extrude(face, Vector(*(RF["rv"] * (u1 - u0))))
 
 
-def _pad_root_fillet(body: Solid) -> Solid:
-    """PAD_ROOT_R fillet where the fin rail pads meet the hull (finding T07: the pads were square
-    rails standing 9 mm proud with no blend). One radius all round: the root edge is a tangent chain
-    (sides and the R3 rounded front), along which OCC propagates a fillet, so the side that runs 2.2
-    to 3.6 mm from a pocket rim sets it: R2 keeps the blend's foot off the rim and the folding blades
-    >= 2 mm off the pads (R4 left 2.01). Falls back to smaller radii if OCC cannot build it."""
-    th = [math.radians(t) for t in FIN["theta_deg"]]
-
-    def on_root(e) -> bool:
-        pts = [e.position_at(u) for u in np.linspace(0.0, 1.0, 7)]
-        for p in pts:
-            r = math.hypot(p.Y, p.Z)
-            a = math.atan2(p.Y, p.Z)
-            if not (FIN["pad_x"][0] - 3.0 < p.X < EQ - 0.6 and abs(r - r_out(p.X)) < 0.05):
-                return False
-            if min(abs((a - t + math.pi) % (2 * math.pi) - math.pi) for t in th) * r > FIN["rail_w"]:
-                return False
-        return True
-    edges = [e for e in body.edges() if on_root(e)]
-    for r in (PAD_ROOT_R, 1.5, 1.0):
-        try:
-            cand = body.fillet(r, edges)
-            if cand.is_valid and len(cand.solids()) == 1:
-                PAD_ROOT_USED[0] = r
-                return cand
-        except Exception:  # noqa: BLE001
-            continue
-    PAD_ROOT_USED[0] = 0.0
-    return body
+def _magnet_seat_local(RF: dict, h_floor: float = 0.0, up: bool = False) -> Solid:
+    """Floor magnet seat (FIN_RAIL magnet): a 4.1 x 2.1 box along the floor (t, w), M['depth'] deep along
+    -n_f from the floor plane h_floor (+0.6 into the groove void), aft wall at u_m1. Shell side (up False):
+    its forward wall is a 45 deg undercut (the seat is longer at the bottom), so it prints nose-up with no
+    ceiling. Tongue side (up True): the same box mirrored into the tongue (+n_f), plain walls."""
+    M = RF["R"]["magnet"]
+    t, n_f = RF["t"], RF["n_f"]
+    L, W, D = M["seat"][0], M["seat"][1], M["depth"]
+    wm = 0.5 * (RF["w0"] + RF["w_n"])                        # centred on the neck
+    org = RF["Q"](RF["u_mag"][1], wm - W / 2, h_floor) - L * t       # forward-bottom corner at the floor
+    if up:
+        box = Solid.make_box(L, W, D + 0.6, Plane(origin=Vector(*(org - 0.6 * n_f)), x_dir=Vector(*t),
+                                                  z_dir=Vector(*n_f)))
+        return box
+    box = Solid.make_box(L, W, D + 0.6, Plane(origin=Vector(*(org - D * n_f)), x_dir=Vector(*t), z_dir=Vector(*n_f)))
+    # 45 deg undercut ramp ahead of the box: triangle (0, 0), (0, D), (-D, 0) in (t, n) from the seat bottom
+    b = org - D * n_f
+    tri = [b, b + D * n_f, b - D * t]
+    tri = [Vector(*v) for v in tri]
+    face = Face(Wire.make_polygon(tri, close=True))
+    ramp = Solid.extrude(face, Vector(*(W * np.cross(n_f, t))))
+    return box.fuse(ramp).clean()
 
 
-def pads_added() -> list:
-    """The pad material the front shell really gains (pads outside the hull's 1 mm skin core)."""
-    core = _front_core()
-    return [p.cut(core) for p in _pads()[0]]
+def _rail_groove_local() -> Solid:
+    """Groove cutter of the theta-0 fin: dovetail prism from ahead of the entry to the stop (plane
+    u = u_stop), the entry relief (full width up through the skin, ahead of u_relief) and the floor
+    magnet seat."""
+    RF = rail_frame()
+    R = RF["R"]
+    H = 25.0
+    w0, w_n, w_b = RF["w0"], RF["w_n"], RF["w_b"]
+    u_a = RF["u_entry"] - 8.0
+    dov = _prism_uwh(RF, [(w0, 0.0), (w_b, 0.0), (w_n, R["uc_h"]), (w_n, H), (w0, H)], u_a, RF["u_stop"])
+    rel = _prism_uwh(RF, [(w0, 0.0), (w_b, 0.0), (w_b, H), (w0, H)], u_a, RF["u_relief"])
+    g = dov.fuse(rel).clean()
+    g = g.fuse(_magnet_seat_local(RF)).clean()
+    sols = g.solids()
+    g = max(sols, key=lambda x: x.volume) if len(sols) > 1 else sols[0]
+    assert g.is_valid
+    return g
 
 
-def _pads() -> tuple[list, list]:
-    pad0 = _pad_local()
-    groove0, pin0 = _groove_local()
-    pads = [C.at_azimuth(pad0, t) for t in FIN["theta_deg"]]
-    cuts = [C.at_azimuth(g, t) for t in FIN["theta_deg"] for g in (groove0, pin0)]
-    return pads, cuts
+def boss_extra_side(theta: float) -> int:
+    """+1 / -1: the side (w toward +theta / -theta) of the fin at theta whose nearest blade pocket is closer.
+    The rail boss is widened by BOSS_W_EXTRA on that side so it merges with that pocket's liner (review C7:
+    fin theta 87.5 -> +w (pocket 120 at +32.5 deg), fin 267.5 -> -w (pocket 240 at -27.5 deg))."""
+    d = [((tb - theta + 180.0) % 360.0) - 180.0 for tb in BLADE_THETA]
+    k = int(np.argmin(np.abs(d)))
+    return 1 if d[k] > 0 else -1
+
+
+def _rail_boss_local(extra_side: int = 1) -> Solid:
+    """Inner boss of the theta-0 fin rail: a prism across w (groove width + boss_side_t each side) of a
+    (u, a) profile whose bottom runs boss_floor_t under the floor (boss_magnet_t under the magnet seat,
+    the pad's aft end at 45 deg), clipped to the hull and to the 45 deg cone r >= R_LIP - (cone_x - x)
+    that keeps it ahead of the spigot tip. extra_side (+1: +w, -1: -w): the side widened by BOSS_W_EXTRA."""
+    RF = rail_frame()
+    R = RF["R"]
+    F = RF["F"]
+    s, a_f = RF["s"], RF["a_f"]
+    # one side BOSS_W_EXTRA wider than boss_side_t, toward the nearer pocket: the boss then merges with that
+    # pocket's liner (a 0.55 to 1.6 mm crevice stayed between them otherwise, review C7); the pocket cutters
+    # trim it afterwards
+    wb0 = RF["w0"] - R["boss_side_t"] - (BOSS_W_EXTRA if extra_side < 0 else 0.0)
+    wb1 = RF["w_b"] + R["boss_side_t"] + (BOSS_W_EXTRA if extra_side > 0 else 0.0)
+    D = R["magnet"]["depth"]
+    u_front, u_back = RF["u_entry"] - 8.0, RF["u_stop"] + 14.0
+    u_p0 = RF["u_mag"][0] - (D + 1.0) / RF["k"]               # ahead of the seat's undercut ramp
+    u_p1 = RF["u_mag"][1] + 1.0 / RF["k"]
+    dlt = (R["boss_magnet_t"] - R["boss_floor_t"]) / (1.0 - s)
+    ft, mt = R["boss_floor_t"], R["boss_magnet_t"]
+    prof = [(u_front, 48.0), (u_back, 48.0), (u_back, a_f(u_back) - ft), (u_p1 + dlt, a_f(u_p1 + dlt) - ft),
+            (u_p1, a_f(u_p1) - mt), (u_p0, a_f(u_p0) - mt), (u_p0, a_f(u_p0) - ft), (u_front, a_f(u_front) - ft)]
+
+    def P3(u, a):
+        q = F["o"] + u * F["u"] + wb0 * F["w"]
+        return Vector(q[0], q[1], a)
+    face = Face(Wire.make_polygon([P3(u, a) for u, a in prof], close=True))
+    boss = Solid.extrude(face, Vector(*(F["w"] * (wb1 - wb0))))
+    boss = inter(boss, _front_hull())
+    cx = R["boss_cone_x"]
+    xa = cx - R_LIP + 1.0
+    cone = revolve_nodes([("L", (xa, 0.0)), ("L", (xa, 1.0)), ("L", (cx, R_LIP)), ("L", (EQ + 2.0, R_LIP)),
+                          ("L", (EQ + 2.0, 0.0))], seam=SEAM_CAVITY)
+    boss = inter(boss.cut(cone), halfspace((cx, 0.0, 0.0), (1.0, 0.0, 0.0)))   # buried in the socket ring
+    boss = single(boss, "rail boss")
+    assert boss.is_valid
+    return boss
+
+
+@functools.lru_cache(maxsize=1)
+def rail_bosses() -> list:
+    cache = {}
+    out = []
+    for t in FIN["theta_deg"]:
+        side = boss_extra_side(t)
+        if side not in cache:
+            cache[side] = _rail_boss_local(side)
+        out.append(C.at_azimuth(cache[side], t))
+    return out
+
+
+def rail_grooves() -> list:
+    g0 = _rail_groove_local()
+    return [C.at_azimuth(g0, t) for t in FIN["theta_deg"]]
 
 
 # --------------------------------------------------------------------------
@@ -1045,15 +1295,13 @@ def build_front_shell() -> Solid:
     t0 = time.time()
     hull = _front_hull()
     core = _front_core()
-    pads, pad_cuts = _pads()
-    ext = [p.cut(core) for p in pads] + [_gland_block().cut(core)]
     outer = _eye_root_fillet(hull.fuse(_eye()))
-    outer = _pad_root_fillet(outer.fuse(*ext))
+    outer = _gland_root_fillet(outer.fuse(_gland_block().cut(core)).clean())
     body = outer.cut(_front_cavity())
     liners = [inter(l, hull) for l in pocket_cutters(liner=True)]
-    body = body.fuse(*liners)
-    cutters = _socket_cutters() + _carrier_cutters() + [_gland_bore(), _seal_lead_cutter()] + pad_cuts + \
-        pocket_cutters()
+    body = body.fuse(*liners, *rail_bosses())
+    cutters = _socket_cutters() + _carrier_cutters() + [_gland_bore(), _seal_lead_cutter()] + rail_grooves() + \
+        pocket_cutters() + _click_dimples()
     body = body.cut(*cutters)
     body = single(body, "front_shell")
     print(f"front shell {time.time() - t0:.1f} s", flush=True)
@@ -1179,8 +1427,7 @@ def stowed_blade_points(i: int = 0, step: float = 0.3) -> np.ndarray:
         _BLADE_PTS = dict(lay=lay, S=S)
     lay, S = _BLADE_PTS["lay"], _BLADE_PTS["S"]
     T = RL.blade_to_world(lay.fold_deg, lay.psi(i), lay)
-    clouds = [RL.densify(S.aero, step).reshape(-1, 3), RL.densify(S.shank, step).reshape(-1, 3),
-              S.knuckle.reshape(-1, 3), S.heel]
+    clouds = [blade_cloud(S, step), S.knuckle.reshape(-1, 3), S.heel]      # CAD tip zone (review V4)
     return RL.apply(T, np.vstack(clouds))
 
 
@@ -1189,10 +1436,13 @@ def stow_detent_geometry() -> dict:
 
     The blade's stowed magnet sits where the DETENTS radial line (x 104.25, az 18.75) meets the
     blade's inner face and runs along that face's normal, ~51 deg from radial (the blade
-    module does the same). The static magnet shares the mouth point and leans toward that normal
-    as far as printing allows: 45 deg from radial (the boss face, the hole and the boss side are
-    then all at the 45 deg limit when printed +X down). The boss face stands face_clear below the
-    stowed blade (layout.py surface) over the whole boss."""
+    module does the same). The static magnet shares the mouth point and its axis (owner call T15: the
+    boss leans with the face normal, up to STOW_DETENT axis_lean_deg). The blade's inner face is not
+    flat over the boss: it comes toward the boss on the side away from d (the steepest print-down
+    direction in the face plane), 0.14 mm at r 2.05 and 0.48 at r 3.25, so the boss face follows it
+    there: face_fit() is a cubic fit of the face (s along n over the boss plane, layout.py surface) and
+    the boss top is min(the plane s0 = f(0) - face_clear, f - face_clear). The magnet face sits
+    C.STOW_BOSS_RECESS below the lowest boss-top point over the hole."""
     det = P.DETENTS
     x_c, az = det["stowed_x"], det["stowed_az_deg"]
     th = math.radians(-az)
@@ -1226,13 +1476,183 @@ def stow_detent_geometry() -> dict:
     s = rel @ n
     perp = np.linalg.norm(rel - np.outer(s, n), axis=1)
     near = perp <= STOW_DETENT["boss_r"] + 0.3
-    s_face = float(s[near].min()) - STOW_DETENT["face_clear"]
+    fit = face_fit(B, p, n)
+    # chin top: the blade's lower envelope along d over the chin band (min s of the inner face per 0.25 mm of p,
+    # |q| <= chin_hw + 0.4), chin_clear below it
+    hw = STOW_DETENT["chin_hw"]
+    Pd, Qe = rel @ fit["d"], rel @ fit["e2"]
+    band = (np.abs(Qe) <= hw + 0.4) & (np.abs(s) < 3.0)
+    p_env = np.arange(1.0, STOW_DETENT["chin_len"] + hw + 1.01, 0.25)
+    s_env = []
+    for pe in p_env:
+        m_ = band & (np.abs(Pd - pe) <= 0.2)
+        s_env.append(float(s[m_].min()) if m_.any() else np.nan)
+    s_env = np.array(s_env)
+    s_env = np.where(np.isnan(s_env), np.nanmin(s_env), s_env)
+    fc = STOW_DETENT["face_clear"]
+    s_face = fit["f"](0.0, 0.0) - fc                                       # flat part of the boss top
+    rr = np.linspace(0.0, STOW_DETENT["magnet_hole_d"] / 2 + 0.05, 12)
+    aa = np.linspace(0.0, 2 * math.pi, 48, endpoint=False)
+    top_hole = min(min(fit["f"](r_ * math.cos(a_), r_ * math.sin(a_)) - fc for r_ in rr for a_ in aa), s_face)
+    s_mag = top_hole - C.STOW_BOSS_RECESS                                  # static magnet face
     face = p + s_face * n
-    mag_c = face - (C.STOW_BOSS_RECESS + P.MAGNET["H"] / 2) * n
+    mag_c = p + (s_mag - P.MAGNET["H"] / 2) * n
+    # boss + chin top (review C2 / P2): one grid surface under the blade, monotone toward print-down
+    tg = stow_top_grid(B, p, n, fit["d"], fit["e2"], s_face, fc)
+    # clearance of the boss + chin top to the layout blade (points over the boss disc and the chin band)
+    Pq, Qq = rel @ fit["d"], rel @ fit["e2"]
+    hw_ = STOW_DETENT["chin_hw"]
+    zone = (np.abs(s) < 3.0) & ((np.hypot(Pq, Qq) <= STOW_DETENT["boss_r"] + 0.3) |
+                                ((Pq >= 0.0) & (Pq <= STOW_DETENT["chin_len"] + hw_) & (np.abs(Qq) <= hw_ + 0.3)))
+    xb = (p + np.outer(Pq[zone], fit["d"]) + np.outer(tg["interp"](np.column_stack([Pq[zone], Qq[zone]])), n))[:, 0]
+    zone_ok = xb <= P.STATIC_TAIL_X                                       # the boss ends on the tail end face
+    top = tg["interp"](np.column_stack([Pq[zone], Qq[zone]]))
     return dict(contact=p, mouth=p, n=n, blade_face_normal=nb, blade_face_lean_deg=lean_face, lean_deg=lean,
                 axis_mismatch_deg=float(math.degrees(math.acos(min(1.0, float(n @ -nb))))),
-                s_face=s_face, face=face, magnet_centre=mag_c, blade_min_s=float(s[near].min()),
-                n_blade_pts=int(near.sum()))
+                s_face=s_face, face=face, s_magnet_face=s_mag, magnet_centre=mag_c,
+                pair_face_gap_mm=C.STOW_BLADE_BELOW_MOUTH - s_mag, blade_min_s=float(s[near].min()),
+                boss_top_to_blade_min_mm=float((s[zone][zone_ok] - top[zone_ok]).min()), n_blade_pts=int(zone.sum()),
+                top_grid=tg, magnet_proud_of_top_mm=float(s_mag - tg["hole_rim_min"]),
+                d=fit["d"], e2=fit["e2"], fit=dict(coef=fit["coef"].tolist(), resid_max_mm=fit["resid_max"],
+                                                    resid_rms_mm=fit["resid_rms"], n=fit["n"]),
+                chin_env=dict(p=p_env.tolist(), s_blade_min=s_env.tolist()),
+                # the stowed rest (boss + chin) lies within this radius of the boss face centre: a check of the
+                # stowed root against the static tail (ROOT_CLEAR) should exclude it, as it excludes the boss
+                rest_zone_r_mm=float(STOW_DETENT["chin_len"] + STOW_DETENT["chin_hw"] + 0.5))
+
+
+def face_fit(B: np.ndarray, p: np.ndarray, n: np.ndarray, r_fit: float = 3.6, cell: float = 0.2,
+             region: tuple | None = None) -> dict:
+    """The stowed blade's inner face over the detent boss as s = f(p, q) (s along n from the mouth, p along
+    d = the steepest +x direction in the plane normal to n, q along e2 = n x d): on a cell grid the first
+    blade point along +n (the min s of the points within cell / 1.4 laterally, |s| < 2.5), then a 2D cubic
+    least-squares fit over r <= r_fit."""
+    from scipy.spatial import cKDTree
+    ex = np.array([1.0, 0.0, 0.0])
+    d = ex - (ex @ n) * n
+    d /= np.linalg.norm(d)
+    e2 = np.cross(n, d)
+    rel = B - p
+    s = rel @ n
+    m = np.abs(s) < 2.5
+    PQ = np.column_stack([rel[m] @ d, rel[m] @ e2])
+    tree = cKDTree(PQ)
+    sm = s[m]
+    if region is None:
+        gps = gqs = np.arange(-r_fit, r_fit + 1e-9, cell)
+    else:                                                   # (p0, p1, |q| max): a band along d
+        gps = np.arange(region[0], region[1] + 1e-9, cell)
+        gqs = np.arange(-region[2], region[2] + 1e-9, cell)
+    X, Y, Z = [], [], []
+    for gp in gps:
+        for gq in gqs:
+            if math.hypot(gp, gq) > r_fit:
+                continue
+            idx = tree.query_ball_point((gp, gq), cell / 1.4)
+            if idx:
+                X.append(gp)
+                Y.append(gq)
+                Z.append(float(sm[idx].min()))
+    X, Y, Z = map(np.array, (X, Y, Z))
+
+    def basis(x, y):
+        x, y = np.asarray(x, float), np.asarray(y, float)
+        return np.stack([np.ones_like(x), x, y, x * x, x * y, y * y, x ** 3, x * x * y, x * y * y, y ** 3], axis=-1)
+    coef, *_ = np.linalg.lstsq(basis(X, Y), Z, rcond=None)
+    res = Z - basis(X, Y) @ coef
+
+    def f(x, y):
+        return basis(x, y) @ coef
+    return dict(f=f, coef=coef, d=d, e2=e2, resid_max=float(np.abs(res).max()), resid_rms=float(res.std()), n=len(Z))
+
+
+TOP_GRID = dict(p=(-5.0, 9.5), q=5.0, cell=0.25, spline_margin=0.02)
+
+
+def stow_top_grid(B: np.ndarray, p0: np.ndarray, n: np.ndarray, d: np.ndarray, e2: np.ndarray, s_face: float,
+                  fc: float) -> dict:
+    """The stowed-detent boss and chin top as one surface s = G(p, q) over a cell grid in the boss plane
+    (review C2 / P2; s along n from the shared mouth point, p along d = the print-down direction in that
+    plane, q along e2).
+
+    Bs(p, q): the stowed blade's inner face (min s of the layout surface points within 0.75 cell of the
+    node, |s| < 3, gaps filled from the nearest node, then a 3 x 3 minimum: never above the face).
+    G = min(Bs - face_clear, s_face), then made non-decreasing in p (a running minimum from the print-down
+    end, over the nodes that lie ahead of the tail end face): a face whose height s falls going print-down
+    leans beyond the 49 deg boss plane (C2: the contoured top and the old chin top reached 58 deg), and a
+    step down from the boss top to a lower chin top left the boss rim as a floating island (P2). With G
+    monotone, every top face leans at most as the boss plane (49.03 deg) and the boss rim and the chin
+    share one top, so the lowest layers grow from the chin. The magnet seat keeps its depth (set by the
+    blade over the hole, stow_detent_geometry), so its face may stand a few hundredths proud of this top."""
+    from scipy.interpolate import RegularGridInterpolator
+    from scipy.ndimage import distance_transform_edt, minimum_filter
+    from scipy.spatial import cKDTree
+    T = TOP_GRID
+    rel = B - p0
+    s = rel @ n
+    m = np.abs(s) < 3.0
+    PQ = np.column_stack([rel[m] @ d, rel[m] @ e2])
+    sm = s[m]
+    tree = cKDTree(PQ)
+    ps = np.arange(T["p"][0], T["p"][1] + 1e-9, T["cell"])
+    qs = np.arange(-T["q"], T["q"] + 1e-9, T["cell"])
+    Bs = np.full((ps.size, qs.size), np.nan)
+    for i, pp_ in enumerate(ps):
+        for j, qq in enumerate(qs):
+            idx = tree.query_ball_point((pp_, qq), 0.75 * T["cell"])
+            if idx:
+                Bs[i, j] = float(sm[idx].min())
+    miss = np.isnan(Bs)
+    if miss.any():
+        _, ind = distance_transform_edt(miss, return_indices=True)
+        Bs = Bs[tuple(ind)]
+    Bs = minimum_filter(Bs, size=3, mode="nearest")
+    G = np.minimum(Bs - fc, s_face)
+    x_node = p0[0] + ps[:, None] * d[0] + G * n[0]
+    for i in range(ps.size - 2, -1, -1):
+        ahead = x_node[i + 1] <= P.STATIC_TAIL_X + 0.3
+        G[i] = np.where(ahead, np.minimum(G[i], G[i + 1]), G[i])
+    G = G - T["spline_margin"]
+    f_ = RegularGridInterpolator((ps, qs), G, bounds_error=False, fill_value=None)
+    rh = STOW_DETENT["magnet_hole_d"] / 2
+    a_ = np.linspace(0.0, 2 * math.pi, 72, endpoint=False)
+    rim = f_(np.column_stack([rh * np.cos(a_), rh * np.sin(a_)]))
+    return dict(ps=ps, qs=qs, G=G, interp=f_, hole_rim_min=float(rim.min()), hole_rim_max=float(rim.max()),
+                p0=p0, n=n, d=d, e2=e2)
+
+
+def _stow_face_cutter(g: dict) -> Solid:
+    """The region beyond the boss + chin top (s > G(p, q), stow_top_grid), 6 mm thick along +n: a B-spline
+    face through the grid nodes, extruded along n."""
+    from build123d import Face as F_
+    tg = g["top_grid"]
+    p, n, d, e2 = (np.asarray(tg[k], float) for k in ("p0", "n", "d", "e2"))
+    grid = [[Vector(*(p + a * d + b * e2 + float(tg["G"][i, j]) * n)) for j, b in enumerate(tg["qs"])]
+            for i, a in enumerate(tg["ps"])]
+    # degree 1 (bilinear patches through the nodes): a smooth B-spline overshot the running minimum's kinks and
+    # leaned faces up to 53 deg; bilinear patches of a grid monotone in p keep every face within the boss plane
+    face = F_.make_surface_from_array_of_points(grid, tol=1e-4, min_deg=1, max_deg=1)
+    return Solid.extrude(face, Vector(*(6.0 * n)))
+
+
+def _detent_chin(g: dict) -> Solid:
+    """The boss's chin (T15): a stadium prism along n, chin_hw half wide, from the boss axis chin_len down d
+    (the steepest +x, print-down direction in the face plane) into the root-notch ramp, so the boss's
+    lowest point (its rim on d) starts on it instead of in mid-air. Its top is the boss's own top surface
+    (stow_top_grid: face_clear under the blade, never falling going print-down), cut together with the boss
+    in _detent_bosses, and its end is clipped at the tail end face; its walls are vertical in print or
+    contain n."""
+    D = STOW_DETENT
+    n, face, p0 = (np.asarray(g[k], float) for k in ("n", "face", "mouth"))
+    d, e2 = np.asarray(g["d"], float), np.asarray(g["e2"], float)
+    hw, L = D["chin_hw"], D["chin_len"]
+    base = face - 6.0 * n
+    H = 8.0
+    box = Solid.make_box(L, 2 * hw, H, Plane(origin=Vector(*(base - hw * e2)), x_dir=Vector(*d), z_dir=Vector(*n)))
+    end = Solid.make_cylinder(hw, H, Plane(origin=Vector(*(base + L * d)), z_dir=Vector(*n)))
+    # review C2 / P2: no separate chin top any more; the boss + chin top is one surface (stow_top_grid),
+    # cut in _detent_bosses
+    return single(box.fuse(end).clean(), "detent chin")
 
 
 def _detent_bosses(pockets: list) -> tuple[list, list]:
@@ -1240,17 +1660,94 @@ def _detent_bosses(pockets: list) -> tuple[list, list]:
     n, face = g["n"], g["face"]
     D = STOW_DETENT
     pl = Plane(origin=Vector(*(face - 6.0 * n)), z_dir=Vector(*n))
-    boss = Solid.make_cylinder(D["boss_r"], 6.0, pl)
+    boss = Solid.make_cylinder(D["boss_r"], 6.0, pl).fuse(_detent_chin(g)).clean()
+    boss = single(boss, "stowed detent boss + chin")
+    boss = single(boss.cut(_stow_face_cutter(g)), "stowed detent boss")
+    boss = inter(boss, halfspace((P.STATIC_TAIL_X, 0.0, 0.0), (1.0, 0.0, 0.0)))   # the chin ends on the tail face
     # no chamfers on the boss rim or the magnet-hole mouth: around an axis that already leans
     # 45 deg, a 45 deg chamfer cone has a strip facing straight down when printed
-    rh, dh = D["magnet_hole_d"] / 2, D["magnet_hole_depth"]
-    hole = Solid.make_cylinder(rh, dh + 1.0, Plane(origin=Vector(*(face - dh * n)), z_dir=Vector(*n)))
+    rh = D["magnet_hole_d"] / 2
+    s_bot = g["s_magnet_face"] - P.MAGNET["H"]                       # seat bottom (the magnet's back face)
+    hole = Solid.make_cylinder(rh, g["s_face"] - s_bot + 1.0, Plane(origin=Vector(*(g["mouth"] + s_bot * n)),
+                                                                     z_dir=Vector(*n)))
     bosses, holes = [], []
     for t, pk in zip(BLADE_THETA, pockets):
         b = boss if t == 0 else C.at_azimuth(boss, t)
         bosses.append(inter(b, pk))
         holes.append(hole if t == 0 else C.at_azimuth(hole, t))
     return bosses, holes
+
+
+def _click_tine_cutters() -> list:
+    """Slots that free the bayonet-click tines (aft shell spigot): the 45 deg underside slot (x_gap at the OD to
+    x_gap + 2.9 at the bore, gap_w wide) over the tine arc, and the radial slit at the free end."""
+    K = BAYONET_CLICK
+    xg, gw = K["x_gap"], K["gap_w"]
+    r_o, r_i = R_SPIG_LUG + 0.4, R_SPIG_IN - 0.4
+    dr = r_o - r_i
+    gap = [(xg, r_o), (xg + gw, r_o), (xg + gw + dr, r_i), (xg + dr, r_i)]
+    slit = [(X_TIP - 0.6, r_i), (X_TIP - 0.6, r_o), (xg + gw, r_o), (xg + gw + dr, r_i)]
+    dth = math.degrees(K["slit_w"] / R_SPIG_LUG)
+    out = []
+    for t in K["theta_lock"]:
+        tf = t - K["end_offset_deg"]                                   # free end
+        out.append(poly_sector(gap, tf, tf + K["tine_arc_deg"]))
+        out.append(poly_sector(slit, tf - dth, tf))
+    return out
+
+
+def _click_ties() -> list:
+    """PRINT ONLY (review C1 / P1): a breakaway tie across each tine's free-end slit at the tine's bottom.
+
+    The tine's underside is a 45 deg slot (prints spigot up), so its first layers start as a knife edge on
+    the bore and, without the tie, ran as a ~14 mm line anchored only at the tine root over air: they sag
+    and can fuse the tine to the slot's lower face. The tie fills the slit for the lowest tie_h (along x) of
+    the tine, over the full wall, and overlaps the tine end and the wall beyond the slit by 0.2 deg: the
+    underside's first lines then run from the tine root to the wall beyond the slit, a bridge anchored at
+    both ends. The world solid has no tie (it is cut through the slit with a knife after printing)."""
+    K = BAYONET_CLICK
+    c0 = K["x_gap"] + R_SPIG_LUG + 0.4                       # tine underside: x + r = c0 (see _click_tine_cutters)
+    h = K["tie_h"]
+    r0, r1 = R_SPIG_IN, R_SPIG_LUG
+    tie = [(c0 - h - r0, r0), (c0 - r0, r0), (c0 - r1, r1), (c0 - h - r1, r1)]
+    dth = math.degrees(K["slit_w"] / R_SPIG_LUG)
+    out = []
+    for t in K["theta_lock"]:
+        tf = t - K["end_offset_deg"]                         # free end
+        out.append(poly_sector(tie, tf - dth - 0.2, tf + 0.2))
+    return out
+
+
+def _click_profile(half_top: float, r_top: float, r_bot: float) -> list:
+    """(y, z) trapezoid at theta 0: flat top half-width half_top at r_top, flanks at flank_deg down to r_bot."""
+    tf = math.tan(math.radians(BAYONET_CLICK["flank_deg"]))
+    hb = half_top + (r_top - r_bot) / tf
+    return [(-hb, r_bot), (-half_top, r_top), (half_top, r_top), (hb, r_bot)]
+
+
+def _xprism(yz, x0: float, x1: float) -> Solid:
+    face = Face(Wire.make_polygon([Vector(x0, y, z) for y, z in yz], close=True))
+    return Solid.extrude(face, Vector(x1 - x0, 0.0, 0.0))
+
+
+def _click_bumps() -> list:
+    """The 0.5 mm bumps on the tines' OD (aft shell), their lower (aft) end trimmed at 45 deg."""
+    K = BAYONET_CLICK
+    x0, x1 = K["bump_x"]
+    r0 = R_SPIG_LUG
+    b = _xprism(_click_profile(K["bump_top_hw"], r0 + K["bump_h"], r0 - 0.3), x0, x1)
+    b = inter(b, halfspace((x1, 0.0, r0), (1.0, 0.0, 1.0)))            # x + r <= x1 + r0
+    return [C.at_azimuth(b, t) for t in K["theta_lock"]]
+
+
+def _click_dimples() -> list:
+    """Axial dimples in the socket ring ID (front shell) at the lock angle: the bump's profile + dimple_clear,
+    open through the ring's 45 deg ceiling at the forward end."""
+    K = BAYONET_CLICK
+    c_ = K["dimple_clear"]
+    r_top = R_SPIG_LUG + K["bump_h"] + c_
+    d = _xprism(_click_profile(K["bump_top_hw"] + c_, r_top, R_LIP - 0.4), *K["dimple_x"])
+    return [C.at_azimuth(d, t) for t in K["theta_lock"]]
 
 
 def build_aft_shell() -> Solid:
@@ -1263,8 +1760,8 @@ def build_aft_shell() -> Solid:
     pockets = pocket_cutters()
     body = body.cut(_bore(), *pockets)
     bosses, holes = _detent_bosses(pockets)
-    body = fuse(body, *_crush_ribs(), *bosses)
-    body = body.cut(*holes)
+    body = fuse(body, *_crush_ribs(), *bosses, *_click_bumps())
+    body = body.cut(*holes, *_click_tine_cutters())
     body = single(body, "aft_shell")
     print(f"aft shell {time.time() - t0:.1f} s", flush=True)
     return body
@@ -1276,6 +1773,7 @@ def build_aft_shell() -> Solid:
 
 PRINT_ROT = (0.0, 90.0, 0.0)               # +X -> -Z: equator / tail end face on the bed
 NAMES = ("front_shell", "aft_shell", "front_shell_cutaway", "aft_shell_cutaway")
+PRINT_EXTRA = ("aft_shell_print", "aft_shell_cutaway_print")   # world pose + the click ties (print only)
 
 
 def _cache_key() -> str:
@@ -1283,14 +1781,20 @@ def _cache_key() -> str:
     for p in (Path(__file__), REPO / "ovo/params.py", REPO / "ovo/profile.py",
               REPO / "ovo/cad/common.py", DATA / "layout_rotor.json"):
         h.update(p.read_bytes())
+    from . import blade as BL                               # the pocket tip follows the CAD tip sections (V4)
+    sg = BL.section_grid()
+    h.update(np.round(sg["G"][sg["zone"] == "tip"], 6).tobytes())
     return h.hexdigest()[:12]
 
 
 def build_all(force: bool = False) -> dict:
     """The four shell solids (world pose), cached as BREP under out/work/cad/shells/cache."""
     cdir = WORK / "cache" / _cache_key()
-    files = {n: cdir / f"{n}.brep" for n in NAMES}
+    files = {n: cdir / f"{n}.brep" for n in NAMES + PRINT_EXTRA}
+    meta = cdir / "meta.json"
     if not force and all(f.exists() for f in files.values()):
+        if meta.exists():
+            GLAND_FILLET.update(json.loads(meta.read_text()).get("gland_fillet", {}))
         return {n: import_brep(str(f)) for n, f in files.items()}
     import shutil
     for old in (WORK / "cache").glob("*"):                 # stale keys (older sources)
@@ -1300,10 +1804,17 @@ def build_all(force: bool = False) -> dict:
     aft = build_aft_shell()
     fc = single(front.cut(cutaway_sector(True)), "front_shell_cutaway")
     ac = single(aft.cut(cutaway_sector(False)), "aft_shell_cutaway")
-    out = dict(front_shell=front, aft_shell=aft, front_shell_cutaway=fc, aft_shell_cutaway=ac)
+    ties = _click_ties()
+    ap = single(fuse(aft, *ties), "aft_shell_print")
+    sec = cutaway_sector(False)
+    ties_c = [t_ for t_ in (t.cut(sec) for t in ties) if t_.volume > 1e-3]
+    acp = single(fuse(ac, *ties_c), "aft_shell_cutaway_print") if ties_c else ac
+    out = dict(front_shell=front, aft_shell=aft, front_shell_cutaway=fc, aft_shell_cutaway=ac,
+               aft_shell_print=ap, aft_shell_cutaway_print=acp)
     cdir.mkdir(parents=True, exist_ok=True)
     for n, s in out.items():
         export_brep(s, str(files[n]))
+    meta.write_text(json.dumps(dict(gland_fillet=GLAND_FILLET), indent=1))
     return out
 
 
@@ -1311,14 +1822,24 @@ NOTES = {
     "front_shell": "PLA (display) / PETG (v2). Prints nose-up on its equator face, no supports: the nose "
                    "plug's 38.6 mm flat bridge is the only bridge (good bridge settings: cooling 100 %, bridge "
                    "speed ~25 mm/s; expect a little sag on that internal face); the tow eye is a teardrop lug "
-                   "pointing up with a 2 mm flat on its hole apex; pin holes are teardrops; socket ceiling, "
-                   "lip chamfer, O-ring lead-in, carrier groove ceiling and pocket ramps are 45 deg; pocket "
-                   "lips undercut in-slice; fin pads stand on the bed. Tap the M12x1.5 after printing (10.5 "
-                   "mm drill modelled).",
+                   "pointing up with a 2 mm flat on its hole apex; socket ceiling, lip chamfer, O-ring lead-in, "
+                   "carrier groove ceiling and pocket ramps are 45 deg; pocket lips undercut in-slice. Recessed fin "
+                   "rails: the grooves run near-vertical, their inner bosses thicken downward and end on a 45 deg "
+                   "cone, the floor magnet seats have a 45 deg undercut forward wall; glue a 4 x 2 x 2 N52 block "
+                   "(face 0.05 below the floor) in each. Three bayonet-click dimples in the socket ring. Gland seat: "
+                   "a D18 boss blended into the nose by an R6 root fillet; display build: leave the 10.5 mm bore for "
+                   "the push-in blanking plug; v2: tap M12x1.5 for the gland.",
     "aft_shell": "PLA / PETG. Prints on its tail end face, spigot tip up, no supports: lugs, O-ring groove "
-                 "flank, root ring, notch ramps and detent bosses at 45 deg; the 0.6 mm seal stop ring under "
-                 "the seal shoulder is the only sub-rule face. Bearings pressed with a draw bolt; crush ribs "
-                 "set the press fit.",
+                 "flank, root ring and notch ramps at 45 deg; the stowed-detent bosses lean with the blade face "
+                 "(49.0 deg from vertical in print, owner call T15: a 4 deg overhang over the 4.1 mm hole) and "
+                 "start from the root-notch ramp on a chin; boss and chin share one top that never leans beyond "
+                 "the 49 deg boss plane and never steps down toward the bed, so no layer starts as an island; the "
+                 "0.6 mm seal stop ring under the seal shoulder is the other sub-rule face. Three bayonet-click "
+                 "tines in the spigot (vertical slits, 45 deg underside slots 0.81 mm normal); each tine's free-end "
+                 "slit is bridged at the tine's bottom by a 0.8 mm breakaway tie so the underside's first lines "
+                 "print as a bridge anchored at both ends: after printing, push a hobby knife straight down each "
+                 "of the 3 slits to cut the tie, then check that every tine flexes. Bearings pressed with a draw "
+                 "bolt; crush ribs set the press fit.",
 }
 
 
@@ -1328,8 +1849,9 @@ def parts() -> list[dict]:
     for n in NAMES:
         base = n.replace("_cutaway", "")
         cut = n.endswith("_cutaway")
+        pr = S.get(n + "_print", S[n])                     # aft shells: + the breakaway click ties (C1 / P1)
         out.append(dict(
-            name=n, shape=S[n], print=C.on_bed(S[n], PRINT_ROT), material="shell",
+            name=n, shape=S[n], print=C.on_bed(pr, PRINT_ROT), material="shell",
             role="shell_cutaway" if cut else "shell", rotor=False, qty=1, bought=False,
             explode=[-80.0, 0.0, 0.0] if base == "front_shell" else [30.0, 0.0, 0.0],
             notes=NOTES[base] + (" Cutaway: sector theta %g..%g removed (display only)." % CUTAWAY_THETA if cut else ""),
@@ -1375,6 +1897,48 @@ def preview_section() -> list[dict]:
     for d in parts():
         if d["role"] == "shell":
             out.append(dict(name=d["name"] + "_sec", shape=inter(d["shape"], keep), material="shell"))
+    return _view(out)
+
+
+def _front_for_preview():
+    """Front shell for the rail previews: SHELLS_FRONT_BREP (a scratch BREP) when set, else the cache."""
+    import os
+    f = os.environ.get("SHELLS_FRONT_BREP")
+    return import_brep(f) if f else build_all()["front_shell"]
+
+
+def preview_rail_outside() -> list[dict]:
+    """+Y half of the front shell (the theta 87.5 rail), seen from outside (view=180,12)."""
+    import os
+    f = _front_for_preview()
+    if os.environ.get("RAIL_CLOSE"):
+        f = inter(f, Solid.make_box(36.0, 30.0, 34.0).moved(Location((14.0, 18.0, -17.0))))
+    else:
+        f = inter(f, halfspace((0.0, 2.0, 0.0), (0.0, -1.0, 0.0)))
+    return _view([dict(name="front_rail_out", shape=f, material="shell")])
+
+
+def preview_rail_inside() -> list[dict]:
+    """+Y half of the front shell seen from inside (view=0,12): the inner boss."""
+    return preview_rail_outside()
+
+
+def preview_rail_section() -> list[dict]:
+    """Front shell cut across the rail at the floor magnet seat (plane normal to the yawed chord),
+    the part ahead of the cut kept: view along the rail from aft (view=90,0 then zoom)."""
+    import os
+    RF = rail_frame()
+    u = float(os.environ.get("RAIL_SECTION_U", 0.5 * sum(RF["u_mag"])))
+    p0 = RF["Q"](u, 0.0, 0.0)
+    out = []
+    for th in FIN["theta_deg"][:1]:
+        pt_ = C.at_azimuth(Solid.make_box(1, 1, 1).moved(Location(tuple(p0))), th).center()
+        nrm = C.at_azimuth(Solid.make_box(1, 1, 1).moved(Location(tuple(RF["F"]["u"] * 50.0))), th).center() - \
+            C.at_azimuth(Solid.make_box(1, 1, 1), th).center()
+        nrm = nrm.normalized()
+        keep = halfspace((pt_.X, pt_.Y, pt_.Z), (nrm.X, nrm.Y, nrm.Z))
+        box = Solid.make_box(40, 40, 40).moved(Location((pt_.X - 30, pt_.Y - 20, pt_.Z - 20)))
+        out.append(dict(name="front_rail_sec", shape=inter(inter(_front_for_preview(), keep), box), material="shell"))
     return _view(out)
 
 
@@ -1511,6 +2075,39 @@ def overhang_scan(shape, x_bed: float, limit: float = P.MAX_OVERHANG, tol_deg: f
                 bed_area_mm2=round(area_bed, 1), n_faces=len(bad_faces), faces=bad_faces[:15])
 
 
+def island_scan(path: Path, dz: float = 0.2, min_area: float = 0.02, phases=(0.1, 0.15, 0.05)) -> dict:
+    """Layer scan of a print STL (manifold3d slices every dz): a slice component that does not overlap the
+    previous layer's slice starts in mid-air (an island needing support). Run at several layer phases (review
+    P2: the default 0.2 mm profile slices at 0.1 + 0.2 k, other first-layer heights shift it); the islands of
+    the first phase are listed, every phase is counted."""
+    import manifold3d as m3
+    import trimesh
+    m = trimesh.load(path)
+    mf = m3.Manifold(m3.Mesh(vert_properties=np.asarray(m.vertices, np.float32), tri_verts=np.asarray(m.faces, np.uint32)))
+    z1 = float(m.bounds[1][2])
+    per_phase = {}
+    first = None
+    for ph in phases:
+        prev = None
+        isl = []
+        for z in np.arange(ph, z1, dz):
+            cs = mf.slice(float(z))
+            if prev is not None:
+                for comp in cs.decompose():
+                    a = comp.area()
+                    if a < min_area:
+                        continue
+                    if (comp ^ prev).area() < 1e-6:
+                        b = comp.bounds()
+                        isl.append(dict(z=round(float(z), 2), area_mm2=round(a, 3),
+                                        xy=[round(0.5 * (b[0] + b[2]), 2), round(0.5 * (b[1] + b[3]), 2)]))
+            prev = cs
+        per_phase[f"{ph:g}"] = len(isl)
+        if first is None:
+            first = isl
+    return dict(dz=dz, phases=list(phases), n_islands=len(first), n_islands_per_phase=per_phase, islands=first[:12])
+
+
 def stl_check(path: Path) -> dict:
     import trimesh
     m = trimesh.load(path)
@@ -1573,10 +2170,16 @@ def floor_wall_check(shape, x_range) -> dict:
                 O.append(p0 - 0.3 * nn)                     # start in the pocket void, 0.3 above the floor
                 D.append(nn)
                 meta.append((x[k], th))
+    # rays whose start point lies in material sit under a detent boss / chin standing on the floor (T15):
+    # that is no floor wall, skip them (counted)
+    ins = _occ_inside(shape, O)
+    O = [o for o, i in zip(O, ins) if not i]
+    D = [d_ for d_, i in zip(D, ins) if not i]
+    meta = [m_ for m_, i in zip(meta, ins) if not i]
     d = _occ_wall(shape, O, D)
     k = int(np.argmin(d))
-    return dict(n_rays=len(d), min_mm=round(float(d.min()), 3), at_x_theta=[round(meta[k][0], 2), round(meta[k][1] % 360, 1)],
-                p05_mm=round(float(np.percentile(d, 5)), 3))
+    return dict(n_rays=len(d), skipped_under_boss=int(ins.sum()), min_mm=round(float(d.min()), 3),
+                at_x_theta=[round(meta[k][0], 2), round(meta[k][1] % 360, 1)], p05_mm=round(float(np.percentile(d, 5)), 3))
 
 
 def gland_engagement(shape) -> dict:
@@ -1688,7 +2291,7 @@ def fold_sweep_check(d_fold: float = 0.5, step: float = 0.4) -> dict:
                       np.array(a["slope_daft_ds"]), np.array(a["aft_poly_coef_mm"]),
                       np.array(a["lead_poly_coef_mm"]), blade.r_root, blade.r_tip)
     Sx = RL.blade_surface(blade, lay, ax)
-    cloud = np.vstack([RL.densify(Sx.aero, step).reshape(-1, 3), RL.densify(Sx.shank, step).reshape(-1, 3)])
+    cloud = blade_cloud(Sx, step)
     pp = pocket_profile()
     side_min, floor_min, n_out, worst = np.inf, np.inf, 0, None
     for fd in np.arange(60.0, lay.fold_deg + 1e-9, d_fold):
@@ -1710,28 +2313,95 @@ def fold_sweep_check(d_fold: float = 0.5, step: float = 0.4) -> dict:
                 floor_clear_min_mm=round(floor_min, 3), n_points_outside=n_out)
 
 
-def pad_pocket_arc(step: float = 0.05) -> tuple:
-    """Smallest arc (mm, at the hull radius) between a yawed rail pad side and a CAD pocket rim
-    (at the skin, before its 0.6 chamfer) over the pad length: the layout's definition (pad walls are planes parallel to the radial line
-    at the fin angle, so a wall at lateral offset lat meets the hull at theta + asin(lat / R))."""
+def slot_pocket_arc(step: float = 0.1) -> tuple:
+    """Smallest arc (mm, at the hull radius) between the recessed rail's slot mouth (entry to stop, full
+    groove width: the entry relief opens it to that) and a CAD pocket rim at the skin, over both fins: the
+    layout's definition (slot walls are planes parallel to the radial line at the fin angle, so a point at
+    lateral offset lat meets the hull at theta + asin(lat / R))."""
     pp = pocket_profile()
-    F = fin_frame()
-    x_p = F["o"][0] + FIN["yaw_pivot_chord_frac"] * FIN["chord"] * F["ci"]
+    RF = rail_frame()
+    F_ = RF["F"]
     best = (np.inf, None)
-    for x in np.arange(P.POCKETS["x"][0], EQ + 1e-9, step):
-        R = r_out(x)
-        dx = x - x_p
-        a = math.degrees(math.asin((-FIN["rail_w"] / 2 + dx * F["si"]) / F["ci"] / R))
-        b = math.degrees(math.asin((FIN["rail_w"] / 2 + dx * F["si"]) / F["ci"] / R))
-        for tf in FIN["theta_deg"]:
-            for tb in BLADE_THETA:
-                lo = float(np.interp(x, pp["x"], pp["rim_lo"])) + tb            # the rim at the skin (T04)
-                hi = float(np.interp(x, pp["x"], pp["rim_hi"])) + tb
-                for off in (-360.0, 0.0, 360.0):
-                    g = max(lo + off - (tf + b), (tf + a) - (hi + off))
-                    if g > -90 and math.radians(g) * R < best[0]:
-                        best = (math.radians(g) * R, (tf, tb, round(float(x), 2)))
+    for u in np.arange(RF["u_entry"], RF["u_stop"] + 1e-9, step):
+        for w in np.linspace(RF["w0"], RF["w_b"], 9):
+            q = F_["o"] + u * F_["u"] + w * F_["w"]
+            x, lat = float(q[0]), float(q[1])
+            if x < pp["x"][0] or x > pp["x"][-1]:
+                continue
+            R = r_out(x)
+            d = math.degrees(math.asin(max(-1.0, min(1.0, lat / R))))
+            for tf in FIN["theta_deg"]:
+                for tb in BLADE_THETA:
+                    lo = float(np.interp(x, pp["x"], pp["rim_lo"])) + tb
+                    hi = float(np.interp(x, pp["x"], pp["rim_hi"])) + tb
+                    for off in (-360.0, 0.0, 360.0):
+                        th = tf + d
+                        g = max(lo + off - th, th - (hi + off))
+                        if g > -90 and math.radians(g) * R < best[0]:
+                            best = (math.radians(g) * R, (tf, tb, round(x, 2)))
     return best
+
+
+def rail_wall_checks(front: Solid) -> dict:
+    """Shell walls around the recessed rail, MEASURED with OCC rays on the built front shell (turned back
+    to theta 0 for each fin): from just inside the groove void along the outward normal of each groove
+    face, the first material run is the wall. Faces: floor (down along -n_f, outside the magnet seat),
+    seat bottom, flat wall (-w), neck wall (+w, above the undercut), undercut lip (along the flank
+    normal), end stop (+t). Also the slot mouth: nothing of the shell stands proud of the hull."""
+    RF = rail_frame()
+    F_ = RF["F"]
+    Q, t, n_f, wv = RF["Q"], RF["t"], RF["n_f"], F_["w"]
+    R = RF["R"]
+    w0, w_n, w_b = RF["w0"], RF["w_n"], RF["w_b"]
+    M = R["magnet"]
+    wm = 0.5 * (w0 + w_n)
+    u_lo, u_hi = RF["u_entry"] + 1.0, RF["u_stop"] - 0.2
+    us = np.linspace(u_lo, u_hi, 14)
+    um0, um1 = RF["u_mag"][0] - (M["depth"] + 0.3) / RF["k"], RF["u_mag"][1] + 0.3 / RF["k"]
+    out = {}
+    for th in FIN["theta_deg"]:
+        S0 = front.rotate(Axis.X, th)                       # this fin's rail at theta 0
+        res = {}
+        O, D = [], []
+        for u in us:
+            for w in np.linspace(w0 + 0.2, w_b - 0.3, 7):
+                if um0 <= u <= um1 and abs(w - wm) < M["seat"][1] / 2 + 0.25:
+                    continue
+                O.append(Q(u, w, 0.0) + 0.03 * n_f)
+                D.append(-n_f)
+        res["floor"] = float(np.min(_occ_wall(S0, O, D)))
+        O = [Q(u, w, 0.0) + (0.03 - M["depth"]) * n_f for u in np.linspace(RF["u_mag"][0] + 0.2, RF["u_mag"][1] - 0.2, 6)
+             for w in np.linspace(wm - 0.8, wm + 0.8, 3)]
+        res["magnet_seat_bottom"] = float(np.min(_occ_wall(S0, O, [-n_f] * len(O))))
+        O, D = [], []
+        for u in us:
+            a_h = RF["a_hull"](u, w0) - RF["a_f"](u)
+            for h in np.linspace(0.2, max(0.25, a_h - 0.3), 5):
+                O.append(Q(u, w0 + 0.03, h))
+                D.append(-wv)
+        res["flat_wall_-w"] = float(np.min(_occ_wall(S0, O, D)))
+        O, D = [], []
+        for u in us[us >= RF["u_relief"] + 0.2]:
+            a_h = RF["a_hull"](u, w_n) - RF["a_f"](u)
+            for h in np.linspace(R["uc_h"] + 0.2, max(R["uc_h"] + 0.25, a_h - 0.3), 4):
+                O.append(Q(u, w_n - 0.03, h))
+                D.append(wv)
+        res["neck_wall_+w"] = float(np.min(_occ_wall(S0, O, D))) if O else None
+        nfl = (wv + n_f) / np.linalg.norm(wv + n_f)            # flank normal (into the lip), approx
+        O, D = [], []
+        for u in us[us >= RF["u_relief"] + 0.05]:
+            for f_ in np.linspace(0.15, 0.85, 4):
+                w = w_n + f_ * (w_b - w_n)
+                h = R["uc_h"] * (1 - f_)
+                O.append(Q(u, w, h) - 0.03 * nfl)
+                D.append(nfl)
+        res["undercut_lip"] = float(np.min(_occ_wall(S0, O, D))) if O else None
+        O = [Q(RF["u_stop"], w, h) - 0.03 * F_["u"] for w in np.linspace(w0 + 0.3, w_n - 0.3, 5)
+             for h in np.linspace(0.3, RF["a_hull"](RF["u_stop"], 0.0) - RF["a_f"](RF["u_stop"]) - 0.4, 5)]
+        res["end_stop_+u"] = float(np.min(_occ_wall(S0, O, [F_["u"]] * len(O))))
+        out["theta_%g" % th] = {k: (round(v, 3) if v is not None else None) for k, v in res.items()}
+    out["min_mm"] = min(v for d in out.values() if isinstance(d, dict) for v in d.values() if v is not None)
+    return out
 
 
 def interface_checks(S: dict) -> list:
@@ -1768,10 +2438,15 @@ def interface_checks(S: dict) -> list:
     add("stowed blades flush: max height above the hull (layout surface), mm", round(hab, 3), hab <= 0.065 + 1e-3,
         "<= 0.065")
     g = stow_detent_geometry()
-    add("stowed-detent boss face to the stowed blade (normal, min over the face), mm", round(g["blade_min_s"] - g["s_face"], 3),
-        g["blade_min_s"] - g["s_face"] >= 0.05, ">= 0.05")
-    add("stowed-detent static magnet axis vs the blade face normal at the shared mouth point (45 deg print limit), deg",
-        round(g["axis_mismatch_deg"], 2), g["axis_mismatch_deg"] <= 8.0, "<= 8")
+    add("stowed-detent boss top (contoured, T15) to the stowed blade (along the axis, min over the boss), mm",
+        round(g["boss_top_to_blade_min_mm"], 3), g["boss_top_to_blade_min_mm"] >= 0.05, ">= 0.05")
+    add("stowed-detent static magnet axis vs the blade face normal at the shared mouth point (lean %.2f deg), deg"
+        % g["lean_deg"], round(g["axis_mismatch_deg"], 2), g["axis_mismatch_deg"] <= 2.0, "<= 2 (owner call T15)")
+    ft = json.loads((DATA / "layout_rotor.json").read_text())["detents"]["force_vs_gap"]
+    fg_ = float(np.interp(g["pair_face_gap_mm"], ft["gap_mm"], ft["force_N"]))
+    add("stowed-detent magnet pair face gap on the axis (layout surface), mm; force (layout 4 x 2 table), N",
+        [round(g["pair_face_gap_mm"], 3), round(fg_, 2)], g["pair_face_gap_mm"] <= 0.45 and fg_ >= 2.0,
+        "gap <= 0.45, force >= 2.0 (owner call T15)")
     # floor walls
     lead_r, lead_deg = SEAL_LEAD
     x_lead = EQ - lead_r / math.tan(math.radians(lead_deg))
@@ -1781,16 +2456,16 @@ def interface_checks(S: dict) -> list:
         fw["min_mm"] >= P.POCKET_FLOOR_WALL - 0.05, P.POCKET_FLOOR_WALL)
     add("aft shell wall under the pocket floors (rays along the floor normal), min mm", aw["min_mm"],
         aw["min_mm"] >= P.POCKET_FLOOR_WALL - 0.05, P.POCKET_FLOOR_WALL)
-    # fin pads vs pockets
-    arc, where = pad_pocket_arc()
-    add("fin rail pads to the pocket edges (arc at the hull radius, layout definition; at x %.2f), mm" % where[2],
-        round(arc, 3), arc >= 2.0, "2.0 (layout 2.22 sampled, 2.20 independent)")
+    # recessed fin rails (owner decision 2026-10-05) vs pockets
+    arc, where = slot_pocket_arc()
+    add("fin rail slot mouth to the pocket rims (arc at the hull radius, layout definition; at x %.2f), mm" % where[2],
+        round(arc, 3), arc >= 2.0, "2.0 (layout %.2f)" % FIN_LAYOUT_POCKET_CLEAR)
     hull = _front_hull()
-    pads = [p_.cut(hull) for p_ in _pads()[0]]
+    grooves = [inter(g_, hull) for g_ in rail_grooves()]
     pk = [inter(q, hull) for q in pocket_cutters()]
-    dpad = min(pd.distance_to(q) for pd in pads for q in pk)
-    add("fin rail pads (above the hull) to the pocket void (3D min distance, information), mm", round(dpad, 3),
-        dpad >= 1.5, "1.5")
+    dgr = min(g_.distance_to(q) for g_ in grooves for q in pk)
+    add("fin rail grooves (inside the hull) to the pocket voids (3D min distance), mm", round(dgr, 3),
+        dgr >= P.MIN_WALL, P.MIN_WALL)
     # generator bay
     G = P.GENERATOR
     bay = C.axis_cyl(G["x_bay_fwd"], G["x_bay_fwd"] + G["bay_L"], G["bay_D"] / 2)
@@ -1874,22 +2549,72 @@ def interface_checks(S: dict) -> list:
         abs(bb.max.X - P.STATIC_TAIL_X) < 1e-6, P.STATIC_TAIL_X)
     add("claw B step OD %.0f to the tube mouth (radial), mm" % P.COUPLER["claw_b_step_od"],
         round(R608 - P.COUPLER["claw_b_step_od"] / 2, 3), R608 - P.COUPLER["claw_b_step_od"] / 2 >= 0.3, 0.3)
-    # fin pads (T07): blend and how far they stand proud
-    add("fin pad root blend radius (OCC fillet, tried 2 / 1.5 / 1), mm", PAD_ROOT_USED[0],
-        (PAD_ROOT_USED[0] or 0) >= 1.0, ">= 1.0")
+    # bayonet click (T17): bump in the dimple when locked, 0.25 radial snap during the twist
+    K = BAYONET_CLICK
+    snap = R_SPIG_LUG + K["bump_h"] - R_LIP
+    bumps = _click_bumps()
+    v_lock = sum(x.volume for b_ in bumps for x in (b_.intersect(front) or []))
+    v_path = []
+    for dth in (-5.0, -15.0, -25.0, -34.0):
+        v_path.append(round(sum(x.volume for b_ in bumps for x in (b_.rotate(Axis.X, -dth).intersect(front) or [])), 3))
+    E_pla, t_w = 3500.0, R_SPIG_LUG - R_SPIG_IN
+    L_t = math.radians(K["tine_arc_deg"] - K["end_offset_deg"]) * R_SPIG_LUG
+    h_t = K["x_gap"] - X_TIP
+    k_t = 3 * E_pla * (h_t * t_w ** 3 / 12) / L_t ** 3
+    sig = 3 * E_pla * t_w * snap / (2 * L_t ** 2)
+    add("bayonet click: bump in the dimple when locked (overlap with the front shell), mm3; overlap along the twist "
+        "(-5 / -15 / -25 / -34 deg), mm3", [round(v_lock, 4), v_path], v_lock < 0.01 and min(v_path) > 0.0,
+        "0 locked, > 0 on the path (snap %.2f mm)" % snap)
+    add("bayonet click tine (curved cantilever %.1f x %.1f x %.2f mm, PLA E 3.5 GPa, ESTIMATE): radial force at the "
+        "%.2f mm snap, N; root bending stress, MPa" % (L_t, h_t, t_w, snap), [round(k_t * snap, 2), round(sig, 1)],
+        sig <= 25.0, "stress <= 25 MPa (PLA ~50 MPa yield, repeated clicks)")
+    # recessed fin rails: walls measured with rays, nothing proud of the hull, the bosses and the cutaway
+    # review C1 / P1: the click tines' underside slot and the print-only breakaway ties
+    slot_n = K["gap_w"] / math.sqrt(2.0)
+    ties = _click_ties()
+    tie_ok = all(t.is_valid for t in ties)
+    v_tie = sum(t.volume for t in ties)
+    add("bayonet click tines: underside slot normal gap, mm; breakaway ties in the print solid (3, %.1f mm along x, full "
+        "wall, cut after printing): total volume, mm3" % K["tie_h"], [round(slot_n, 3), round(v_tie, 3)],
+        slot_n >= 0.8 and tie_ok and v_tie > 0.0, "slot >= 0.8 normal; ties present")
+    # review C2 / P2: boss + chin top
+    tg = g["top_grid"]
+    G_, n_, d_, e2_ = tg["G"], tg["n"], tg["d"], tg["e2"]
+    gp_, gq_ = np.gradient(G_, tg["ps"], axis=0), np.gradient(G_, tg["qs"], axis=1)
+    N_ = n_[None, None, :] - gp_[..., None] * d_ - gq_[..., None] * e2_
+    N_ /= np.linalg.norm(N_, axis=-1)[..., None]
+    ang_ = np.degrees(np.arcsin(np.clip(N_[..., 0], -1.0, 1.0)))
+    Pg, Qg = np.meshgrid(tg["ps"], tg["qs"], indexing="ij")
+    zone_ = (np.hypot(Pg, Qg) <= STOW_DETENT["boss_r"]) | ((Pg >= 0) & (Pg <= STOW_DETENT["chin_len"] + STOW_DETENT["chin_hw"])
+                                                          & (np.abs(Qg) <= STOW_DETENT["chin_hw"]))
+    add("stowed-detent boss + chin top (one surface, never falling toward the bed): max lean from vertical in print "
+        "(grid), deg; static magnet face proud of the boss top at the hole rim (max), mm",
+        [round(float(ang_[zone_].max()), 2), round(g["magnet_proud_of_top_mm"], 3)],
+        float(ang_[zone_].max()) <= STOW_DETENT["axis_lean_deg"] + 0.1, "<= %.1f deg (owner call T15)" % STOW_DETENT["axis_lean_deg"])
+    # review V2: gland boss root fillet
+    add("gland seat boss blended into the nose (root fillet radius built), mm", GLAND_FILLET["r_built"],
+        GLAND_FILLET["r_built"] is not None and GLAND_FILLET["r_built"] >= 3.0, ">= 3 (wanted %g)" % GLAND_FILLET["r_wanted"])
+    # review V4: pocket forward end
+    tp = pp["tip"]
+    add("pocket forward end follows the CAD blade tip (V4): -theta bound at the front row, deg (table %.1f); tip zone "
+        "rows" % tp["lo_front_full"], [round(tp["lo_front"], 2), tp["n_rows"]], tp["lo_front"] > tp["lo_front_full"] + 5.0,
+        "narrower than the square table tip")
+    rw = rail_wall_checks(front)
+    add("fin rail groove walls (OCC rays from the groove faces: floor, seat bottom, flat wall, neck wall, undercut "
+        "lip, end stop; both fins), min mm", rw, rw["min_mm"] >= P.MIN_WALL - 0.02, P.MIN_WALL)
     mpad = _mesh(front, 0.05)
     vv = np.asarray(mpad.vertices)
     az = np.degrees(np.arctan2(vv[:, 1], vv[:, 2]))
     near = np.zeros(len(vv), bool)
     for tf in FIN["theta_deg"]:
         near |= np.abs((az - tf + 180.0) % 360.0 - 180.0) < 25.0
+    near &= (vv[:, 0] > 5.0) & (vv[:, 0] < EQ + 0.1)          # off the nose tip (the eye lug crosses the axis)
     proud = float((np.hypot(vv[:, 1], vv[:, 2]) - profile.radius(np.clip(vv[:, 0], 0, P.HULL_L)))[near].max())
-    add("fin pads stand proud of the hull (max), mm (needs a lower fin root standoff to change: layout)",
-        round(proud, 2), True, "information")
-    # cutaway keeps the fin pads
+    add("front shell stands proud of the hull within 25 deg of the fin angles, x 5..57.5 (max, mesh 0.05), mm (owner decision: "
+        "no pads, the egg keeps its 75 mm)", round(proud, 3), proud <= 0.03, "<= 0.03 (tessellation)")
     sec = cutaway_sector(True)
-    vp = sum(x.volume for pd in pads for x in (pd.intersect(sec) or []))
-    add("cutaway sector theta %g..%g cuts a fin pad (volume), mm3" % CUTAWAY_THETA, round(vp, 3), vp < 0.01, 0)
+    vp = sum(x.volume for b_ in rail_bosses() for x in (b_.intersect(sec) or []))
+    add("cutaway sector theta %g..%g cuts a fin rail boss (volume), mm3" % CUTAWAY_THETA, round(vp, 3), vp < 0.01, 0)
     return out
 
 
@@ -1909,8 +2634,8 @@ def section_figure(S: dict, path: Path) -> None:
 
     planes = [(0.0, "theta 0 (top: blade 0 pocket, rib) / 180 (bottom: gland)"),
               (LOCK[0], "theta %g (top: locked lug, channel stop) / %g (bottom)" % (LOCK[0], LOCK[0] + 180)),
-              (FIN["theta_deg"][0], "theta %g (top: fin pad, groove, cross pin) / %g (bottom: fin pad)"
-               % tuple(FIN["theta_deg"]))]
+              (FIN["theta_deg"][0], "theta %g (top) / %g (bottom): fin angles, the yawed rail groove crosses the "
+               "plane obliquely" % tuple(FIN["theta_deg"]))]
     fig, axs = plt.subplots(len(planes), 1, figsize=(13, 5.0 * len(planes)))
     cols = {"front_shell": "#C9B48A", "aft_shell": "#8F7E5C"}
     for ax, (th, title) in zip(axs, planes):
@@ -1977,7 +2702,8 @@ def main(argv: list[str]) -> None:
         rec = dict(C.check(d["shape"], n), n_faces=len(d["shape"].faces()),
                    step_mb=round((OUT_STEP / f"{n}.step").stat().st_size / 1e6, 2),
                    print_check=C.check(d["print"], n), fits_bed=C.fits_bed(d["print"]),
-                   stl=dict(stl_check(OUT_STL / f"{n}.stl"), repair=stl_fix), overhang=overhang_scan(d["shape"], x_bed),
+                   stl=dict(stl_check(OUT_STL / f"{n}.stl"), repair=stl_fix), islands=island_scan(OUT_STL / f"{n}.stl"),
+                   overhang=overhang_scan(d["shape"], x_bed),
                    robustness=robustness_probe(d["shape"]), role=d["role"], notes=d["notes"])
         report["parts"].append(rec)
         print(n, json.dumps({k: rec[k] for k in ("valid", "n_solids", "volume_cm3")}), "stl", rec["stl"]["watertight"],
@@ -1986,11 +2712,21 @@ def main(argv: list[str]) -> None:
     report["interface_checks"] = interface_checks(S)
     for c in report["interface_checks"]:
         print(("PASS " if c["ok"] else "FAIL ") + c["check"] + ": " + c["value"], flush=True)
-    g = stow_detent_geometry()
+    g = dict(stow_detent_geometry())
+    tg = g.pop("top_grid")
+    g["top_grid"] = dict(p_range=[float(tg["ps"][0]), float(tg["ps"][-1])], q_range=[float(tg["qs"][0]), float(tg["qs"][-1])],
+                         cell=TOP_GRID["cell"], G_min=float(tg["G"].min()), G_max=float(tg["G"].max()),
+                         hole_rim_G=[tg["hole_rim_min"], tg["hole_rim_max"]])
     report["stow_detent"] = dict({k: (np.round(v, 4).tolist() if isinstance(v, np.ndarray) else v) for k, v in g.items()},
                                  **STOW_DETENT)
     report["carrier_lock"] = CARRIER_LOCK
     report["fin_rail"] = FIN_RAIL
+    RF_ = rail_frame()
+    report["fin_rail_stations"] = dict(u_entry=RF_["u_entry"], u_relief=RF_["u_relief"], u_stop=RF_["u_stop"],
+                                       u_magnet=list(RF_["u_mag"]), lip_at_relief_end=RF_["lip_at_relief_end"],
+                                       x_entry=float(RF_["Q"](RF_["u_entry"], 0.0)[0]), x_stop=FIN_RAIL["stop_x"])
+    report["fin_block_vs_params"] = FIN_VS_PARAMS
+    report["bayonet_click"] = BAYONET_CLICK
     report["cutaway_theta_deg"] = list(CUTAWAY_THETA)
     pp = pocket_profile()
     tb_, i0_ = pp["table"], pp["tip_rows"]

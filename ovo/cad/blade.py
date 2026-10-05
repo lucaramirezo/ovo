@@ -18,6 +18,18 @@ section is an exact, planar iso-curve of one bicubic skin; a ruled strip closes 
 trailing edge and two planar caps close the ends. The skin is fused with the knuckle and
 heel (analytic solids), then the end chamfers, the pin bore and the magnet seats are cut.
 
+The parameter around the section (U) is CENTRIPETAL (cumulative sqrt of the point spacing),
+averaged over the aero rows (``_u_params``; recheck finding R1). The earlier chord-length
+average over every row was pulled by the shank's rounded-rectangle rows, so the aero rows got a
+first parameter step that was too long for their cosine-dense trailing-edge points. The
+interpolant then left the TE corner BACKWARD and turned round within ~0.01 mm: a micro hook along
+the whole span. That hook made OCC's point classifier call far points IN (finding T14: its probe
+rays graze the TE crease, the hook returns a skin "Out" hit a micron before the strip's "In")
+and made BRepMesh insert ~38 000 nodes in the hook band (7 400 folded sliver pairs, the streaks
+in the renders). With the centripetal parameter the end tangent follows the section (no
+non-monotone end on 122 row ends), far points classify OUT in every pose without any healing,
+and the skin meshes to ~11 000 triangles with no folded pair. The T14 face split is gone.
+
 Parts of the blade (blade frame):
 
 * aero span r 30..91: the layout's NACA 44xx sections (data/blade_design.json) at the
@@ -46,16 +58,21 @@ Parts of the blade (blade frame):
   stowed: a D4.1 seat for a 4 x 2 disc where the DETENTS axis meets the shank's inner face but
   along the face NORMAL (that face is inclined ~51 deg to the radial DETENTS axis, so a radial
   seat cannot be flush), magnet face 0.1 below that mouth point (T15), 0.2 mm mouth chamfer.
-* healing (T14): faces above 200 mm2 are split and ShapeFix'd, so OCC classifies far points OUT
-  in every pose (the single big B-spline skin made BRepClass3d report the far point IN).
+* no healing: the T14 face split (faces above 200 mm2) is replaced by the centripetal U parameter
+  above; checks() proves the classification on far and near-surface points in the print,
+  stowed, deployed and fold-45 poses, and the STL / web mesh quality (no folded pair).
+* print aid (T13): ``cradle_solid()`` is a sacrificial support rail under the trailing edge, the
+  shank ramp and the heel (top 0.2 mm below the blade, the support top-Z distance), written as
+  out/cad/stl/blade_cradle.stl in the blade's print coordinates; print it with each blade instead
+  of slicer supports.
 
 parts(): blade_0..2 in the WORLD STOWED pose (fold FOLD_DEG) with a pivot such that
 rotating the stowed shape by deployed_deg about the axis through the hinge point gives
 the deployed pose (proved numerically by ``checks()``).
 
 Run ``scripts/cadrun.sh .venv/bin/python -m ovo.cad.blade`` to build, check and
-export (out/cad/step/blade.step, out/cad/stl/blade.stl, out/cad/checks/blade.json and the
-preview out/work/cad/blade/final.png).
+export (out/cad/step/blade.step, out/cad/stl/blade.stl, out/cad/stl/blade_cradle.stl,
+out/cad/checks/blade.json and the preview out/work/cad/blade/final.png).
 """
 
 from __future__ import annotations
@@ -99,6 +116,7 @@ WORK = ROOT / "out" / "work" / "cad" / "blade"
 STEP_OUT = ROOT / "out" / "cad" / "step" / "blade.step"
 STL_OUT = ROOT / "out" / "cad" / "stl" / "blade.stl"
 CHECK_OUT = ROOT / "out" / "cad" / "checks" / "blade.json"
+CRADLE_OUT = ROOT / "out" / "cad" / "stl" / "blade_cradle.stl"
 
 # --------------------------------------------------------------------------
 # Blade-builder choices (CAD detail below the layout's resolution; documented)
@@ -131,7 +149,10 @@ DEP_S = DEP["r_e"] - P.HINGE_R                   # -5.8
 # Stowed seat, finding T15: the magnet face sits STOW_BLADE_BELOW_MOUTH below the seat mouth on the
 # DETENTS axis (was 0.1 below the lowest rim point, 0.295 below the mouth).
 STOW_BELOW_MOUTH = C.STOW_BLADE_BELOW_MOUTH
-HEAL_MAX_FACE_AREA = 200.0  # finding T14: split faces above this area (see _heal)
+CRADLE_GAP = P.BLADE_CRADLE["gap"]              # T13 cradle: top this far below the blade (support top-Z)
+CRADLE_MIN_W = P.BLADE_CRADLE["min_w"]          # cradle rail width (4 lines of 0.4)
+CRADLE_STEP = P.BLADE_CRADLE["station_step"]    # mm between cradle stations along the span
+CRADLE_MIN_FLOAT = P.BLADE_CRADLE["min_float"]  # rails only where the blade floats this high (gap + a layer)
 HEEL_TIP_FILLET = 1.0     # heel tip, +n edge and the two planform corners
 HEEL_SIDE_FILLET = 0.0    # heel long edges stay sharp: a fillet there chains into the root fillet
 HEEL_ROOT_FILLET = 0.6    # heel +n face to knuckle (never the stop-face side)
@@ -327,6 +348,20 @@ def _chord_params(G: np.ndarray, axis: int) -> np.ndarray:
     return t
 
 
+def _u_params(G: np.ndarray, zone: np.ndarray) -> np.ndarray:
+    """Centripetal parameters around the section (cumulative sqrt of the point spacing, Lee 1989),
+    normalised per row and averaged over the AERO rows only. The aero and tip rows share the cosine
+    point layout, so this one parameter suits them all; the shank rows (rounded rectangles) used to
+    pull a chord-length average far enough to put a micro hook at the trailing edge (see the
+    module docstring, recheck R1 / T14)."""
+    rows = G[zone == "aero"] if np.any(zone == "aero") else G
+    d = np.sqrt(np.linalg.norm(np.diff(rows, axis=1), axis=-1))
+    c = np.concatenate([np.zeros((len(rows), 1)), np.cumsum(d, axis=1)], axis=1)
+    t = (c / c[:, -1:]).mean(axis=0)
+    t[0], t[-1] = 0.0, 1.0
+    return t
+
+
 def _knots_mults(t: np.ndarray):
     from OCP.collections import Array1_double, Array1_int
     vals, mults = np.unique(np.round(t, 14), return_counts=True)
@@ -337,16 +372,17 @@ def _knots_mults(t: np.ndarray):
     return K, M
 
 
-def _bspline_surface(G: np.ndarray):
+def _bspline_surface(G: np.ndarray, tu: np.ndarray | None = None):
     """Skinned C2 bicubic B-spline surface through every grid point (U around the section,
-    V along the span). Every section is first interpolated with the SAME parameters (so
-    the same knots), then the pole columns are interpolated along the span: each section
-    is then an exact iso-curve of the surface and stays in its own plane (OCC's
-    PointsToBSplineSurface end conditions bend the end sections out of plane)."""
+    V along the span). Every section is first interpolated with the SAME parameters ``tu``
+    (so the same knots; default: averaged chord length), then the pole columns are interpolated
+    along the span: each section is then an exact iso-curve of the surface and stays in its own
+    plane (OCC's PointsToBSplineSurface end conditions bend the end sections out of plane)."""
     from OCP.Geom import Geom_BSplineSurface
     from scipy.interpolate import make_interp_spline
     nv, nu = G.shape[:2]
-    tu, tv = _chord_params(G, 1), _chord_params(G, 0)
+    tu = _chord_params(G, 1) if tu is None else np.asarray(tu, float)
+    tv = _chord_params(G, 0)
     su = make_interp_spline(tu, np.transpose(G, (1, 0, 2)), k=3)          # coeffs (nu, nv, 3)
     sv = make_interp_spline(tv, np.transpose(su.c, (1, 0, 2)), k=3)       # coeffs (nv, nu, 3)
     poles = sv.c                                                          # [j_v, i_u]
@@ -365,7 +401,30 @@ def _edge(curve) -> Edge:
 
 @lru_cache(maxsize=1)
 def loft_surface():
-    return _bspline_surface(section_grid()["G"])
+    sg = section_grid()
+    return _bspline_surface(sg["G"], _u_params(sg["G"], sg["zone"]))
+
+
+def skin_end_check(n_v: int = 61) -> dict:
+    """The trailing-edge ends of the skin's U iso-curves: angle between the end tangent and the
+    chord to the point 0.03 further along U (a hook reads ~180 deg), and how many ends are not
+    monotone (distance from the TE corner must grow along U)."""
+    from OCP.gp import gp_Vec
+    S = loft_surface()
+    worst, nonmono = 0.0, 0
+    for v in np.linspace(0.0, 1.0, n_v):
+        for u0, sg in ((0.0, 1.0), (1.0, -1.0)):
+            us = u0 + sg * np.r_[0.0, np.geomspace(1e-6, 0.03, 30)]
+            pts = np.array([[S.Value(u, v).X(), S.Value(u, v).Y(), S.Value(u, v).Z()] for u in us])
+            d = np.linalg.norm(pts - pts[0], axis=1)
+            p, du, dv = gp_Pnt(), gp_Vec(), gp_Vec()
+            S.D1(u0, v, p, du, dv)
+            a = sg * np.array([du.X(), du.Y(), du.Z()])
+            ch = pts[-1] - pts[0]
+            worst = max(worst, float(np.degrees(np.arccos(np.clip(a @ ch / np.linalg.norm(a) / np.linalg.norm(ch), -1, 1)))))
+            nonmono += int(not np.all(np.diff(d) > 0))
+    return {"u_parameter": "centripetal, averaged over the aero rows", "row_ends_checked": 2 * n_v,
+            "non_monotone_ends": nonmono, "max_end_tangent_vs_chord_deg": worst, "pass": nonmono == 0 and worst < 90.0}
 
 
 @lru_cache(maxsize=1)
@@ -577,7 +636,6 @@ def _build() -> tuple[Solid, dict]:
     sols = body.solids()
     if len(sols) == 1:
         body = sols[0]
-    body = _heal(body)
     info.update(deployed_seat={"shape": "block", "centre": cd.tolist(), "centre_detents": cd.tolist(),
                                "size_s_c_n": [DEP["size_tau_re_x"][1], DEP["size_tau_re_x"][0], hx],
                                "seat_s_c": [ts, tc], "axis": ad.tolist(), "t_face_mm": float(cd[2] - n_face),
@@ -586,25 +644,6 @@ def _build() -> tuple[Solid, dict]:
                 stowed_seat={"centre_detents": cs.tolist(), "axis_detents": stowed_axis_detents().tolist(), **sg},
                 t_build_s=round(time.time() - t0, 1))
     return body, info
-
-
-def _heal(sol: Solid) -> Solid:
-    """Finding T14: OCC's point classifier (BRepClass3d, used by distance and boolean inner-solution
-    tests) called the far point (200, 200, 200) IN for the stowed and deployed blades. The big
-    B-spline skin face is the cause (orientation fixes and sewing did not change it); splitting faces
-    above HEAL_MAX_FACE_AREA (ShapeUpgrade_ShapeDivideArea) and a ShapeFix pass do, with the same
-    volume. checks() asserts the far-point classification in the print, stowed and deployed poses."""
-    from OCP.ShapeFix import ShapeFix_Shape
-    from OCP.ShapeUpgrade import ShapeUpgrade_ShapeDivideArea
-    from OCP.TopoDS import TopoDS
-    d = ShapeUpgrade_ShapeDivideArea(sol.wrapped)
-    d.MaxArea = HEAL_MAX_FACE_AREA
-    d.Perform()
-    fx = ShapeFix_Shape(d.Result())
-    fx.Perform()
-    out = Solid(TopoDS.Solid(fx.Shape()))
-    assert out.is_valid and abs(volume(out) - volume(sol)) < 0.05, "blade heal changed the solid"
-    return out
 
 
 def classify_far(sol: Shape, pts=((200.0, 200.0, 200.0), (-200.0, 50.0, 30.0), (0.0, 0.0, 300.0))) -> list:
@@ -616,6 +655,50 @@ def classify_far(sol: Shape, pts=((200.0, 200.0, 200.0), (-200.0, 50.0, 30.0), (
         c = BRepClass3d_SolidClassifier(sol.wrapped, gp_Pnt(*p), 1e-6)
         out.append({TopAbs_IN: "IN", TopAbs_OUT: "OUT", TopAbs_ON: "ON"}.get(c.State(), str(c.State())))
     return out
+
+
+def classification_proof(n_far: int = 200, n_near: int = 150, offset: float = 0.15, seed: int = 5) -> dict:
+    """OCC point classification on the real blade in five poses (print, blade 0 stowed and
+    deployed, blade 1 at fold 45, blade 2 stowed): n_far random points 1..300 mm outside the
+    bounding sphere must be OUT; n_near surface samples moved +-offset along the outward mesh
+    normal must be OUT / IN."""
+    from OCP.BRepClass3d import BRepClass3d_SolidClassifier
+    from OCP.TopAbs import TopAbs_IN, TopAbs_OUT
+    from ..export_web import occ_mesh
+    import trimesh
+    sol = blade_frame_solid()
+    rng = np.random.default_rng(seed)
+    D = rng.normal(size=(n_far, 3))
+    D /= np.linalg.norm(D, axis=1)[:, None]
+    R = rng.uniform(1.0, 300.0, n_far)
+    m = occ_mesh(sol, 0.02, 0.1)
+    pts, fi = trimesh.sample.sample_surface(m, n_near, seed=seed)
+    nrm = m.face_normals[fi]
+    bb = sol.moved(_loc(PRINT_R)).bounding_box()
+    T_pr = np.eye(4)
+    T_pr[:3, :] = PRINT_R
+    T_pr[:3, 3] += [-(bb.min.X + bb.max.X) / 2, -(bb.min.Y + bb.max.Y) / 2, -bb.min.Z]
+    poses = {"print": T_pr, "stowed_0": blade_transform(0, P.FOLD_DEG), "deployed_0": blade_transform(0, 0.0),
+             "fold45_1": blade_transform(1, 45.0), "stowed_2": blade_transform(2, P.FOLD_DEG)}
+    res, ok = {}, True
+    for k, T in poses.items():
+        ps = sol.moved(_loc(T))
+        b = ps.bounding_box()
+        c = np.array([b.center().X, b.center().Y, b.center().Z])
+        far_bad = sum(BRepClass3d_SolidClassifier(ps.wrapped, gp_Pnt(*(c + (0.5 * b.diagonal + r) * d)), 1e-6).State()
+                      != TopAbs_OUT for d, r in zip(D, R))
+        W = pts @ T[:3, :3].T + T[:3, 3]
+        Nw = nrm @ T[:3, :3].T
+        out_bad = sum(BRepClass3d_SolidClassifier(ps.wrapped, gp_Pnt(*(p + offset * n)), 1e-6).State() != TopAbs_OUT
+                      for p, n in zip(W, Nw))
+        in_bad = sum(BRepClass3d_SolidClassifier(ps.wrapped, gp_Pnt(*(p - offset * n)), 1e-6).State() != TopAbs_IN
+                     for p, n in zip(W, Nw))
+        res[k] = {"far_points_not_OUT": int(far_bad), "near_outside_not_OUT": int(out_bad),
+                  "near_inside_not_IN": int(in_bad)}
+        ok &= far_bad == 0 and out_bad == 0 and in_bad == 0
+    res["n_far_per_pose"], res["n_near_per_pose"], res["near_offset_mm"] = n_far, n_near, offset
+    res["pass"] = bool(ok)
+    return res
 
 
 def blade_frame_solid() -> Solid:
@@ -660,16 +743,100 @@ def print_solid() -> Solid:
 
 PRINT_NOTE = ("Print chord-vertical: trailing-edge side down, the knuckle's TE-side end face on the bed, "
               "pin bore vertical (round, no teardrop), layers in the span/thickness plane so flapwise "
-              "bending, the knuckle lug and the heel stop load all run inside the layers. Supports: tree, "
-              "build plate only, under the trailing edge (it floats {te_lo:.1f} to {te_hi:.1f} mm above the "
-              "bed), the heel underside and the shank's TE ramp; nothing else overhangs > 45 deg. Tree support "
-              "settings: top Z distance 0.2 mm, dense interface (3 layers), 5 mm brim on the knuckle. Magnet "
-              "seats print horizontal: the heel slot 6.1 x 2.1 (its 2.1 mm ceiling bridges), the shank hole "
-              "D4.1 (bridged). PLA or PETG, 0.2 mm layers, 4 walls, 40 % gyroid.")
+              "bending, the knuckle lug and the heel stop load all run inside the layers. The trailing edge "
+              "floats {te_lo:.1f} to {te_hi:.1f} mm above the bed, the heel underside 2 mm and the shank's TE "
+              "ramp in between: print the blade on its sacrificial cradle (blade_cradle.stl, same coordinates, "
+              "top 0.2 mm under the blade, slicer supports off). Fallback: tree supports, build plate only, "
+              "top Z distance 0.2 mm, dense interface (3 layers). Nothing else overhangs > 45 deg. 5 mm brim on "
+              "the knuckle. Magnet seats print horizontal: the heel slot 6.1 x 2.1 (its 2.1 mm ceiling bridges), "
+              "the shank hole D4.1 (bridged). PLA or PETG, 0.2 mm layers, 4 walls, 40 % gyroid.")
+
+
+@lru_cache(maxsize=1)
+def cradle_stations(step: float = CRADLE_STEP, fine: float = 0.25) -> list[dict]:
+    """Where the print-oriented blade floats over the bed: per station x (print frame, along the
+    span) the blade's lowest point z_min (the window minimum over +-step of 0.25 mm slices, so the
+    straight rail top between stations stays under the blade) and the y range of its lowest
+    0.5 mm band. Stations where the blade stands on the bed or within one layer of it (z_min < 0.4: the
+    knuckle) are absent. Review P6: stations every 0.25 mm (BLADE_CRADLE station_step), so the top follows
+    the shank ramp and the tip within 0.2 to 0.3 mm and the rail reaches the face next to the knuckle."""
+    from ..export_web import occ_mesh
+    m = occ_mesh(print_solid(), 0.02, 0.1)
+    x0, x1 = float(m.bounds[0][0]) + 0.3, float(m.bounds[1][0]) - 0.3
+    xf = np.arange(x0, x1 + 1e-9, fine)
+    zf, ylo, yhi = [], [], []
+    for x in xf:
+        sec = m.section(plane_origin=(float(x), 0.0, 0.0), plane_normal=(1.0, 0.0, 0.0))
+        if sec is None:
+            zf.append(np.nan); ylo.append(np.nan); yhi.append(np.nan)
+            continue
+        V = np.asarray(sec.vertices)
+        z0 = float(V[:, 2].min())
+        band = V[V[:, 2] < z0 + 0.5]
+        zf.append(z0); ylo.append(float(band[:, 1].min())); yhi.append(float(band[:, 1].max()))
+    zf, ylo, yhi = np.array(zf), np.array(ylo), np.array(yhi)
+    out = []
+    for x in np.arange(x0, x1 + 1e-9, step):
+        w = np.abs(xf - x) <= step + 1e-9
+        if not np.any(np.isfinite(zf[w])):
+            continue
+        z = float(np.nanmin(zf[w]))
+        if z < CRADLE_MIN_FLOAT:              # first layer or on the bed: no support (rail top >= 0.2)
+            continue
+        out.append({"x": float(x), "z_min": z, "y_lo": float(np.nanmin(ylo[w])), "y_hi": float(np.nanmax(yhi[w]))})
+    return out
+
+
+def _rail(st: list[dict]):
+    """Planar-faced rail from z = 0 up to z_min - CRADLE_GAP through consecutive stations."""
+    from build123d import Face as F_, Wire as W_
+    q = []
+    for k in st:
+        yc, w = 0.5 * (k["y_lo"] + k["y_hi"]), max(CRADLE_MIN_W, k["y_hi"] - k["y_lo"] + 0.4)
+        zt = k["z_min"] - CRADLE_GAP
+        q.append([Vector(k["x"], yc - w / 2, 0.0), Vector(k["x"], yc + w / 2, 0.0),
+                  Vector(k["x"], yc + w / 2, zt), Vector(k["x"], yc - w / 2, zt)])
+    quad = lambda *v: F_(W_.make_polygon(list(v), close=True))
+    faces = [quad(*q[0]), quad(*q[-1][::-1])]
+    for (A0, B0, C0, D0), (A1, B1, C1, D1) in zip(q[:-1], q[1:]):
+        faces += [quad(A0, A1, B1, B0), quad(D0, C0, C1, D1), quad(A0, D0, D1, A1), quad(B0, B1, C1, C0)]
+    sol = Solid(Shell(faces))
+    if sol.volume < 0:
+        sol = Solid(sol.wrapped.Reversed())
+    return sol
+
+
+@lru_cache(maxsize=1)
+def cradle_solid():
+    """Finding T13: a sacrificial support cradle in the blade's PRINT coordinates (load it with
+    blade.stl as one object). One rail under each floating run of the print-oriented blade (the
+    heel; the shank ramp, the trailing edge and the tip), top CRADLE_GAP below the blade (the
+    slicer's support top-Z distance), 1.6 mm wide or the width of the blade's lowest 0.5 mm band
+    + 0.4. A Compound when there are several runs (intended: separate rails)."""
+    st = cradle_stations()
+    runs, cur = [], [st[0]]
+    for a in st[1:]:
+        if a["x"] - cur[-1]["x"] > CRADLE_STEP * 1.5:
+            runs.append(cur)
+            cur = [a]
+        else:
+            cur.append(a)
+    runs.append(cur)
+    rails = [_rail(r) for r in runs if len(r) >= 2]
+    from build123d import Compound
+    return rails[0] if len(rails) == 1 else Compound(rails)
+
+
+CRADLE_NOTE = ("Sacrificial support cradle for blade.stl (finding T13), in the same print coordinates: load both files "
+               "as one object (Bambu Studio: import both, 'load as a single object with multiple parts'), supports "
+               "OFF. Rails under the heel and under the shank ramp, trailing edge and tip, top 0.2 mm below the blade "
+               "(the support top-Z distance), 1.6 mm wide or the width of the blade's lowest band + 0.4. Print it with "
+               "the blade, PLA, 2 walls, 15 % infill; snap it off after printing. One per blade.")
 
 
 def parts() -> list[dict]:
-    """Three identical blades, WORLD STOWED pose, with hinge pivots (common.py contract)."""
+    """Three identical blades, WORLD STOWED pose, with hinge pivots (common.py contract), plus the
+    blade's sacrificial print cradle (role hidden, print coordinates, print_with blade)."""
     _, lay, _ = context()
     pr = print_solid()
     out = []
@@ -682,6 +849,10 @@ def parts() -> list[dict]:
             "pivot": pivot(i),
             "notes": "Blade %d of 3 (identical prints). " % i + PRINT_NOTE.format(**_print_te_range()),
         })
+    cr = cradle_solid()
+    out.append({"name": "blade_cradle", "shape": cr, "print": cr, "material": "stand", "role": "hidden",
+                "rotor": False, "qty": lay.n_blades, "bought": False, "explode": [0.0, 0.0, 0.0],
+                "print_with": "blade", "notes": CRADLE_NOTE})
     return out
 
 
@@ -696,6 +867,20 @@ def preview_parts() -> list[dict]:
         pin = _cyl(H - P.PIN_L / 2 * e_t, H + P.PIN_L / 2 * e_t, P.PIN_D / 2)
         out.append({"name": f"pin_{i}", "shape": pin, "material": "steel", "role": "body", "rotor": True})
     return out
+
+
+def preview_web(fold: float = 0.0, tol: float = 0.03, ang: float = 0.2, relative: bool = False) -> list[dict]:
+    """The three blades meshed as the web scene meshes them (export_web.to_trimesh), for close-up
+    checks of the shading (recheck R1)."""
+    from ..export_web import to_trimesh
+    _, lay, _ = context()
+    return [{"name": f"blade_{i}", "mesh": to_trimesh(blade_world(i, fold), tol, ang, relative=relative),
+             "material": "blade", "role": "body"} for i in range(lay.n_blades)]
+
+
+def preview_web_rel() -> list[dict]:
+    """As preview_web with the old relative deflection (0.08 / 0.3), for comparison."""
+    return preview_web(0.0, 0.08, 0.3, True)
 
 
 def preview_root() -> list[dict]:
@@ -722,6 +907,7 @@ def preview_print() -> list[dict]:
     """The print orientation on a 120 mm plate patch (z = 0)."""
     plate = Solid.make_box(120, 50, 0.6, Plane(origin=(-60, -25, -0.6)))
     return [{"name": "blade_print", "shape": print_solid(), "material": "blade"},
+            {"name": "cradle", "shape": cradle_solid(), "material": "generator", "role": "body"},
             {"name": "plate", "shape": plate, "material": "stand", "role": "body"}]
 
 
@@ -965,11 +1151,13 @@ def checks(write: bool = True) -> dict:
         "note": ("deployed: N52 block 6 x 2 x 2 in a glued 6.1 x 2.1 seat, face %.1f below the heel stop face "
                  "(T03, DETENTS proposal); stowed: D4 x 2 disc on the face normal, face %.1f below the mouth "
                  "on the DETENTS axis (T15)" % (DEP["recess"], STOW_BELOW_MOUTH))}
-    res["classification"] = {k: classify_far(v) for k, v in (
-        ("blade_frame", sol), ("print", print_solid()), ("stowed_0", blade_world(0, P.FOLD_DEG)),
-        ("deployed_0", blade_world(0, 0.0)))}
-    res["classification"]["pass"] = bool(all(all(x == "OUT" for x in v) for v in res["classification"].values()
-                                              if isinstance(v, list)))
+    res["skin_parametrization"] = skin_end_check()
+    res["classification"] = classification_proof()
+    res["classification"]["note"] = ("OCC BRepClass3d on the unhealed solid (no face split, no tolerance change): "
+                                     "far points must be OUT, surface samples +-0.15 mm along the normal OUT / IN")
+    from ..export_web import mesh_quality, to_trimesh
+    wm = to_trimesh(blade_world(0, P.FOLD_DEG), 0.03, 0.2, relative=False)
+    res["web_mesh_quality (blade_0 stowed, absolute 0.03 mm / 0.2 rad as assembly.write_web)"] = mesh_quality(wm)
     # ---- mass (adaptive volume integration) and where it differs from the layout estimate
     from build123d import Keep
     vol = volume(sol)
@@ -1151,67 +1339,62 @@ def checks(write: bool = True) -> dict:
 # Export and preview
 # ==========================================================================
 
-def close_mesh_slivers(m, max_perimeter: float = 0.2) -> int:
-    """Close tiny boundary loops (OCC mesher artifacts a few microns wide where faces meet)
-    with fans oriented against their neighbours. Returns the number of loops closed;
-    larger holes are left alone so a real defect still fails the watertight check."""
-    faces = np.asarray(m.faces)
-    directed = np.vstack([faces[:, [0, 1]], faces[:, [1, 2]], faces[:, [2, 0]]])
-    have = {tuple(e) for e in directed}
-    nxt = {}
-    for a, b in directed:
-        if (b, a) not in have:
-            nxt[b] = a                       # the hole boundary runs opposite to the face edge
-    new, done, closed = [], set(), 0
-    for start in list(nxt):
-        if start in done:
-            continue
-        loop, v = [start], nxt[start]
-        while v != start and v in nxt and len(loop) < 50:
-            loop.append(v)
-            v = nxt[v]
-        done.update(loop)
-        if v != start or len(loop) < 3:
-            continue
-        P_ = m.vertices[loop]
-        per = float(np.linalg.norm(P_ - np.roll(P_, -1, axis=0), axis=1).sum())
-        if per <= max_perimeter:
-            new += [[loop[0], loop[k], loop[k + 1]] for k in range(1, len(loop) - 1)]
-            closed += 1
-    if new:
-        m.faces = np.vstack([faces, np.asarray(new)])
-    return closed
-
-
 def export() -> dict:
+    """blade.step (print pose), blade.stl through export_web.write_clean_stl (absolute 0.05 mm chord
+    deflection, sliver-free, watertight) and the T13 cradle STL; returns the mesh reports."""
+    import manifold3d as m3
     import trimesh
-    from OCP.BRepTools import BRepTools
+    from ..export_web import write_clean_stl
     pr = print_solid()
-    BRepTools.Clean_s(pr.wrapped)          # drop cached finer triangulations from the checks
     STEP_OUT.parent.mkdir(parents=True, exist_ok=True)
-    STL_OUT.parent.mkdir(parents=True, exist_ok=True)
     export_step(pr, STEP_OUT)
-    export_stl(pr, STL_OUT, tolerance=STL_TOL, angular_tolerance=0.3)
+    q = write_clean_stl(pr, STL_OUT, tol=STL_TOL, angular=0.3)
     m = trimesh.load(STL_OUT)
-    raw_wt, cleaned, filled = bool(m.is_watertight), 0, 0
-    if not raw_wt:
-        # OCC's mesher leaves zero-length segments where three fillets meet at the heel
-        # tip corners; drop the degenerate slivers and re-weld
-        n0 = len(m.faces)
-        m.update_faces(m.nondegenerate_faces())
-        m.remove_unreferenced_vertices()
-        m.merge_vertices()
-        cleaned = n0 - len(m.faces)
-        filled = close_mesh_slivers(m)
-        m.export(STL_OUT)
-        m = trimesh.load(STL_OUT)
+    qc = write_clean_stl(cradle_solid(), CRADLE_OUT, tol=0.02, angular=0.2)
+    mc = trimesh.load(CRADLE_OUT)
+
+    def mf(t):
+        mm = m3.Mesh(vert_properties=np.asarray(t.vertices, np.float32), tri_verts=np.asarray(t.faces, np.uint32))
+        mm.merge()
+        return m3.Manifold(mm)
+    gap = float(mf(m).min_gap(mf(mc), 5.0))
+    ov = float((mf(m) ^ mf(mc)).volume())
+    st = cradle_stations()
+    # coverage: faces beyond the 45 deg rule (off the first layer) whose centre lies 0..0.6 mm straight
+    # above the cradle's top surface; the rest are bridged seat ceilings inside the blade
+    nz, zc = m.face_normals[:, 2], m.triangles_center[:, 2]
+    over = (nz < -math.cos(math.radians(P.MAX_OVERHANG))) & (zc > 0.3)
+    T = mc.triangles[mc.face_normals[:, 2] > 0.5]
+    pts = m.triangles_center[over]
+    a, b, c = T[:, 0, :2][None], T[:, 1, :2][None], T[:, 2, :2][None]
+    qp = pts[:, None, :2]
+    v0, v1, v2 = c - a, b - a, qp - a
+    d00, d01, d11 = (v0 * v0).sum(-1), (v0 * v1).sum(-1), (v1 * v1).sum(-1)
+    d20, d21 = (v2 * v0).sum(-1), (v2 * v1).sum(-1)
+    den = np.where(np.abs(d00 * d11 - d01 * d01) < 1e-18, 1e-18, d00 * d11 - d01 * d01)
+    u_, v_ = (d11 * d20 - d01 * d21) / den, (d00 * d21 - d01 * d20) / den
+    inside = (u_ >= -1e-9) & (v_ >= -1e-9) & (u_ + v_ <= 1 + 1e-9)
+    z_top = (T[:, 0, 2][None] + u_ * (T[:, 2, 2] - T[:, 0, 2])[None] + v_ * (T[:, 1, 2] - T[:, 0, 2])[None])
+    dz = np.where(inside, pts[:, 2][:, None] - z_top, np.inf)
+    covered = np.any((dz > 0) & (dz < 0.6), axis=1)
+    cov = float(m.area_faces[over][covered].sum() / max(m.area_faces[over].sum(), 1e-9))
+    unc = m.triangles_center[over][~covered]
     return {"step": str(STEP_OUT.relative_to(ROOT)), "stl": str(STL_OUT.relative_to(ROOT)),
-            "stl_tolerance_mm": STL_TOL, "stl_raw_watertight": raw_wt, "stl_degenerate_removed": int(cleaned),
-            "stl_sliver_holes_closed": int(filled), "stl_winding_consistent": bool(m.is_winding_consistent),
-            "stl_watertight": bool(m.is_watertight), "stl_volume_mm3": float(m.volume),
+            "stl_tolerance_mm": STL_TOL, "stl_mesh_quality": q, "stl_watertight": bool(m.is_watertight),
+            "stl_winding_consistent": bool(m.is_winding_consistent), "stl_volume_mm3": float(m.volume),
             "stl_volume_vs_solid_pct": float(100 * (m.volume / volume(pr) - 1)),
             "stl_triangles": int(len(m.faces)), "stl_bytes": STL_OUT.stat().st_size,
-            "step_bytes": STEP_OUT.stat().st_size}
+            "step_bytes": STEP_OUT.stat().st_size,
+            "cradle": {"stl": str(CRADLE_OUT.relative_to(ROOT)), "mesh_quality": qc, "volume_mm3": float(mc.volume),
+                       "rails": len(cradle_solid().solids()), "stations": len(st),
+                       "x_range_mm": [st[0]["x"], st[-1]["x"]], "top_gap_design_mm": CRADLE_GAP,
+                       "min_gap_to_blade_mm (manifold, STL meshes)": gap, "overlap_with_blade_mm3": ov,
+                       "max_height_mm": float(mc.bounds[1][2]),
+                       "overhang_area_mm2": float(m.area_faces[over].sum()),
+                       "overhang_area_over_the_cradle_pct": 100.0 * cov,
+                       "uncovered_overhang_z_range_mm": [float(unc[:, 2].min()), float(unc[:, 2].max())] if len(unc) else None,
+                       "uncovered_note": "bridged ceilings of the two magnet seats and first-layer faces (z < 0.5)",
+                       "pass": bool(ov < 1e-6 and gap >= 0.12)}}
 
 
 def render_final(out: Path = WORK / "final.png") -> Path:

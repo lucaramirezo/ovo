@@ -32,7 +32,7 @@
   "heel_angle_deg": 0.0,
   "shank_cone_deg": 55.0,
   "shank_blend_start_mm": 4.5,
-  "spinner_wall_mm": 1.2,
+  "spinner_wall_mm": 1.25,
   "spinner_gap_mm": 0.2,
   "run_clear_mm": 0.3,
   "pocket_clear_mm": 0.3,
@@ -735,7 +735,7 @@
    "pocket_depth_aero_max_mm": 7.7317,
    "keepout_tail_min_mm": 14.885,
    "stowed_tip_x_mm": 32.25,
-   "heel_stowed_below_spinner_inner_mm": 2.061
+   "heel_stowed_below_spinner_inner_mm": 2.011
   },
   {
    "fold_deg": 87.0,
@@ -749,7 +749,7 @@
    "pocket_depth_aero_max_mm": 8.0894,
    "keepout_tail_min_mm": 14.528,
    "stowed_tip_x_mm": 31.75,
-   "heel_stowed_below_spinner_inner_mm": 1.698
+   "heel_stowed_below_spinner_inner_mm": 1.648
   },
   {
    "fold_deg": 90.0,
@@ -763,7 +763,7 @@
    "pocket_depth_aero_max_mm": 8.4268,
    "keepout_tail_min_mm": 14.19,
    "stowed_tip_x_mm": 30.75,
-   "heel_stowed_below_spinner_inner_mm": 1.3498
+   "heel_stowed_below_spinner_inner_mm": 1.2998
   },
   {
    "fold_deg": 93.0,
@@ -777,7 +777,7 @@
    "pocket_depth_aero_max_mm": 8.8224,
    "keepout_tail_min_mm": 13.853,
    "stowed_tip_x_mm": 29.75,
-   "heel_stowed_below_spinner_inner_mm": 1.0174
+   "heel_stowed_below_spinner_inner_mm": 0.96737
   },
   {
    "fold_deg": 96.0,
@@ -791,7 +791,7 @@
    "pocket_depth_aero_max_mm": 9.166,
    "keepout_tail_min_mm": 13.578,
    "stowed_tip_x_mm": 28.75,
-   "heel_stowed_below_spinner_inner_mm": 0.70168
+   "heel_stowed_below_spinner_inner_mm": 0.65168
   }
  ],
  "fold_choice": {
@@ -3684,7 +3684,7 @@
  },
  "hinge": {
   "pin_cover_to_hull_min_mm": 3.8558,
-  "pin_cover_to_hub_core_min_mm": 2.4558,
+  "pin_cover_to_hub_core_min_mm": 2.4058,
   "pin_end_radius_max_mm": 19.007,
   "ear_protrusion_over_hull_mm": 0.0,
   "ear_protrusion_over_hub_core_mm": 0.0,
@@ -3699,41 +3699,41 @@
   "concept": [
    "Hub (printed, rotating): body of revolution from the hub front (static tail end + HUB_GAP) to the shaft end, outer surface = hull - spinner wall - gap. Bore 8 mm close-running with a D-flat; one M3 cup-point grub (ISO 4029) radial on the D-flat, between two blades.",
    "Clevis per blade: the blade root ends in a full-width knuckle (cylinder about the pin) that sits in a slot between two hub ears; the 3 mm pin runs TANGENTIALLY through ear, knuckle, ear.",
-   "Pins: ISO 8734 parallel pins pressed into the ears (printed 3.0 hole), knuckle bore 3.0 + CLEAR_ROTATE. They go in along e_t through a 3 mm channel from the hub core surface; the spinner shell covers both channel ends and retains the pins (folding-prop practice).",
+   "Pins: ISO 8734 parallel pins pressed into the ears (printed PIN_D + 2 PRESS_FIT hole), knuckle bore PIN_D + 2 CLEAR_ROTATE (radial per side). They go in along e_t through a 3 mm channel from the hub core surface; the spinner shell covers both channel ends and retains the pins (folding-prop practice).",
    "Deployed stop: a heel tab under the knuckle; under thrust its leading face lands on the hub front ring (stop face at x = hinge_x - heel_t/2), which takes the flapwise moment.",
-   "Spinner (printed, rotating): 1.2 mm shell from the hub front to the blunt tip with three slots (slot table). Slides on from aft, keys on the slots, and is held by one axial M3 screw into a tapped hole in the shaft end; the hub's aft face bears on the spinner's inner aft wall, so rotor thrust goes hub -> spinner -> M3 screw -> shaft (the grub only locks rotation and holds the hub during assembly).",
+   "Spinner (printed, rotating): 1.25 mm shell from the hub front to the blunt tip with three slots (slot table). Slides on from aft, keys on the slots, and is held by one axial M3 screw into a tapped hole in the shaft end; the hub's aft face bears on the spinner's inner aft wall, so rotor thrust goes hub -> spinner -> M3 screw -> shaft (the grub only locks rotation and holds the hub during assembly).",
    "Detents: N52 4x2 magnet pairs, heel face <-> stop face (deployed) and root inner face <-> boss on the static notch floor (stowed). No springs."
   ],
   "hub_front_x_mm": 108.6,
   "hub_aft_face_x_mm": 128.0,
   "shaft_end_x_mm": 128.0,
   "shaft_engagement_mm": 19.4,
-  "hub_core_r_at_hinge_mm": 21.977,
+  "hub_core_r_at_hinge_mm": 21.927,
   "bore_d_mm": 8.15,
   "d_flat_depth_mm": 0.5,
   "grub": {
    "size": "M3 x 4 cup point (ISO 4029)",
    "x_mm": 111.6,
    "azimuth_psi_deg": 60.0,
-   "hole_to_swept_roots_min_mm": 2.0565,
+   "hole_to_swept_roots_min_mm": 2.0559,
    "note": "radial M3 tapped hole (2.5 drill) at an azimuth between two blades; clearance = hole axis to swept root surface minus the 1.25 mm drill radius"
   },
   "ears": {
    "thickness_along_pin_mm": 3.7,
    "inner_face_tau_mm": 7.3,
    "outer_face_tau_mm": 11.0,
-   "material_around_pin_in_core_min_mm": 2.4558,
+   "material_around_pin_in_core_min_mm": 2.4058,
    "knuckle_side_clearance_mm": 0.3
   },
   "pin": {
    "d_mm": 3.0,
    "l_mm": 22.0,
    "standard": "ISO 8734 parallel pin 3 x 22 (VERIFY stock length)",
-   "ear_hole_d_mm": 3.0,
+   "ear_hole_d_mm": 2.9,
    "knuckle_bore_d_mm": 3.3,
    "insertion_channel_tau_mm": [
     11.0,
-    16.941
+    16.876
    ],
    "channel_to_neighbour_swept_roots_min_mm": 11.438,
    "retention": "spinner shell covers both channel ends"
@@ -3780,7 +3780,7 @@
    ]
   },
   "spinner": {
-   "wall_mm": 1.2,
+   "wall_mm": 1.25,
    "radial_gap_to_hub_mm": 0.2,
    "front_x_mm": 108.6,
    "tip_r_mm": 3.0,
@@ -3794,7 +3794,7 @@
     "flap_moment_Nm": 0.208,
     "thrust_per_blade_N": 3.6334,
     "stop_force_N": 36.731,
-    "flap_moment_nominal_axis_Nm": 0.1969,
+    "flap_moment_nominal_axis_Nm": 0.2138,
     "stop_contact_pressure_MPa": 0.75306,
     "pin_reaction_N": 40.364,
     "pin_double_shear_MPa": 2.8552,
@@ -3806,7 +3806,7 @@
     "flap_moment_Nm": 0.4799,
     "thrust_per_blade_N": 8.337,
     "stop_force_N": 84.745,
-    "flap_moment_nominal_axis_Nm": 0.454,
+    "flap_moment_nominal_axis_Nm": 0.4931,
     "stop_contact_pressure_MPa": 1.7375,
     "pin_reaction_N": 93.082,
     "pin_double_shear_MPa": 6.5842,
@@ -3818,7 +3818,7 @@
     "flap_moment_Nm": 0.8583,
     "thrust_per_blade_N": 14.941,
     "stop_force_N": 151.57,
-    "flap_moment_nominal_axis_Nm": 0.811,
+    "flap_moment_nominal_axis_Nm": 0.8813,
     "stop_contact_pressure_MPa": 3.1075,
     "pin_reaction_N": 166.51,
     "pin_double_shear_MPa": 11.778,
@@ -3830,7 +3830,7 @@
     "flap_moment_Nm": 1.3432,
     "thrust_per_blade_N": 23.424,
     "stop_force_N": 237.19,
-    "flap_moment_nominal_axis_Nm": 1.269,
+    "flap_moment_nominal_axis_Nm": 1.379,
     "stop_contact_pressure_MPa": 4.863,
     "pin_reaction_N": 260.62,
     "pin_double_shear_MPa": 18.435,
@@ -4000,7 +4000,7 @@
    5.8146
   ],
   "hub_slot_halfwidth_needed_max_mm": 12.97,
-  "heel_deployed_below_spinner_inner_min_mm": 6.2143,
+  "heel_deployed_below_spinner_inner_min_mm": 6.1643,
   "heel_deployed_x_range_mm": [
    113.5,
    118.5
@@ -4009,7 +4009,7 @@
    6.0,
    14.866
   ],
-  "heel_stowed_below_spinner_inner_min_mm": 1.3498,
+  "heel_stowed_below_spinner_inner_min_mm": 1.2998,
   "heel_stowed_x_range_mm": [
    116.0,
    124.0
@@ -4053,7 +4053,7 @@
   "ROOT_CLEAR": 0.8
  },
  "open_issues": [
-  "BEM layout_axis_check flew the final blade on hinge (116, 14) and the solved curved axis: cp peak 0.3802 vs 0.3804 nominal, max flap moment 1.343 vs 1.269 Nm at 2.5 m/s (+5.8 %), used for the hub load cases. blade_design.json rotor block still lists hinge (124, 18.5) until params.py adopts the proposed values; the in-plane lead is still ignored there.",
+  "BEM layout_axis_check flew the final blade on hinge (116, 14) and the solved curved axis: cp peak 0.3802 vs 0.3804 nominal, max flap moment 1.343 vs 1.379 Nm at 2.5 m/s (+-2.6 %), used for the hub load cases. blade_design.json rotor block still lists hinge (116, 14) until params.py adopts the proposed values; the in-plane lead is still ignored there.",
   "In-plane lead (pitch axis offset toward the LE, 4.9 to 11 mm) yaws the sections vs the local tangential flow by atan(lead/r) (stowed_sections.yaw_vs_local_tangent_deg); BEM assumes 0.",
   "Pockets cross the equator joint (x 57.5): the internal layout must thicken the shell there.",
   "Magnet force model calibrated to catalogue pull (k ~ 0.63); verify detent feel on a coupon.",

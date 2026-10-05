@@ -11,9 +11,12 @@ The coupon prints flat (as modelled, z up) together with two small keys that sit
 * 6 pin holes for the ISO 8734 3 mm dowel: press 2.9 / 3.0 / 3.1, running 3.2 / 3.3 / 3.4.
 * M3 heat-set insert hole 4.0 x 6.5 deep (CNC Kitchen M3 x 5.7).
 * M12x1.5 tap drill 10.5 through 10 mm (tap it and try the cable gland).
-* Fin dovetail: the shell's half-dovetail groove (shells.FIN_RAIL) cut vertically into the -X
-  face, as it prints in the front shell (nose up); key 'tongue' = the fin tongue inset by
-  CLEAR_SLIDE, printed root down like the fin.
+* Fin rail (recessed, owner decision 2026-10-05): the shell's half-dovetail groove (shells.FIN_RAIL:
+  5.2 neck, 45 deg undercut to 6.5 at the floor, GROOVE_DEPTH deep) cut vertically into the -X face, as it
+  prints in the front shell (nose up), with the floor's 4.1 x 2.1 x 2.05 magnet seat (45 deg top wall); key
+  'tongue' = the fin tongue (CLEAR_SLIDE on the walls and the flank, 0.05 over the floor) with its own seat,
+  printed floor face down like the blanking strip. Glue a 4 x 2 x 2 N52 block in each seat (attracting):
+  the key must slide in without play you can feel and click onto the floor magnet.
 * Bayonet: the socket section of the front shell (lip, 45 deg lip cone, twist channel with its
   45 deg ceiling, entry gap) unrolled into the +X face, printed in the shell's orientation; key
   'lug' = the spigot lug section on a short spigot plate, printed tip up like the aft shell. Push
@@ -67,17 +70,15 @@ INSERT = (11.0, -23.5, P.INSERT_M3["hole_d"], 6.5)
 M12 = (21.0, -21.0, 10.5)
 WINDOW = (-8.0, 7.0, -28.5, -15.0)         # x0, x1, y0, y1 (through)
 GROOVE_Y = -3.0                             # fin groove centre (w = 0) on the -X face
+GROOVE_DEPTH = 5.0                          # coupon groove depth from the face (the real one runs 0 to ~6.3)
+GROOVE_SEAT_Z = 5.0                         # floor magnet seat centre height (z)
 BAY_Z0 = 50.6                               # z = BAY_Z0 - x_shell maps the socket section
 LABEL_H = 2.6
 
 
 def _rail() -> dict:
-    try:
-        from .shells import FIN_RAIL as R
-        return dict(R, source="ovo.cad.shells.FIN_RAIL")
-    except Exception:  # noqa: BLE001
-        from .fins import _RAIL_FALLBACK
-        return dict(_RAIL_FALLBACK, source="fins fallback copy")
+    from .shells import FIN_RAIL as R
+    return dict(R, source="ovo.cad.shells.FIN_RAIL")
 
 
 def _shell_consts() -> dict:
@@ -155,23 +156,44 @@ def bayonet_cutters() -> list[Solid]:
                                           z_lip_aft=(za, zb), x_floor=xf)
 
 
-def groove_section_xy(inset: float = 0.0) -> list[tuple[float, float]]:
-    """The shell's fin groove (FIN_RAIL) on the -X face, as (x, y): depth into +x, w along y,
-    inset > 0 gives the tongue (straight rail: plain normal offsets)."""
+def groove_section_xy(inset: float = 0.0, inset_floor: float | None = None) -> list[tuple[float, float]]:
+    """The shell's recessed fin groove (FIN_RAIL) on the -X face, as (x, y): depth into +x from the face
+    (GROOVE_DEPTH at the floor), w along y. inset > 0 gives the tongue (walls and flank inset by inset
+    normal, the floor by inset_floor; a straight groove: plain normal offsets)."""
     R = _rail()
-    w0, wt, wb, hn, d = R["groove_w_offset"], R["groove_w_top"], R["groove_w_bottom"], R["groove_neck_h"], R[
-        "groove_depth"]
+    w0, wn, wb, hn = R["w0"], R["w0"] + R["slot_w"], R["w0"] + R["groove_w"], R["uc_h"]
+    d = GROOVE_DEPTH
     c = inset
-    w_lo, w_hi = w0 + c, w0 + wt - c
-    d_bot = d - c
-    slope = (wb - wt) / (d - hn)                    # dw/d(depth) along the flank (> 0)
-    delta = -c * math.sqrt(1 + slope ** 2)          # shift toward -w
-    d_n = hn + (w_hi - (w0 + wt) - delta) / slope
-    w_b = (w0 + wt) + (d_bot - hn) * slope + delta
+    cf = c if inset_floor is None else inset_floor
+    w_lo, w_hi = w0 + c, wn - c
+    d_bot = d - cf
+    slope = (wb - wn) / hn                          # dw / d(depth) along the flank (> 0), from the neck end
+    delta = -c * math.sqrt(1 + slope ** 2)          # flank shifted toward -w (normal distance c)
+    d_n = (d - hn) + (w_hi - wn - delta) / slope    # neck wall meets the shifted flank
+    w_b = wn + (d_bot - (d - hn)) * slope + delta
     x = lambda dep: -W / 2 + dep                    # noqa: E731
     top = -1.0 if inset == 0 else -c
     pts = [(x(top), w_lo), (x(top), w_hi), (x(d_n), w_hi), (x(d_bot), w_b), (x(d_bot), w_lo)]
     return [(px, GROOVE_Y + py) for px, py in pts]
+
+
+def groove_seat(key: bool = False) -> Solid:
+    """The 4.1 x 2.1 x 2.05 magnet seat: in the groove floor (+x into the block, its top wall a 45 deg ramp so
+    it prints with no ceiling) or, key True, in the tongue key's bottom face (the key's own frame)."""
+    R = _rail()
+    M = R["magnet"]
+    L, Wd, D = M["seat"][0], M["seat"][1], M["depth"]
+    wm = GROOVE_Y + R["w0"] + 0.5 * R["slot_w"]
+    if key:
+        xb = -W / 2 + GROOVE_DEPTH - 0.05
+        return _prism_xy([(xb - D, wm - Wd / 2), (xb + 0.5, wm - Wd / 2), (xb + 0.5, wm + Wd / 2), (xb - D, wm + Wd / 2)],
+                         GROOVE_SEAT_Z - L / 2, GROOVE_SEAT_Z + L / 2)
+    xf = -W / 2 + GROOVE_DEPTH
+    box = _prism_xy([(xf - 0.5, wm - Wd / 2), (xf + D, wm - Wd / 2), (xf + D, wm + Wd / 2), (xf - 0.5, wm + Wd / 2)],
+                    GROOVE_SEAT_Z - L / 2, GROOVE_SEAT_Z + L / 2)
+    ramp = _prism_xz([(xf - 0.5, GROOVE_SEAT_Z + L / 2), (xf + D, GROOVE_SEAT_Z + L / 2),
+                      (xf - 0.5, GROOVE_SEAT_Z + L / 2 + D + 0.5)], wm - Wd / 2, wm + Wd / 2)
+    return box.fuse(ramp).clean()
 
 
 def coupon_block(labels: bool = True) -> Solid:
@@ -197,6 +219,7 @@ def coupon_block(labels: bool = True) -> Solid:
                   H + 2.0)
     cuts.append(win)
     cuts.append(_prism_xy(groove_section_xy(0.0), -1.0, H + 1.0))
+    cuts.append(groove_seat())
     bc, _ = bayonet_cutters()
     cuts += bc
     # labels (top face)
@@ -225,6 +248,11 @@ SEAT_DEPTH = 2.2
 HSEATS = [(-22.0, (6.0, 2.0)), (-15.0, (6.1, 2.1)), (-8.0, (6.2, 2.2))]   # blade heel slot, in the -Y face
 HDISCS = [(2.0, 4.0), (9.0, 4.1), (16.0, 4.2)]                             # blade shank seat, -Y face
 EAR = dict(x0=12.0, x1=28.0, y=8.0, h=12.0, holes=((15.5, 2.9), (20.0, 3.0), (24.5, 3.1)))  # hub ear (3.7 thick)
+# review P7: the aft shell's stowed-detent seat (D4.1) prints with its axis ~49 deg from vertical; a sloped face
+# at the +X end of coupon B (normal 49 deg from vertical, x >= TILT_X0, y <= TILT_Y1) carries D4.0 / 4.1 / 4.2
+# seats along that normal, read from the -Y edge
+TILT = dict(deg=P.DETENTS["stowed_boss_lean_max_deg"] - 0.5, x0=23.0, y1=4.5, ys=(-12.0, -5.5, 1.0),
+            ds=(4.0, 4.1, 4.2))
 
 
 def coupon_b(labels: bool = True) -> Solid:
@@ -259,6 +287,20 @@ def coupon_b(labels: bool = True) -> Solid:
     for x, d in EAR["holes"]:
         cuts.append(Solid.make_cylinder(d / 2, t + 2.0, Plane(origin=(x, EAR["y"] - t / 2 - 1.0, CB_H + 6.0),
                                                             z_dir=(0, 1, 0))))
+    # review P7: sloped face + tilted disc seats (as the aft-shell detent boss prints)
+    a = math.radians(TILT["deg"])
+    nrm = (math.sin(a), 0.0, math.cos(a))
+    x0 = TILT["x0"]
+    wedge = Box(20.0, TILT["y1"] + CB_D / 2 + 1.0, CB_H + 2.0).moved(
+        Location((x0 + 10.0, (TILT["y1"] - CB_D / 2 - 1.0) / 2, CB_H / 2)))
+    keep = Solid.make_box(80.0, 80.0, 80.0, Plane(origin=(x0, -40.0, CB_H), x_dir=(math.cos(a), 0, -math.sin(a)),
+                                                  z_dir=nrm)).moved(Location((0, 0, 0)))
+    cuts.append(wedge & keep)                       # the corner above the 49 deg plane through (x0, z = CB_H)
+    s_mid = (CB_W / 2 - x0) / math.cos(a) / 2       # mid of the slope (along it from its top edge)
+    pc = (x0 + s_mid * math.cos(a), 0.0, CB_H - s_mid * math.sin(a))
+    for y, d in zip(TILT["ys"], TILT["ds"]):
+        o = (pc[0] - SEAT_DEPTH * nrm[0], y, pc[2] - SEAT_DEPTH * nrm[2])
+        cuts.append(Solid.make_cylinder(d / 2, SEAT_DEPTH + 2.0, Plane(origin=o, z_dir=nrm)))
     lab = [("8.10", -21.0, 14.0), ("8.15", -9.0, 14.0), ("8.25", 3.0, 14.0),
            ("6.0", -21.5, 0.6), ("6.1", -13.0, 0.6), ("6.2", -4.5, 0.6),
            ("4.0", 5.0, 0.6), ("4.1", 12.0, 0.6), ("4.2", 19.0, 0.6),
@@ -296,15 +338,27 @@ def key_lug() -> Solid:
     return k
 
 
-def key_tongue() -> Solid:
-    """The fin tongue inset by CLEAR_SLIDE in the coupon groove, with a 6 mm stub (the fin root)."""
-    tg = _prism_xy(groove_section_xy(P.CLEAR_SLIDE), 0.0, H)
-    sec = groove_section_xy(P.CLEAR_SLIDE)
+def key_tongue(stub_l: float = 6.0) -> Solid:
+    """The fin tongue (CLEAR_SLIDE on the walls, 0.05 over the floor) in the coupon groove, with a stub
+    (the fin root, stub_l long) and its magnet seat."""
+    cf = _rail()["clear_floor"]
+    tg = _prism_xy(groove_section_xy(P.CLEAR_SLIDE, cf), 0.0, H)
+    sec = groove_section_xy(P.CLEAR_SLIDE, cf)
     w_lo, w_hi = sec[0][1], sec[1][1]
     x_root = -W / 2 - P.CLEAR_SLIDE
-    stub = _prism_xy([(x_root - 6.0, w_lo), (x_root + 0.01, w_lo), (x_root + 0.01, w_hi), (x_root - 6.0, w_hi)], 0.0, H)
+    stub = _prism_xy([(x_root - stub_l, w_lo), (x_root + 0.01, w_lo), (x_root + 0.01, w_hi), (x_root - stub_l, w_hi)],
+                     0.0, H)
     k = tg.fuse(stub).clean()
-    return k
+    return k - groove_seat(key=True)
+
+
+def key_tongue_up_print() -> Solid:
+    """Review P7: a second tongue key printed as the FIN prints (tip down, tongue on top): on a 10 mm stub (the
+    fin root) standing on the bed, the tongue above it, its floor face up and its 45 deg undercut flank facing
+    down. The strip-like key (floor face down) calibrates the blanking strip; this one the fin."""
+    k = key_tongue(10.0).rotate(Axis.Y, -90.0)          # +x (the tongue floor) up, the stub down
+    bb = k.bounding_box()
+    return k.moved(Location((-bb.center().X, -bb.center().Y, -bb.min.Z)))
 
 
 def key_print_poses() -> tuple[Solid, Solid]:
@@ -341,15 +395,22 @@ def parts() -> list[dict]:
              notes="prints in the coupon window, tip up (as the aft shell's spigot)."),
         dict(name="tolerance_coupon_key_tongue", shape=kt.moved(OFFSET), print=kt, material="stand", role="hidden",
              rotor=False, qty=1, bought=False, explode=[0, 0, 0],
-             notes="prints in the coupon window, tongue bottom down (as the fin)."),
+             notes="prints in the coupon window, tongue bottom down (as the blanking strip)."),
     ]
+    ku = key_tongue_up_print()
+    out.append(dict(name="tolerance_coupon_key_tongue_up", shape=ku.moved(Location((0, 200.0, 0))), print=ku,
+                    material="stand", role="hidden", rotor=False, qty=1, bought=False, explode=[0, 0, 0],
+                    notes="review P7: prints beside the coupons standing on its 10 mm stub, tongue up (as the fin "
+                          "prints tip down): its undercut flank faces down at 45 deg like the fin's. Calibrates the "
+                          "fin's slide in the groove (the window key calibrates the blanking strip)."))
     cb = coupon_b()
     out.append(dict(name="tolerance_coupon_b", shape=cb.moved(Location((0, 230.0, 0))), print=cb, material="stand",
                     role="hidden", rotor=False, qty=1, bought=False, explode=[0, 0, 0],
                     notes="Print with coupon A (flat as modelled, no supports): hub D-bore on a shaft offcut, the "
-                          "6 x 2 x 2 block and 4 x 2 disc magnet seats vertical (hub, tail boss) and horizontal in the "
-                          "-Y face (blade heel and shank), and a 3.7 mm upright ear with horizontal D2.9 / 3.0 / 3.1 "
-                          "press holes like the hub ears."))
+                          "6 x 2 x 2 block and 4 x 2 disc magnet seats vertical (hub) and horizontal in the -Y face "
+                          "(blade heel and shank), D4.0 / 4.1 / 4.2 disc seats on the sloped +X end with their axes "
+                          "%.1f deg from vertical (the aft-shell detent bosses; read from the -Y edge), and a 3.7 mm "
+                          "upright ear with horizontal D2.9 / 3.0 / 3.1 press holes like the hub ears." % TILT["deg"]))
     _CACHE["parts"] = out
     return out
 
@@ -460,8 +521,12 @@ def checks() -> dict:
     tg = key_tongue()
     v = interference(blk0, tg)
     add("tongue key in the fin groove: overlap (mm3)", round(v, 4), v < 1e-3)
-    add("tongue key to groove walls (mm, CLEAR_SLIDE)", round(min_distance(blk0, tg), 3),
-        abs(min_distance(blk0, tg) - P.CLEAR_SLIDE) < 0.02)
+    cf = _rail()["clear_floor"]
+    add("tongue key to the groove (mm: 0.05 over the floor, CLEAR_SLIDE on the walls)", round(min_distance(blk0, tg), 3),
+        abs(min_distance(blk0, tg) - cf) < 0.02)
+    sp = {dy: round(interference(tg.moved(Location((0.0, dy, 0.0))), blk0), 4) for dy in (-0.27, -0.23, 0.23, 0.27)}
+    add("tongue key side play (CLEAR_SLIDE %.2f): overlap after shifts of -0.27 / -0.23 / +0.23 / +0.27 along w, mm3"
+        % P.CLEAR_SLIDE, list(sp.values()), sp[-0.23] < 1e-3 and sp[0.23] < 1e-3 and sp[-0.27] > 0 and sp[0.27] > 0)
     res["bayonet_map"] = dict(info, z_map="z = %.1f - x_shell, x = %.0f - (r - R_LIP)" % (BAY_Z0, W / 2),
                               note="unrolled at the feature radii (gap at R_LIP, channel at R_CH, lug at R_LUG)")
     res["rail_source"] = _rail()["source"]
@@ -477,9 +542,13 @@ def checks() -> dict:
         "to the lock end (0.25 radial, 0.2 axial play).",
         "coupon B, D-bore: an 8 mm g6 shaft offcut with a 0.5 flat must slide in by hand with no rock: pick the "
         "bore (8.10 / 8.15 / 8.25) and set ROTOR_HUB.bore_d.",
-        "coupon B, magnet seats: a 6 x 2 x 2 block and a 4 x 2 disc must drop into the vertical and the "
-        "horizontal (H) seats with a little play for the CA glue: pick the sizes for the hub (vertical), the "
-        "blade (horizontal) and the tail boss (vertical, prints at 45 deg).",
+        "coupon B, magnet seats: a 6 x 2 x 2 block and a 4 x 2 disc must drop into the vertical, the "
+        "horizontal (H) and the tilted seats with a little play for the CA glue: pick the sizes for the hub "
+        "(vertical), the blade (horizontal) and the aft-shell detent bosses (the tilted row on the sloped +X "
+        "end, axis %.1f deg from vertical as the bosses print; D4.0 / 4.1 / 4.2 from the -Y edge)." % TILT["deg"],
+        "keys: the window key (floor face down) is the blanking strip; the standing key "
+        "(tolerance_coupon_key_tongue_up, tongue up on a 10 mm stub) prints like the fin: both must slide in the "
+        "groove without play you can feel and click onto the floor magnet.",
         "coupon B, ear: the 3 mm dowel must press into the horizontal ear holes without splitting the 3.7 mm "
         "ear: pick 2.9 / 3.0 / 3.1 for the hub ears (they print horizontal, unlike the pin row of coupon A).",
     ]
