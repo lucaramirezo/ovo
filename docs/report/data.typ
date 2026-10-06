@@ -2,7 +2,7 @@
 // and ovo/params.py. Do not edit: re-run the script.
 #let d = (
   date: "2026-10-06",
-  rev: "42150e7",
+  rev: "df74660",
   author: "Luca Ramírez Olivo",
   affiliation: "Computer Engineering (final year), Universidad Europea de Madrid",
   hull_d: "75",
