@@ -268,8 +268,7 @@ Step by step, per part settings, plate layouts and post-processing:
 
 ## Credits and licences
 
-Designed by Luca Ramírez Olivo. Developed with Claude Code (Anthropic) as an AI coding assistant,
-as the commit history records.
+Designed by Luca Ramírez Olivo.
 
 Built on [build123d](https://github.com/gumyr/build123d) and OpenCascade (OCP),
 [NeuralFoil](https://github.com/peterdsharpe/NeuralFoil) and AeroSandbox,
